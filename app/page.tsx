@@ -49,6 +49,15 @@ const coverStyles: Record<string, React.CSSProperties> = {
   khm11903: { background: "linear-gradient(135deg, #2c3e50, #4ca1af)" },
 };
 
+const memberTags: Record<string, string[]> = {
+  whatcherry4: ["한국어", "버추얼", "노래", "하데스"],
+  singgyul: ["게임", "소통", "편안함", "클립"],
+  ldrboo: ["보이는라디오", "토크", "밤"],
+  chaenna02: ["버추얼", "힐링", "잡담"],
+  kymakyma: ["ASMR", "음악", "감성"],
+  khm11903: ["리액션", "예능", "챌린지"],
+};
+
 export default function HomePage() {
   const [members, setMembers] = useState<MemberStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -118,6 +127,7 @@ export default function HomePage() {
               coverStyle={coverStyles[member.id] ?? { background: "#1f1f2f" }}
               title={member.title}
               thumbUrl={member.thumbUrl}
+              tags={memberTags[member.id] ?? ["라이브"]}
             />
           ))}
         </div>
@@ -143,21 +153,23 @@ export default function HomePage() {
           <h2>투표 목록</h2>
           <Badge tone="accent">샘플 데이터</Badge>
         </div>
-        <div className="poll-grid">
-          {pollSamples.map((poll) => (
-            <article key={poll.id} className="poll-card">
-              <h3>{poll.title}</h3>
-              <ul>
-                {poll.options.map((option) => (
-                  <li key={option}>
-                    <span>{option}</span>
-                    <span className="muted">투표수</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="muted">누적 {poll.votes}표</p>
-            </article>
-          ))}
+        <div className="card-body">
+          <div className="poll-grid">
+            {pollSamples.map((poll) => (
+              <article key={poll.id} className="poll-card">
+                <h3>{poll.title}</h3>
+                <ul>
+                  {poll.options.map((option) => (
+                    <li key={option}>
+                      <span>{option}</span>
+                      <span className="muted">투표수</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="muted">누적 {poll.votes}표</p>
+              </article>
+            ))}
+          </div>
         </div>
         <div className="section-footer">
           <Button href="/votes">투표 전체 보기</Button>
@@ -169,12 +181,14 @@ export default function HomePage() {
           <h2>가이드 카테고리</h2>
           <span className="muted">팬들이 좋아하는 시작 포인트</span>
         </div>
-        <div className="chip-row">
-          {guideCategories.map((category) => (
-            <Button key={category.id} href={category.href}>
-              {category.label}
-            </Button>
-          ))}
+        <div className="card-body">
+          <div className="chip-row">
+            {guideCategories.map((category) => (
+              <Button key={category.id} href={category.href}>
+                {category.label}
+              </Button>
+            ))}
+          </div>
         </div>
       </Card>
     </main>
