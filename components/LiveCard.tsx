@@ -7,18 +7,38 @@ type LiveCardProps = {
   soopUrl: string;
   avatarUrl: string;
   coverStyle: React.CSSProperties;
+  title: string | null;
+  thumbUrl: string | null;
 };
 
-export default function LiveCard({ name, soopUrl, avatarUrl, coverStyle }: LiveCardProps) {
+export default function LiveCard({
+  name,
+  soopUrl,
+  avatarUrl,
+  coverStyle,
+  title,
+  thumbUrl,
+}: LiveCardProps) {
   const [avatarError, setAvatarError] = useState(false);
   const initials = name.slice(0, 2);
 
+  const backgroundStyle = thumbUrl
+    ? {
+        backgroundImage: `url(${thumbUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : coverStyle;
+
   return (
     <a className="live-card" href={soopUrl} target="_blank" rel="noreferrer">
-      <div className="live-cover" style={coverStyle}>
+      <div className="live-cover" style={backgroundStyle}>
         <span className="live-badge">
           <span className="live-dot" /> LIVE
         </span>
+        <div className="live-overlay">
+          <p className="live-title">{title ?? "방송 준비 중"}</p>
+        </div>
       </div>
       <div className="live-info">
         <div className="avatar">
