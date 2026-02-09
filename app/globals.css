@@ -262,7 +262,7 @@ main {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.35) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.85) 100%);
 }
 
 .live-badge {
@@ -278,6 +278,14 @@ main {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.2em;
+}
+
+.live-title-overlay {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 24px;
 }
 
 .live-dot {
@@ -297,7 +305,7 @@ main {
 }
 
 .live-title {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
   line-height: 1.35;
   display: -webkit-box;
@@ -320,8 +328,8 @@ main {
   font-size: 11px;
   padding: 3px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(179, 107, 255, 0.45);
-  background: rgba(16, 14, 30, 0.75);
+  border: 1px solid rgba(179, 107, 255, 0.35);
+  background: rgba(16, 14, 30, 0.6);
   color: #dcd3ff;
   letter-spacing: 0.02em;
   white-space: nowrap;
