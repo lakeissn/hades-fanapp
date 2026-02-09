@@ -254,6 +254,7 @@ main {
   overflow: hidden;
   border: 1px solid rgba(179, 107, 255, 0.25);
   background: rgba(8, 8, 20, 0.6);
+  min-height: 360px;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
@@ -263,7 +264,7 @@ main {
 }
 
 .live-cover {
-  min-height: 180px;
+  flex: 7;
   position: relative;
   padding: 16px;
   display: flex;
@@ -306,20 +307,23 @@ main {
 }
 
 .live-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 18px;
+  flex: 3;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  row-gap: 6px;
+  padding: 12px 14px 14px;
 }
 
-.live-header {
+.live-text {
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .live-title {
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 700;
   line-height: 1.35;
   display: -webkit-box;
@@ -364,15 +368,9 @@ main {
   }
 }
 
-.live-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .avatar {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.08);
@@ -380,6 +378,7 @@ main {
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  grid-row: 1 / span 3;
 }
 
 .avatar img {
@@ -389,13 +388,8 @@ main {
 }
 
 .live-name {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
-}
-
-.live-status {
-  font-size: 13px;
-  color: var(--muted);
 }
 
 .chip-grid {
