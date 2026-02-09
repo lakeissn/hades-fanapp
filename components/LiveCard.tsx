@@ -40,27 +40,27 @@ export default function LiveCard({
         </span>
       </div>
       <div className="live-body">
-        <div className="live-header">
-          <div className="avatar">
-            {avatarError ? (
-              <span>{initials}</span>
-            ) : (
-              <img
-                src={avatarUrl}
-                alt={`${name} 프로필`}
-                onError={() => setAvatarError(true)}
-              />
-            )}
-          </div>
-          <p className="live-name">{name}</p>
+        <div className="avatar">
+          {avatarError ? (
+            <span>{initials}</span>
+          ) : (
+            <img
+              src={avatarUrl}
+              alt={`${name} 프로필`}
+              onError={() => setAvatarError(true)}
+            />
+          )}
         </div>
-        <p className="live-title">{title ?? "방송 준비 중"}</p>
-        <div className="tag-row">
-          {tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="tag-pill">
-              {tag}
-            </span>
-          ))}
+        <div className="live-text">
+          <p className="live-name">{name}</p>
+          <p className="live-title">{title ?? "방송 준비 중"}</p>
+          <div className="tag-row">
+            {tags.slice(0, 4).map((tag) => (
+              <span key={tag} className="tag-pill">
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </a>
