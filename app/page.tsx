@@ -34,6 +34,7 @@ type MemberStatus = {
   soopUrl: string;
   avatarUrl: string;
   isLive: boolean;
+  liveUrl: string | null;
   fetchedAt: string;
 };
 
@@ -110,7 +111,7 @@ export default function HomePage() {
             <LiveCard
               key={member.id}
               name={member.name}
-              soopUrl={member.soopUrl}
+              soopUrl={member.liveUrl ?? member.soopUrl}
               avatarUrl={member.avatarUrl}
               coverStyle={coverStyles[member.id] ?? { background: "#1f1f2f" }}
             />
