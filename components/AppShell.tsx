@@ -15,45 +15,47 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-shell">
-      <header className="header">
-        <div className="logo">Hades Fanapp</div>
-        <nav className="header-nav" aria-label="주요 메뉴">
-          {links.map((link) => (
-            <a
-              key={link.href}
-              className={`nav-link ${pathname === link.href ? "active" : ""}`}
-              href={link.href}
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
-        <button
-          className="hamburger"
-          type="button"
-          aria-expanded={menuOpen}
-          aria-label="메뉴 열기"
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-        {menuOpen && (
-          <div className="menu-panel">
+      <div className="header-wrap">
+        <header className="header">
+          <div className="logo">Hades Fanapp</div>
+          <nav className="header-nav" aria-label="주요 메뉴">
             {links.map((link) => (
               <a
                 key={link.href}
-                className={`menu-link ${pathname === link.href ? "active" : ""}`}
+                className={`nav-link ${pathname === link.href ? "active" : ""}`}
                 href={link.href}
-                onClick={() => setMenuOpen(false)}
               >
                 {link.label}
               </a>
             ))}
-          </div>
-        )}
-      </header>
+          </nav>
+          <button
+            className="hamburger"
+            type="button"
+            aria-expanded={menuOpen}
+            aria-label="메뉴 열기"
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          {menuOpen && (
+            <div className="menu-panel">
+              {links.map((link) => (
+                <a
+                  key={link.href}
+                  className={`menu-link ${pathname === link.href ? "active" : ""}`}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          )}
+        </header>
+      </div>
       <div className="container">{children}</div>
     </div>
   );
