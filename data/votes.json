@@ -1,0 +1,20 @@
+[
+  {
+    "id": "poll-1",
+    "title": "오늘 방송 BGM은?",
+    "options": ["원곡", "팬메이드", "시크릿"],
+    "link": "https://example.com/poll/1",
+    "opensAt": "2026-02-01T10:00:00Z",
+    "closesAt": "2026-02-01T12:00:00Z",
+    "status": "open"
+  },
+  {
+    "id": "poll-2",
+    "title": "다음 컨텐츠 선택",
+    "options": ["챌린지", "에피소드", "팬아트 리뷰"],
+    "link": "https://example.com/poll/2",
+    "opensAt": "2026-02-02T10:00:00Z",
+    "closesAt": "2026-02-02T12:00:00Z",
+    "status": "closed"
+  }
+]
