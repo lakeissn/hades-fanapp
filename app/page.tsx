@@ -1,20 +1,22 @@
-const broadcastStatus = {
-  isLive: true,
-  title: "하데스 라이브",
-  description: "오늘은 스토리 모드 2챕터 도전!",
-  viewers: 1284,
-};
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Badge from "../components/Badge";
+import Button from "../components/Button";
+import Card from "../components/Card";
+import LiveCard from "../components/LiveCard";
+import MemberChip from "../components/MemberChip";
 
 const pollSamples = [
   {
     id: "poll-1",
-    title: "새 투표: 오늘 방송 BGM은?",
+    title: "오늘 방송 BGM은?",
     options: ["원곡", "팬메이드", "시크릿"],
     votes: 284,
   },
   {
     id: "poll-2",
-    title: "새 투표: 다음 컨텐츠 선택",
+    title: "다음 컨텐츠 선택",
     options: ["챌린지", "에피소드", "팬아트 리뷰"],
     votes: 402,
   },
@@ -22,128 +24,151 @@ const pollSamples = [
 
 const guideCategories = [
   { id: "streaming", label: "스트리밍 가이드", href: "/guides/streaming" },
-  { id: "gifting", label: "선물하기", href: "/guides/gifting" },
+  { id: "gift", label: "선물하기", href: "/guides/gift" },
   { id: "download", label: "다운로드", href: "/guides/download" },
 ];
 
-const cardStyle = {
-  border: "1px solid #1e293b",
-  borderRadius: "20px",
-  backgroundColor: "#111827",
-  padding: "20px",
+type MemberStatus = {
+  id: string;
+  name: string;
+  soopUrl: string;
+  avatarUrl: string;
+  isLive: boolean;
+  fetchedAt: string;
+};
+
+const coverStyles: Record<string, React.CSSProperties> = {
+  whatcherry4: { background: "linear-gradient(135deg, #3a1c71, #d76d77)" },
+  singgyul: { background: "linear-gradient(135deg, #1d4350, #a43931)" },
+  ldrboo: { background: "linear-gradient(135deg, #42275a, #734b6d)" },
+  chaenna02: { background: "linear-gradient(135deg, #16222a, #3a6073)" },
+  kymakyma: { background: "linear-gradient(135deg, #141e30, #243b55)" },
+  khm11903: { background: "linear-gradient(135deg, #2c3e50, #4ca1af)" },
 };
 
 export default function HomePage() {
+  const [members, setMembers] = useState<MemberStatus[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchMembers = async () => {
+      try {
+        const response = await fetch("/api/members/status");
+        const data = (await response.json()) as MemberStatus[];
+        if (isMounted) {
+          setMembers(data);
+        }
+      } catch {
+        if (isMounted) {
+          setMembers([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchMembers();
+    const interval = setInterval(fetchMembers, 30_000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const { liveMembers, offlineMembers } = useMemo(() => {
+    const live = members.filter((member) => member.isLive);
+    const offline = members.filter((member) => !member.isLive);
+    return { liveMembers: live, offlineMembers: offline };
+  }, [members]);
+
   return (
-    <main style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <section style={cardStyle}>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: "16px",
-          }}
-        >
+    <main>
+      <section className="section-block">
+        <div className="section-head">
           <div>
-            <p style={{ fontSize: "12px", color: "#94a3b8" }}>방송 상태</p>
-            <h2 style={{ fontSize: "24px", margin: "6px 0" }}>
-              {broadcastStatus.isLive ? "ON AIR" : "OFFLINE"}
-            </h2>
-            <p style={{ margin: "6px 0", color: "#e2e8f0" }}>{broadcastStatus.title}</p>
-            <p style={{ fontSize: "14px", color: "#94a3b8" }}>
-              {broadcastStatus.description}
-            </p>
+            <p className="section-tag">LIVE NOW</p>
+            <h2>지금 방송 중인 멤버</h2>
           </div>
-          <div
-            style={{
-              borderRadius: "16px",
-              border: "1px solid #f43f5e",
-              padding: "12px 16px",
-              color: "#fecdd3",
-              backgroundColor: "rgba(244, 63, 94, 0.1)",
-            }}
-          >
-            <p style={{ fontSize: "11px", letterSpacing: "0.2em" }}>현재 시청자</p>
-            <p style={{ fontSize: "24px", margin: "4px 0 0" }}>{broadcastStatus.viewers}</p>
-          </div>
+          <Badge tone="primary">자동 감지</Badge>
+        </div>
+        <div className="live-grid">
+          {isLoading && (
+            <div className="empty-state">
+              <p>라이브 상태를 불러오는 중...</p>
+            </div>
+          )}
+          {!isLoading && liveMembers.length === 0 && (
+            <div className="empty-state">
+              <p>현재 방송 중인 멤버가 없습니다.</p>
+            </div>
+          )}
+          {liveMembers.map((member) => (
+            <LiveCard
+              key={member.id}
+              name={member.name}
+              soopUrl={member.soopUrl}
+              avatarUrl={member.avatarUrl}
+              coverStyle={coverStyles[member.id] ?? { background: "#1f1f2f" }}
+            />
+          ))}
         </div>
       </section>
 
-      <section style={cardStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ fontSize: "20px", margin: 0 }}>새 투표</h3>
-          <span
-            style={{
-              fontSize: "12px",
-              backgroundColor: "#1f2937",
-              color: "#cbd5f5",
-              borderRadius: "999px",
-              padding: "4px 12px",
-            }}
-          >
-            샘플 데이터
-          </span>
+      <section className="section-block">
+        <div className="section-head">
+          <div>
+            <p className="section-tag">OFFLINE</p>
+            <h2>잠시 쉬는 중</h2>
+          </div>
+          <Badge tone="muted">자동 감지</Badge>
         </div>
-        <div
-          style={{
-            marginTop: "16px",
-            display: "grid",
-            gap: "16px",
-          }}
-        >
+        <div className="chip-grid">
+          {offlineMembers.map((member) => (
+            <MemberChip key={member.id} name={member.name} avatarUrl={member.avatarUrl} />
+          ))}
+        </div>
+      </section>
+
+      <Card>
+        <div className="section-head">
+          <h2>투표 목록</h2>
+          <Badge tone="accent">샘플 데이터</Badge>
+        </div>
+        <div className="poll-grid">
           {pollSamples.map((poll) => (
-            <article key={poll.id} style={{ border: "1px solid #1f2937", borderRadius: "16px", padding: "16px" }}>
-              <h4 style={{ fontSize: "18px", margin: "0 0 8px" }}>{poll.title}</h4>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "8px" }}>
+            <article key={poll.id} className="poll-card">
+              <h3>{poll.title}</h3>
+              <ul>
                 {poll.options.map((option) => (
-                  <li
-                    key={option}
-                    style={{
-                      border: "1px solid #1f2937",
-                      borderRadius: "12px",
-                      padding: "8px 12px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      color: "#cbd5f5",
-                      fontSize: "14px",
-                    }}
-                  >
+                  <li key={option}>
                     <span>{option}</span>
-                    <span style={{ color: "#64748b", fontSize: "12px" }}>투표수</span>
+                    <span className="muted">투표수</span>
                   </li>
                 ))}
               </ul>
-              <p style={{ marginTop: "10px", fontSize: "12px", color: "#64748b" }}>
-                누적 {poll.votes}표
-              </p>
+              <p className="muted">누적 {poll.votes}표</p>
             </article>
           ))}
         </div>
-      </section>
+      </Card>
 
-      <section style={cardStyle}>
-        <h3 style={{ fontSize: "20px", marginTop: 0 }}>가이드 카테고리</h3>
-        <div style={{ marginTop: "12px", display: "flex", flexWrap: "wrap", gap: "12px" }}>
+      <Card>
+        <div className="section-head">
+          <h2>가이드 카테고리</h2>
+          <span className="muted">팬들이 좋아하는 시작 포인트</span>
+        </div>
+        <div className="chip-row">
           {guideCategories.map((category) => (
-            <a
-              key={category.id}
-              href={category.href}
-              style={{
-                padding: "8px 16px",
-                borderRadius: "999px",
-                border: "1px solid #334155",
-                color: "#e2e8f0",
-                textDecoration: "none",
-                fontSize: "14px",
-              }}
-            >
+            <Button key={category.id} href={category.href}>
               {category.label}
-            </a>
+            </Button>
           ))}
         </div>
-      </section>
+      </Card>
     </main>
   );
 }
