@@ -26,6 +26,8 @@ body {
     var(--bg);
   color: var(--text);
   font-family: "Pretendard", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -43,7 +45,7 @@ button:focus-visible {
 main {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 24px;
 }
 
 .app-shell {
@@ -56,16 +58,16 @@ main {
   width: 100%;
   max-width: 960px;
   margin: 0 auto;
-  padding: 84px 20px 100px;
+  padding: 88px 20px 110px;
 }
 
 .glass {
   background: var(--bg-glass);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 24px;
   backdrop-filter: blur(18px);
   box-shadow: var(--shadow);
-  padding: 18px;
+  padding: 20px;
 }
 
 .header {
@@ -77,7 +79,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
+  padding: 16px 20px;
   background: rgba(8, 8, 20, 0.7);
   border-bottom: 1px solid rgba(140, 120, 255, 0.2);
   backdrop-filter: blur(16px);
@@ -86,21 +88,25 @@ main {
 .header .logo {
   font-weight: 700;
   letter-spacing: 0.08em;
-  font-size: 14px;
+  font-size: 15px;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.header nav {
+.header-nav {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  align-items: center;
 }
 
 .nav-link {
-  padding: 6px 12px;
+  min-height: 44px;
+  padding: 10px 16px;
   border-radius: 999px;
   border: 1px solid rgba(140, 120, 255, 0.3);
-  font-size: 13px;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
@@ -114,6 +120,56 @@ main {
   border-color: rgba(243, 107, 255, 0.6);
 }
 
+.hamburger {
+  display: none;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(140, 120, 255, 0.3);
+  background: rgba(12, 12, 25, 0.6);
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.hamburger span {
+  width: 18px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 999px;
+}
+
+.menu-panel {
+  position: absolute;
+  top: 64px;
+  right: 20px;
+  background: rgba(10, 10, 24, 0.95);
+  border: 1px solid rgba(140, 120, 255, 0.3);
+  border-radius: 16px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 160px;
+  box-shadow: var(--shadow);
+}
+
+.menu-link {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  border: 1px solid transparent;
+}
+
+.menu-link.active {
+  border-color: rgba(243, 107, 255, 0.6);
+  background: rgba(179, 107, 255, 0.2);
+}
+
 .tabbar {
   position: fixed;
   bottom: 0;
@@ -122,18 +178,22 @@ main {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
-  padding: 10px 16px 16px;
+  padding: 12px 16px 18px;
   background: rgba(8, 8, 20, 0.85);
   border-top: 1px solid rgba(140, 120, 255, 0.2);
   backdrop-filter: blur(18px);
 }
 
 .tabbar a {
+  min-height: 44px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
-  padding: 8px 6px;
+  padding: 10px 6px;
   border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tabbar a.active {
@@ -143,16 +203,17 @@ main {
 }
 
 .button {
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 10px 16px;
+  gap: 8px;
+  padding: 10px 18px;
   border-radius: 999px;
   border: 1px solid rgba(179, 107, 255, 0.5);
   background: linear-gradient(135deg, rgba(179, 107, 255, 0.25), rgba(243, 107, 255, 0.35));
   color: var(--text);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -166,7 +227,7 @@ main {
 .section-block {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .section-head {
@@ -177,25 +238,31 @@ main {
 }
 
 .section-head h2 {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .section-tag {
-  font-size: 12px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.2em;
   color: var(--muted);
 }
 
+.section-footer {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .live-grid {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .live-card {
   display: flex;
   flex-direction: column;
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
   border: 1px solid rgba(179, 107, 255, 0.25);
   background: rgba(8, 8, 20, 0.6);
@@ -208,19 +275,22 @@ main {
 }
 
 .live-cover {
-  min-height: 140px;
+  min-height: 180px;
   position: relative;
-  padding: 14px;
+  padding: 16px;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  justify-content: space-between;
   align-items: flex-start;
+  background-size: cover;
+  background-position: center;
 }
 
 .live-cover::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(10, 10, 20, 0.7));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(10, 10, 20, 0.75));
 }
 
 .live-badge {
@@ -229,7 +299,7 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   background: rgba(10, 10, 20, 0.6);
   border-radius: 999px;
   border: 1px solid rgba(255, 90, 170, 0.7);
@@ -245,6 +315,19 @@ main {
   background: #ff4d8d;
   box-shadow: 0 0 12px rgba(255, 77, 141, 0.8);
   animation: pulse 1.6s infinite;
+}
+
+.live-overlay {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.live-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
 
 @keyframes pulse {
@@ -266,12 +349,12 @@ main {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px 18px;
+  padding: 16px 18px 20px;
 }
 
 .avatar {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.08);
@@ -288,34 +371,35 @@ main {
 }
 
 .live-name {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
 }
 
 .live-status {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
 .chip-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .member-chip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 16px;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
   border: 1px solid rgba(140, 120, 255, 0.2);
   background: rgba(10, 10, 24, 0.55);
+  min-height: 44px;
 }
 
 .chip-avatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.08);
@@ -332,17 +416,17 @@ main {
 }
 
 .chip-name {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .chip-status {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 
 .empty-state {
-  padding: 20px;
-  border-radius: 16px;
+  padding: 22px;
+  border-radius: 18px;
   border: 1px dashed rgba(140, 120, 255, 0.4);
   color: var(--muted);
   text-align: center;
@@ -350,56 +434,67 @@ main {
 
 .poll-grid {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .poll-card {
   border: 1px solid rgba(140, 120, 255, 0.2);
-  border-radius: 16px;
-  padding: 14px;
+  border-radius: 18px;
+  padding: 16px;
   background: rgba(9, 9, 20, 0.4);
 }
 
 .poll-card h3 {
-  font-size: 15px;
-  margin-bottom: 10px;
+  font-size: 16px;
+  margin-bottom: 12px;
 }
 
 .poll-card ul {
   list-style: none;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .poll-card li {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text);
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 12px;
   border: 1px solid rgba(140, 120, 255, 0.2);
+  min-height: 44px;
+  align-items: center;
 }
 
 .chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .muted {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .header-nav {
+    display: none;
+  }
+  .hamburger {
+    display: inline-flex;
+  }
 }
 
 @media (min-width: 768px) {
   .container {
-    padding: 96px 32px 120px;
+    padding: 110px 32px 130px;
   }
   .tabbar {
     left: 50%;
     transform: translateX(-50%);
-    width: 480px;
+    width: 520px;
     border-radius: 18px 18px 0 0;
   }
   .live-grid {
