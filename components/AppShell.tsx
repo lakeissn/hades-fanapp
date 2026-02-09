@@ -17,7 +17,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <header className="header">
         <div className="logo">Hades Fanapp</div>
-        <nav className="header-nav">
+        <nav className="header-nav" aria-label="주요 메뉴">
           {links.map((link) => (
             <a
               key={link.href}
