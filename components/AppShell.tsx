@@ -55,20 +55,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </header>
       <div className="container">{children}</div>
-      <nav className="tabbar">
-        <a className={pathname === "/" ? "active" : ""} href="/">
-          홈
-        </a>
-        <a className={pathname === "/votes" ? "active" : ""} href="/votes">
-          투표
-        </a>
-        <a className={pathname?.startsWith("/guides") ? "active" : ""} href="/guides">
-          가이드
-        </a>
-        <a href="#" aria-disabled>
-          설정
-        </a>
-      </nav>
     </div>
   );
 }
