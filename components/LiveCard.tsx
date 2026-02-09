@@ -9,6 +9,7 @@ type LiveCardProps = {
   coverStyle: React.CSSProperties;
   title: string | null;
   thumbUrl: string | null;
+  tags: string[];
 };
 
 export default function LiveCard({
@@ -18,6 +19,7 @@ export default function LiveCard({
   coverStyle,
   title,
   thumbUrl,
+  tags,
 }: LiveCardProps) {
   const [avatarError, setAvatarError] = useState(false);
   const initials = name.slice(0, 2);
@@ -38,6 +40,13 @@ export default function LiveCard({
         </span>
         <div className="live-overlay">
           <p className="live-title">{title ?? "방송 준비 중"}</p>
+          <div className="tag-row">
+            {tags.slice(0, 4).map((tag) => (
+              <span key={tag} className="tag-pill">
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
       <div className="live-info">
