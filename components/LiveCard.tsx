@@ -38,16 +38,11 @@ export default function LiveCard({
         <span className="live-badge">
           <span className="live-dot" /> LIVE
         </span>
+        <div className="live-title-overlay">
+          <p className="live-title">{title ?? "방송 준비 중"}</p>
+        </div>
       </div>
       <div className="live-body">
-        <p className="live-title">{title ?? "방송 준비 중"}</p>
-        <div className="tag-row">
-          {tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="tag-pill">
-              {tag}
-            </span>
-          ))}
-        </div>
         <div className="live-info">
           <div className="avatar">
             {avatarError ? (
@@ -64,6 +59,13 @@ export default function LiveCard({
             <p className="live-name">{name}</p>
             <p className="live-status">방송중</p>
           </div>
+        </div>
+        <div className="tag-row">
+          {tags.slice(0, 4).map((tag) => (
+            <span key={tag} className="tag-pill">
+              {tag}
+            </span>
+          ))}
         </div>
       </div>
     </a>
