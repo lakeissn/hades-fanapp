@@ -39,34 +39,66 @@ const members = [
   },
 ];
 
+type MemberStatus = {
+  id: string;
+  name: string;
+  soopUrl: string;
+  avatarUrl: string;
+  isLive: boolean;
+  liveUrl: string | null;
+  fetchedAt: string;
+};
+
 let cached:
   | {
-      data: Array<{
-        id: string;
-        name: string;
-        soopUrl: string;
-        avatarUrl: string;
-        isLive: boolean;
-        fetchedAt: string;
-      }>;
+      data: MemberStatus[];
       expiresAt: number;
     }
   | null = null;
 
-async function fetchStatus(soopUrl: string) {
+async function fetchStatus(bjid: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const response = await fetch(soopUrl, {
-      headers: { "User-Agent": "Mozilla/5.0" },
+    const body = new URLSearchParams({
+      bid: bjid,
+      bno: "null",
+      type: "live",
+      pwd: "",
+      player_type: "html5",
+      stream_type: "common",
+      quality: "HD",
+      mode: "landing",
+      from_api: "0",
+      is_revive: "false",
+    });
+
+    const response = await fetch("https://live.sooplive.co.kr/afreeca/player_live_api.php", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
       signal: controller.signal,
       cache: "no-store",
     });
-    const html = await response.text();
-    const isOffline = html.includes("Streamer is offline.");
-    return !isOffline;
+
+    const data = (await response.json()) as {
+      CHANNEL?: {
+        BNO?: number | string;
+      };
+    };
+
+    const bnoValue = Number(data.CHANNEL?.BNO ?? 0);
+    if (bnoValue > 0) {
+      return {
+        isLive: true,
+        liveUrl: `https://play.sooplive.co.kr/${bjid}/${bnoValue}`,
+      };
+    }
+    return { isLive: false, liveUrl: null };
   } catch {
-    return false;
+    return { isLive: false, liveUrl: null };
   } finally {
     clearTimeout(timeout);
   }
@@ -78,12 +110,12 @@ export async function GET() {
     return NextResponse.json(cached.data);
   }
 
-  const results = await Promise.all(
+  const results: MemberStatus[] = await Promise.all(
     members.map(async (member) => {
-      const isLive = await fetchStatus(member.soopUrl);
+      const status = await fetchStatus(member.id);
       return {
         ...member,
-        isLive,
+        ...status,
         fetchedAt: new Date().toISOString(),
       };
     })
