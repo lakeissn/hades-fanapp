@@ -57,6 +57,62 @@ const memberTags: Record<string, string[]> = {
   khm11903: ["리액션", "예능", "챌린지"],
 };
 
+const officialLinks = [
+  {
+    id: "cafe",
+    label: "팬카페",
+    href: "https://cafe.naver.com/moomoo",
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M4 4h9.2c4.5 0 6.8 2.2 6.8 6.5 0 4.7-2.3 7.1-6.8 7.1H9.6v-3.2h3.8c2.3 0 3.4-1.1 3.4-3.8 0-2.4-1.1-3.5-3.4-3.5H7v10.5H4V4z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "youtube",
+    label: "유튜브",
+    href: "https://www.youtube.com/@HADES_offi",
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M21.6 7.7c-.2-.9-.9-1.6-1.8-1.8C18.2 5.5 12 5.5 12 5.5s-6.2 0-7.8.4c-.9.2-1.6.9-1.8 1.8C2 9.3 2 12 2 12s0 2.7.4 4.3c.2.9.9 1.6 1.8 1.8 1.6.4 7.8.4 7.8.4s6.2 0 7.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.6.4-4.3.4-4.3s0-2.7-.4-4.3z"
+          fill="currentColor"
+        />
+        <path d="M10 15.5V8.5L16 12l-6 3.5z" fill="#0b0b14" />
+      </svg>
+    ),
+  },
+  {
+    id: "instagram",
+    label: "인스타그램",
+    href: "https://www.instagram.com/hades_offi/",
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm5 5.3a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4zm6.1-.8a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "x",
+    label: "X",
+    href: "https://x.com/hades_offi",
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M4 4h4.7l4.3 5.8L18.3 4H22l-6.3 7.7L22 20h-4.7l-4.6-6.1L6.2 20H2.5l6.7-8.1L4 4z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
+];
+
 export default function HomePage() {
   const [members, setMembers] = useState<MemberStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -187,6 +243,31 @@ export default function HomePage() {
           </div>
         </div>
       </Card>
+
+      <section className="section-block">
+        <div className="section-head">
+          <div>
+            <p className="section-tag">OFFICIAL</p>
+            <h2>공식 링크</h2>
+          </div>
+        </div>
+        <div className="link-grid">
+          {officialLinks.map((link) => (
+            <a
+              key={link.id}
+              className="link-card"
+              href={link.href}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span className="link-icon" aria-hidden>
+                {link.icon}
+              </span>
+              <span className="link-label">{link.label}</span>
+            </a>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
