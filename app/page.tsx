@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Badge from "../components/Badge";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import LiveCard from "../components/LiveCard";
@@ -105,7 +104,6 @@ export default function HomePage() {
             <p className="section-tag">LIVE NOW</p>
             <h2>지금 방송 중인 멤버</h2>
           </div>
-          <Badge tone="primary">자동 감지</Badge>
         </div>
         <div className="live-grid">
           {isLoading && (
@@ -139,7 +137,6 @@ export default function HomePage() {
             <p className="section-tag">OFFLINE</p>
             <h2>잠시 쉬는 중</h2>
           </div>
-          <Badge tone="muted">자동 감지</Badge>
         </div>
         <div className="chip-grid">
           {offlineMembers.map((member) => (
@@ -151,7 +148,6 @@ export default function HomePage() {
       <Card>
         <div className="section-head">
           <h2>투표 목록</h2>
-          <Badge tone="accent">샘플 데이터</Badge>
         </div>
         <div className="card-body">
           <div className="poll-grid">
