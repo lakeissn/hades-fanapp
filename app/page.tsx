@@ -35,6 +35,8 @@ type MemberStatus = {
   avatarUrl: string;
   isLive: boolean;
   liveUrl: string | null;
+  title: string | null;
+  thumbUrl: string | null;
   fetchedAt: string;
 };
 
@@ -114,6 +116,8 @@ export default function HomePage() {
               soopUrl={member.liveUrl ?? member.soopUrl}
               avatarUrl={member.avatarUrl}
               coverStyle={coverStyles[member.id] ?? { background: "#1f1f2f" }}
+              title={member.title}
+              thumbUrl={member.thumbUrl}
             />
           ))}
         </div>
@@ -154,6 +158,9 @@ export default function HomePage() {
               <p className="muted">누적 {poll.votes}표</p>
             </article>
           ))}
+        </div>
+        <div className="section-footer">
+          <Button href="/votes">투표 전체 보기</Button>
         </div>
       </Card>
 
