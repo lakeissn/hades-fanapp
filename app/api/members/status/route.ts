@@ -46,7 +46,22 @@ type MemberStatus = {
   avatarUrl: string;
   isLive: boolean;
   liveUrl: string | null;
+  title: string | null;
+  thumbUrl: string | null;
   fetchedAt: string;
+};
+
+type LiveApiResponse = {
+  CHANNEL?: {
+    BNO?: number | string;
+    TITLE?: string;
+    THUMBNAIL?: string;
+    THUMB?: string;
+    THUMB_URL?: string;
+  };
+  title?: string;
+  thumbnail?: string;
+  thumbUrl?: string;
 };
 
 let cached:
@@ -55,6 +70,32 @@ let cached:
       expiresAt: number;
     }
   | null = null;
+
+function pickFirstString(...values: Array<string | undefined | null>) {
+  return values.find((value) => typeof value === "string" && value.trim().length > 0) ?? null;
+}
+
+function extractMetaContent(html: string, property: string) {
+  const regex = new RegExp(
+    `<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`,
+    "i"
+  );
+  const match = html.match(regex);
+  return match?.[1] ?? null;
+}
+
+function extractTitleTag(html: string) {
+  const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  return match?.[1] ?? null;
+}
+
+async function fetchLiveMeta(liveUrl: string) {
+  const response = await fetch(liveUrl, { cache: "no-store" });
+  const html = await response.text();
+  const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
+  const thumbUrl = extractMetaContent(html, "og:image");
+  return { title, thumbUrl };
+}
 
 async function fetchStatus(bjid: string) {
   const controller = new AbortController();
@@ -83,22 +124,48 @@ async function fetchStatus(bjid: string) {
       cache: "no-store",
     });
 
-    const data = (await response.json()) as {
-      CHANNEL?: {
-        BNO?: number | string;
-      };
-    };
-
+    const data = (await response.json()) as LiveApiResponse;
     const bnoValue = Number(data.CHANNEL?.BNO ?? 0);
     if (bnoValue > 0) {
-      return {
-        isLive: true,
-        liveUrl: `https://play.sooplive.co.kr/${bjid}/${bnoValue}`,
-      };
+      const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bnoValue}`;
+      const apiTitle = pickFirstString(data.CHANNEL?.TITLE, data.title);
+      const apiThumb = pickFirstString(
+        data.CHANNEL?.THUMBNAIL,
+        data.CHANNEL?.THUMB,
+        data.CHANNEL?.THUMB_URL,
+        data.thumbnail,
+        data.thumbUrl
+      );
+
+      if (apiTitle && apiThumb) {
+        return {
+          isLive: true,
+          liveUrl,
+          title: apiTitle,
+          thumbUrl: apiThumb,
+        };
+      }
+
+      try {
+        const meta = await fetchLiveMeta(liveUrl);
+        return {
+          isLive: true,
+          liveUrl,
+          title: apiTitle ?? meta.title,
+          thumbUrl: apiThumb ?? meta.thumbUrl,
+        };
+      } catch {
+        return {
+          isLive: true,
+          liveUrl,
+          title: apiTitle,
+          thumbUrl: apiThumb,
+        };
+      }
     }
-    return { isLive: false, liveUrl: null };
+    return { isLive: false, liveUrl: null, title: null, thumbUrl: null };
   } catch {
-    return { isLive: false, liveUrl: null };
+    return { isLive: false, liveUrl: null, title: null, thumbUrl: null };
   } finally {
     clearTimeout(timeout);
   }
