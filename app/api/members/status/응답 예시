@@ -1,0 +1,20 @@
+[
+  {
+    "id": "whatcherry4",
+    "name": "연초록",
+    "soopUrl": "https://play.sooplive.co.kr/whatcherry4",
+    "avatarUrl": "https://stimg.sooplive.co.kr/LOGO/wh/whatcherry4/whatcherry4.jpg",
+    "isLive": true,
+    "liveUrl": "https://play.sooplive.co.kr/whatcherry4/123456789",
+    "fetchedAt": "2026-02-09T16:00:00.000Z"
+  },
+  {
+    "id": "singgyul",
+    "name": "씽귤",
+    "soopUrl": "https://play.sooplive.co.kr/singgyul",
+    "avatarUrl": "https://stimg.sooplive.co.kr/LOGO/si/singgyul/singgyul.jpg",
+    "isLive": false,
+    "liveUrl": null,
+    "fetchedAt": "2026-02-09T16:00:00.000Z"
+  }
+]
