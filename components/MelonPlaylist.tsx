@@ -41,7 +41,7 @@ export default function MelonPlaylist() {
   ];
 
   return (
-    <section className={`melon-deck ${isOpen ? "open" : "closed"}`}>
+    <section className={`melon-deck-premium ${isOpen ? "open" : "closed"}`}>
       <div 
         className="melon-header" 
         onClick={() => setIsOpen(!isOpen)}
@@ -49,7 +49,7 @@ export default function MelonPlaylist() {
         tabIndex={0}
       >
         <div className="melon-brand">
-          <svg className="melon-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg className="melon-logo" viewBox="0 0 100 100" fill="none">
              <circle cx="50" cy="50" r="50" fill="#00CD3C"/>
              <path d="M50 22C34.5 22 22 34.5 22 50C22 65.5 34.5 78 50 78C65.5 78 78 65.5 78 50C78 34.5 65.5 22 50 22ZM50 72C37.8 72 28 62.2 28 50C28 37.8 37.8 28 50 28C62.2 28 72 37.8 72 50C72 62.2 62.2 72 50 72Z" fill="white" fillOpacity="0.2"/>
              <path d="M68 38L62 38V62H56V44H54L48 62H42L36 44H34V62H28V38H34L45 56L56 38H62" fill="white" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
@@ -57,36 +57,24 @@ export default function MelonPlaylist() {
           <span className="melon-title">Melon 원클릭 플레이리스트</span>
         </div>
         <div className="melon-toggle">
-          <svg 
-            width="24" 
-            height="24" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-            style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s" }}
-          >
-            <path d="M6 9l6 6 6-6" />
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M6 9l6 6 6-6" style={{ transform: isOpen ? "rotate(180deg)" : "none", transformOrigin: "center", transition: "0.3s" }} />
           </svg>
         </div>
       </div>
 
       {isOpen && (
         <div className="melon-body">
-          <div className="melon-tabs-scroll">
-            <div className="melon-tabs">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  className={`melon-tab ${device === tab.id ? "active" : ""}`}
-                  onClick={() => setDevice(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          <div className="melon-tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                className={`melon-tab ${device === tab.id ? "active" : ""}`}
+                onClick={() => setDevice(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           <div className="melon-tracks">
@@ -94,12 +82,10 @@ export default function MelonPlaylist() {
               <a key={index} href={link} className="melon-play-btn">
                 <div className="play-info">
                   <span className="play-label">{labels[index]}</span>
-                  <span className="play-sub">바로 실행</span>
+                  <span className="play-sub">리스트 자동 장전</span>
                 </div>
                 <div className="play-action">
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 </div>
               </a>
             ))}
