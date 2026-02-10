@@ -1314,95 +1314,214 @@ main {
     padding: 14px;
   }
 }
-/* --- Melon Playlist (Collapsible & Themed) --- */
+[🟢 Online Mode | 26.02.11_04:11:22]
 
-/* 멜론 프리미엄 데크 */
+사용자님, 정말 죄송합니다. 보내주신 이미지의 멜론 아이콘이 화면을 가릴 정도로 거대하게 나오는 문제, 그리고 원하시는 '깔끔하고 세련된' 느낌이 나지 않아 얼마나 답답하셨을지 충분히 이해합니다.
+
+즉시 해결해 드리겠습니다.
+
+문제의 원인: MelonPlaylist.tsx에 있는 SVG 아이콘(.melon-logo)에 크기 제한(width/height) CSS가 빠져있어서, 아이콘이 컨테이너 크기만큼 무식하게 커져버린 것입니다.
+
+해결 방안:
+
+아이콘 크기 강제 고정: 멜론 로고를 30px 정도로 줄여서 타이틀과 균형을 맞춥니다.
+
+UI 전면 리뉴얼: 참고하신 이미지의 느낌(표절 아님)을 살려, '뮤직 플레이어 리스트' 처럼 세련되고 정돈된 디자인으로 변경합니다. 단순한 버튼 나열이 아니라, 앨범 트랙 리스트 같은 고급스러운 느낌을 주겠습니다.
+
+1. 스타일 전면 수정 (app/globals.css)
+기존의 어설픈 melon- 관련 코드를 아래 코드로 완전히 교체해 주세요. 아이콘 크기 문제 해결은 물론, 전체적인 퀄리티를 대폭 올렸습니다.
+
+CSS
+
+/* app/globals.css */
+
+/* ... (기존 상단 코드 유지) ... */
+/* ... (맨 아래쪽 melon 관련 코드를 찾아서 지우고 아래 내용으로 덮어쓰세요) ... */
+
+/* --- 🎵 Melon Playlist (Redesigned) --- */
+
 .melon-deck-premium {
-  background: rgba(18, 18, 35, 0.6);
+  /* 배경: 유리 질감 + 그라데이션 */
+  background: linear-gradient(160deg, rgba(20, 20, 35, 0.8), rgba(10, 10, 20, 0.9));
   border: 1px solid rgba(179, 107, 255, 0.2);
   border-radius: 24px;
   overflow: hidden;
   backdrop-filter: blur(20px);
   margin-bottom: 24px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.3s ease;
 }
 
 .melon-deck-premium.open {
-  border-color: rgba(179, 107, 255, 0.5);
-  box-shadow: 0 0 30px rgba(179, 107, 255, 0.15);
+  border-color: rgba(0, 205, 60, 0.5); /* 멜론 그린 포인트 */
+  box-shadow: 0 20px 60px -10px rgba(0, 205, 60, 0.15);
 }
 
+/* 헤더 영역 */
 .melon-header {
-  padding: 18px 24px;
+  padding: 20px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
+  background: rgba(255, 255, 255, 0.01);
   transition: background 0.2s;
 }
 
+.melon-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.melon-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px; /* 아이콘과 텍스트 사이 간격 */
+}
+
+/* 🔴 [핵심 수정] 아이콘 크기 고정 */
+.melon-logo {
+  width: 32px; 
+  height: 32px;
+  flex-shrink: 0; /* 찌그러짐 방지 */
+  filter: drop-shadow(0 0 8px rgba(0, 205, 60, 0.4)); /* 살짝 빛나게 */
+}
+
 .melon-title {
-  font-size: 17px;
-  font-weight: 800;
-  background: linear-gradient(90deg, #fff, #b36bff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.melon-toggle {
+  color: rgba(255, 255, 255, 0.3);
+  transition: color 0.2s;
+}
+
+.melon-header:hover .melon-toggle {
+  color: #fff;
+}
+
+/* 본문 영역 */
+.melon-body {
+  padding: 0 24px 28px;
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 탭 (기기 선택) 디자인 */
+.melon-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  width: fit-content;
 }
 
 .melon-tab {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(179, 107, 255, 0.1);
-  color: #a1a1c9;
-  padding: 10px 20px;
-  border-radius: 14px;
-  font-weight: 700;
-  transition: all 0.2s;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #888;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.melon-tab:hover {
+  color: #ccc;
 }
 
 .melon-tab.active {
-  background: rgba(179, 107, 255, 0.2);
-  color: #fff;
-  border-color: #b36bff;
-  box-shadow: 0 0 15px rgba(179, 107, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #00cd3c; /* 멜론 그린 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 트랙 리스트 디자인 (참고 이미지 느낌 반영) */
+.melon-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .melon-play-btn {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 16px 20px;
-  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: all 0.3s;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
 }
 
+/* 호버 시 고급스러운 인터랙션 */
 .melon-play-btn:hover {
-  background: rgba(179, 107, 255, 0.1);
-  border-color: rgba(179, 107, 255, 0.4);
-  transform: translateX(6px);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(0, 205, 60, 0.4);
+  transform: scale(1.01);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.melon-play-btn:active {
+  transform: scale(0.98);
+}
+
+.play-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.play-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+
+.play-sub {
+  font-size: 12px;
+  color: #888;
+  font-weight: 500;
 }
 
 .play-action {
-  background: #b36bff; /* 멜론 그린 대신 하데스 퍼플 사용 */
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  background: rgba(0, 205, 60, 0.15); /* 은은한 멜론색 배경 */
+  color: #00cd3c;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(179, 107, 255, 0.4);
+  border: 1px solid rgba(0, 205, 60, 0.3);
+  transition: all 0.2s;
 }
 
-/* Mobile Fix */
+.melon-play-btn:hover .play-action {
+  background: #00cd3c;
+  color: #000; /* 아이콘 검정색으로 반전 */
+  box-shadow: 0 0 15px rgba(0, 205, 60, 0.6);
+  transform: rotate(90deg); /* 플레이 버튼 회전 효과 */
+}
+
+/* 모바일 대응 */
 @media (max-width: 480px) {
-  .melon-header {
-    padding: 12px 16px;
-  }
-  .melon-body {
-    padding: 0 16px 16px;
-  }
+  .melon-header { padding: 16px 20px; }
+  .melon-body { padding: 0 20px 24px; }
+  .melon-tabs { width: 100%; justify-content: space-between; }
+  .melon-tab { flex: 1; padding: 10px 0; text-align: center; }
 }
 /* --- Guide Detail Page (Premium Style) --- */
 
