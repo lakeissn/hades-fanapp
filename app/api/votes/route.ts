@@ -79,10 +79,14 @@ function normalizePlatform(platform: string) {
 }
 
 function parsePlatforms(platformsRaw: string) {
-  const unique = new Set<string>();
+  const normalized = platformsRaw
+    .replace(/[|,/]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  platformsRaw
-    .split("|")
+  const unique = new Set<string>();
+  normalized
+    .split(" ")
     .map((value) => normalizePlatform(value))
     .filter(Boolean)
     .forEach((platform) => unique.add(platform));
