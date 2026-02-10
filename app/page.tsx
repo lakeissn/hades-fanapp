@@ -6,21 +6,6 @@ import Card from "../components/Card";
 import LiveCard from "../components/LiveCard";
 import MemberChip from "../components/MemberChip";
 
-const pollSamples = [
-  {
-    id: "poll-1",
-    title: "오늘 방송 BGM은?",
-    options: ["원곡", "팬메이드", "시크릿"],
-    votes: 284,
-  },
-  {
-    id: "poll-2",
-    title: "다음 컨텐츠 선택",
-    options: ["챌린지", "에피소드", "팬아트 리뷰"],
-    votes: 402,
-  },
-];
-
 const guideCategories = [
   { id: "streaming", label: "스트리밍 가이드", href: "/guides/streaming" },
   { id: "gift", label: "선물하기", href: "/guides/gift" },
@@ -37,6 +22,14 @@ type MemberStatus = {
   title: string | null;
   thumbUrl: string | null;
   fetchedAt: string;
+};
+
+type VoteItem = {
+  id: string;
+  title: string;
+  link?: string;
+  opensAt?: string;
+  closesAt?: string;
 };
 
 const coverStyles: Record<string, React.CSSProperties> = {
@@ -113,9 +106,57 @@ const officialLinks = [
   },
 ];
 
+function isExpired(closesAt?: string) {
+  if (!closesAt) {
+    return false;
+  }
+  const closesDate = new Date(closesAt);
+  if (Number.isNaN(closesDate.getTime())) {
+    return false;
+  }
+  return closesDate.getTime() <= Date.now();
+}
+
+function isOpenNow(vote: VoteItem) {
+  const now = Date.now();
+  const openTime = vote.opensAt ? new Date(vote.opensAt).getTime() : null;
+  if (openTime && !Number.isNaN(openTime) && openTime > now) {
+    return false;
+  }
+  return !isExpired(vote.closesAt);
+}
+
+function formatDeadline(closesAt?: string) {
+  if (!closesAt) {
+    return "마감 정보 없음";
+  }
+  const closeDate = new Date(closesAt);
+  if (Number.isNaN(closeDate.getTime())) {
+    return "마감 정보 없음";
+  }
+  const remainingMs = closeDate.getTime() - Date.now();
+  if (remainingMs > 0) {
+    const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+    if (hours < 24) {
+      return `${hours}시간 후 마감`;
+    }
+    const days = Math.floor(hours / 24);
+    return `${days}일 후 마감`;
+  }
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(closeDate);
+}
+
 export default function HomePage() {
   const [members, setMembers] = useState<MemberStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [votes, setVotes] = useState<VoteItem[]>([]);
+  const [isVotesLoading, setIsVotesLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -146,11 +187,44 @@ export default function HomePage() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchVotes = async () => {
+      try {
+        const response = await fetch("/api/votes");
+        const data = (await response.json()) as VoteItem[];
+        if (isMounted) {
+          setVotes(data);
+        }
+      } catch {
+        if (isMounted) {
+          setVotes([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsVotesLoading(false);
+        }
+      }
+    };
+
+    fetchVotes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const { liveMembers, offlineMembers } = useMemo(() => {
     const live = members.filter((member) => member.isLive);
     const offline = members.filter((member) => !member.isLive);
     return { liveMembers: live, offlineMembers: offline };
   }, [members]);
+
+  const votePreviewItems = useMemo(
+    () => votes.filter((vote) => isOpenNow(vote)).slice(0, 3),
+    [votes],
+  );
 
   return (
     <main>
@@ -206,22 +280,27 @@ export default function HomePage() {
           <h2>투표 목록</h2>
         </div>
         <div className="card-body">
-          <div className="poll-grid">
-            {pollSamples.map((poll) => (
-              <article key={poll.id} className="poll-card">
-                <h3>{poll.title}</h3>
-                <ul>
-                  {poll.options.map((option) => (
-                    <li key={option}>
-                      <span>{option}</span>
-                      <span className="muted">투표수</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="muted">누적 {poll.votes}표</p>
-              </article>
-            ))}
-          </div>
+          {isVotesLoading ? (
+            <div className="empty-state">
+              <p>투표 목록을 불러오는 중...</p>
+            </div>
+          ) : votePreviewItems.length === 0 ? (
+            <div className="empty-state">
+              <p>진행중인 투표가 없습니다.</p>
+            </div>
+          ) : (
+            <div className="vote-preview-list">
+              {votePreviewItems.map((vote) => (
+                <article key={vote.id} className="vote-preview-item">
+                  <p className="vote-preview-title">{vote.title}</p>
+                  <span className="vote-status" data-status="open">
+                    진행중
+                  </span>
+                  <p className="vote-preview-deadline">{formatDeadline(vote.closesAt)}</p>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
         <div className="section-footer">
           <Button href="/votes">투표 전체 보기</Button>
