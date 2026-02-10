@@ -5,6 +5,7 @@ export const metadata = {
   title: "Hades Fanapp",
   description: "Hades fanapp MVP",
   themeColor: "#0b0b14",
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({
