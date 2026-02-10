@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Badge from "../../components/Badge";
-import Card from "../../components/Card";
-import VotesAccordion, { VoteItem } from "../../components/VotesAccordion";
+import Badge from "@/components/Badge";
+import Card from "@/components/Card";
+import VotesAccordion, { VoteItem } from "@/components/VotesAccordion";
 
 type Vote = VoteItem;
 
