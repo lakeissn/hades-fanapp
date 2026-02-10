@@ -1910,7 +1910,8 @@ main {
   height: 60px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 12px;
   padding: 0 22px;
   background: linear-gradient(145deg, rgba(0, 205, 60, 0.03), rgba(0, 205, 60, 0.08));
   border: 1px solid rgba(0, 205, 60, 0.15);
@@ -1921,6 +1922,10 @@ main {
   cursor: pointer;
   transition: all 0.25s ease;
   text-decoration: none;
+}
+
+.one-click-btn svg {
+  margin-left: auto;
 }
 
 .one-click-btn:hover {
