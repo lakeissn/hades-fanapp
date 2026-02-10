@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, SyntheticEvent } from "react";
 import { VoteItem } from "./VotesAccordion";
 
 const statusLabels: Record<string, string> = {
@@ -53,6 +53,10 @@ export default function VoteAccordionItem({
     }
   };
 
+  const stopRowToggle = (event: SyntheticEvent) => {
+    event.stopPropagation();
+  };
+
   return (
     <div className={`vote-item ${isOpen ? "is-open" : ""}`}>
       <div
@@ -64,7 +68,14 @@ export default function VoteAccordionItem({
         onKeyDown={handleKeyDown}
       >
         <span className="vote-icon" aria-hidden>
-          <img src="/icons/idolchamp.png" alt="" />
+          <img
+            src={`/icons/${vote.platform}.png`}
+            alt=""
+            onError={(event) => {
+              (event.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+          <span className="vote-icon-fallback">V</span>
         </span>
         <span className="vote-title">
           <span className="vote-title-text">{vote.title}</span>
@@ -74,16 +85,11 @@ export default function VoteAccordionItem({
         </span>
         {!isOpen && (
           <a
-            className={`vote-link ${vote.link ? "" : "is-disabled"}`}
-            href={vote.link ?? "#"}
+            className="vote-link"
+            href={vote.url}
             target="_blank"
             rel="noreferrer"
-            onClick={(event) => {
-              event.stopPropagation();
-              if (!vote.link) {
-                event.preventDefault();
-              }
-            }}
+            onClick={stopRowToggle}
           >
             바로 가기
           </a>
@@ -105,8 +111,16 @@ export default function VoteAccordionItem({
         <div className="vote-panel">
           <div className="vote-panel-head">
             <span className="vote-panel-icon" aria-hidden>
-              <img src="/icons/idolchamp.png" alt="" />
+              <img
+                src={`/icons/${vote.platform}.png`}
+                alt=""
+                onError={(event) => {
+                  (event.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <span className="vote-icon-fallback">V</span>
             </span>
+            <span className="vote-platform-label">{vote.platformLabel}</span>
             {(openDate || closeDate) && (
               <span className="vote-dates">
                 {openDate && <span>오픈 {openDate}</span>}
@@ -115,17 +129,15 @@ export default function VoteAccordionItem({
               </span>
             )}
           </div>
-          {vote.link && (
-            <a
-              className="vote-link-detail"
-              href={vote.link}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(event) => event.stopPropagation()}
-            >
-              바로 가기
-            </a>
-          )}
+          <a
+            className="vote-link-detail"
+            href={vote.url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={stopRowToggle}
+          >
+            바로 가기
+          </a>
         </div>
       )}
     </div>
