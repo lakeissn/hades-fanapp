@@ -1,9 +1,3 @@
-diff --git a/app/page.tsx b/app/page.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..f67c8dbe122793d8d4b5e46981215322bed2cd38
---- /dev/null
-+++ b/app/page.tsx
-@@ -0,0 +1,380 @@
 +"use client";
 +
 +import { useEffect, useMemo, useState } from "react";
