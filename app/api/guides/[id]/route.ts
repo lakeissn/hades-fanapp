@@ -1,9 +1,3 @@
-diff --git a/app/api/guides/[id]/route.ts b/app/api/guides/[id]/route.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..1fe38ae43a776affeaf6eeedba7d6bcd708235ca
---- /dev/null
-+++ b/app/api/guides/[id]/route.ts
-@@ -0,0 +1,65 @@
 +import { promises as fs } from "fs";
 +import path from "path";
 +import { NextResponse } from "next/server";
