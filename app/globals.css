@@ -1766,36 +1766,53 @@ main {
   }
 }
 /* --- 🍈 Melon Trigger Card (유지) --- */
-/* (기존 트리거 카드 CSS가 있다면 그대로 두셔도 됩니다. 아래는 팝업 전용입니다.) */
+/* --- 🍈 Melon Popup Fixed Layout (Final Fix) --- */
 
-/* --- 🍈 Popup Design Glow Up (색감 교체) --- */
-
-/* 1. 기본 컨테이너 (배경에 깊이 있는 그라데이션 적용) */
-.modal-content {
-  background: linear-gradient(165deg, #1a1a24 0%, #222232 100%); /* 깊이감 있는 배경 */
-  width: 92%;
-  max-width: 520px; /* 크기 유지 */
-  max-height: 85vh;
-  border-radius: 24px;
-  box-shadow: 0 30px 60px -15px rgba(0, 205, 60, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  border: none; /* 기존 테두리 제거 후 그림자로 대체 */
-  
-  display: flex;
-  flex-direction: column;
-  overflow: hidden; 
-  padding: 0 !important; 
-  position: relative;
+/* 1. 모달 오버레이 (화면 전체 덮기 & 중앙 정렬 강제) */
+.modal-overlay {
+  position: fixed !important; /* 무조건 화면 고정 */
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important; /* 다른 모든 요소보다 위에 */
+  background: rgba(0, 0, 0, 0.85); /* 배경 조금 더 어둡게 */
+  backdrop-filter: blur(14px);
+  display: flex !important;
+  align-items: center !important; /* 수직 중앙 */
+  justify-content: center !important; /* 수평 중앙 */
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-/* 2. 헤더 (더 선명하게) */
+/* 2. 모달 컨테이너 (디자인 유지 + 위치 보정) */
+.modal-content {
+  /* 색감 및 디자인 (이전과 동일) */
+  background: linear-gradient(165deg, #1a1a24 0%, #222232 100%);
+  border-radius: 24px;
+  box-shadow: 0 30px 60px -15px rgba(0, 205, 60, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  
+  /* 크기 및 구조 */
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh; /* 화면 높이의 85%까지만 */
+  
+  /* 내부 스크롤 구조 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  margin: auto; /* 플렉스 중앙 정렬 보조 */
+}
+
+/* 3. 헤더 (고정) */
 .modal-header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 22px 28px;
-  background: rgba(26, 26, 36, 0.95); /* 배경과 일체감 */
-  backdrop-filter: blur(10px); /* 반투명 효과 */
+  background: rgba(26, 26, 36, 0.98);
   z-index: 50;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -1810,7 +1827,6 @@ main {
   letter-spacing: -0.02em;
 }
 
-/* 헤더 포인트에 글로우 효과 추가 */
 .modal-title span[style*="#00cd3c"] {
   text-shadow: 0 0 12px rgba(0, 205, 60, 0.6);
 }
@@ -1829,13 +1845,13 @@ main {
 }
 
 .modal-close:hover {
-  background: rgba(255, 50, 50, 0.15); /* 닫기 버튼은 붉은색 틴트 */
+  background: rgba(255, 50, 50, 0.15);
   color: #ff4d4d;
   border-color: rgba(255, 50, 50, 0.3);
   transform: rotate(90deg);
 }
 
-/* 3. 스크롤 영역 */
+/* 4. 스크롤 영역 (내부만 스크롤) */
 .modal-scroll-area {
   flex: 1;
   overflow-y: auto;
@@ -1843,7 +1859,6 @@ main {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 스크롤바도 녹색 포인트로 */
 .modal-scroll-area::-webkit-scrollbar { width: 5px; }
 .modal-scroll-area::-webkit-scrollbar-thumb {
   background: rgba(0, 205, 60, 0.3);
@@ -1853,9 +1868,7 @@ main {
   background: rgba(0, 205, 60, 0.6);
 }
 
-/* --- ✨ 탭 & 버튼 색감 대폭 개선 --- */
-
-/* 탭 영역 배경을 더 어둡게 눌러줌 */
+/* 5. 탭 & 버튼 디자인 (이전과 동일한 예쁜 디자인) */
 .device-tabs-scroll {
   display: flex;
   gap: 10px;
@@ -1884,21 +1897,14 @@ main {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* 활성화된 탭: 선명한 라임 그린으로 강조 */
 .device-tab-item.active {
   background: linear-gradient(135deg, #00cd3c, #00b533);
-  color: #00220a; /* 텍스트를 어둡게 하여 가독성 확보 */
+  color: #00220a;
   border-color: transparent;
   box-shadow: 0 4px 15px rgba(0, 205, 60, 0.3);
   font-weight: 800;
 }
 
-.device-tab-item:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-}
-
-/* 링크 버튼 그리드 */
 .link-button-grid {
   display: flex;
   flex-direction: column;
@@ -1908,12 +1914,11 @@ main {
 
 .one-click-btn {
   width: 100%;
-  height: 60px; /* 버튼 높이 살짝 키워 존재감 업 */
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 22px;
-  /* 기본 상태에서도 아주 미세한 녹색 틴트 적용 */
   background: linear-gradient(145deg, rgba(0, 205, 60, 0.03), rgba(0, 205, 60, 0.08));
   border: 1px solid rgba(0, 205, 60, 0.15);
   border-radius: 18px;
@@ -1927,19 +1932,12 @@ main {
   overflow: hidden;
 }
 
-/* 버튼 호버 시 빛나는 효과 */
 .one-click-btn:hover {
   border-color: #00cd3c;
   background: linear-gradient(145deg, rgba(0, 205, 60, 0.15), rgba(0, 205, 60, 0.25));
-  transform: translateY(-3px) scale(1.01);
+  transform: translateY(-3px);
   color: #fff;
   box-shadow: 0 8px 25px -5px rgba(0, 205, 60, 0.3);
-}
-
-/* 클릭 효과 */
-.one-click-btn:active {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 15px -5px rgba(0, 205, 60, 0.3);
 }
 
 .btn-label {
@@ -1948,7 +1946,6 @@ main {
   gap: 14px;
 }
 
-/* 번호 뱃지: 테두리 라인으로 변경하여 세련되게 */
 .btn-number {
   width: 28px;
   height: 28px;
@@ -1968,36 +1965,14 @@ main {
   background: #00cd3c;
   border-color: #00cd3c;
   color: #0a2a12;
-  box-shadow: 0 0 10px rgba(0, 205, 60, 0.5);
 }
 
-/* 화살표 아이콘도 호버 시 색상 변경 */
-.one-click-btn svg {
-  transition: all 0.25s ease;
-  stroke: rgba(255, 255, 255, 0.4) !important; /* 기존 인라인 스타일 덮어쓰기 */
-}
-.one-click-btn:hover svg {
-  stroke: #00cd3c !important;
-  transform: translateX(4px);
-}
-
-/* 이미지 영역 마감 */
 .playlist-image-area {
   width: 100%;
   border-radius: 18px;
   overflow: hidden;
-  border: 1px solid rgba(0, 205, 60, 0.2); /* 녹색 테두리 */
+  border: 1px solid rgba(0, 205, 60, 0.2);
   background: #0a0a12;
-  position: relative;
-}
-
-/* 이미지 위에 미세한 광택 효과 추가 */
-.playlist-image-area::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.05), transparent);
-  pointer-events: none;
 }
 
 .playlist-image-area img {
@@ -2005,5 +1980,4 @@ main {
   height: auto;
   display: block;
   object-fit: contain;
-  opacity: 0.95;
 }
