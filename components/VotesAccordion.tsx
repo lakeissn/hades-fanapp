@@ -1,9 +1,3 @@
-diff --git a/components/VotesAccordion.tsx b/components/VotesAccordion.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..9baf2a3dbdbc83df0b345b1d61241215d0047664
---- /dev/null
-+++ b/components/VotesAccordion.tsx
-@@ -0,0 +1,36 @@
 +"use client";
 +
 +import { useState } from "react";
