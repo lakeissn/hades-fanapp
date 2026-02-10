@@ -100,12 +100,12 @@ export default function VoteAccordionItem({
     return Array.from(new Set(values)).slice(0, 20);
   }, [vote.platform, vote]);
 
+  // 기존 platformLabels 로직은 유지하되, 새 디자인에서는 아이콘 위주로 보여줍니다.
   const platformLabels = useMemo(() => {
     const rawLabels = (vote as VoteItem & { platformLabels?: string[] }).platformLabels;
     if (rawLabels?.length) {
       return rawLabels;
     }
-
     const first = vote.platformLabel || "기타";
     return platforms.map((_, index) => (index === 0 ? first : "기타"));
   }, [platforms, vote.platformLabel, vote]);
@@ -139,6 +139,7 @@ export default function VoteAccordionItem({
 
   return (
     <div className={`vote-item ${isOpen ? "is-open" : ""}`}>
+      {/* 닫혀있을 때 보이는 헤더 (기존 디자인 유지) */}
       <div
         className="vote-row"
         role="button"
@@ -204,72 +205,69 @@ export default function VoteAccordionItem({
           </svg>
         </span>
       </div>
+
+      {/* 확장되었을 때 보이는 패널 (공간 절약형 Compact HUD 디자인 적용) */}
       {isOpen && (
-        <div className="vote-panel">
-          <div className="vote-panel-top">
-            <span className="vote-status" data-status={status}>
-              {label}
-            </span>
-          </div>
-
-          <div className="vote-platform-list">
-            {platforms.map((platform, index) => {
-              const missing = missingIcons[platform];
-              return (
-                <span key={`${vote.id}-${platform}`} className="vote-platform-item">
-                  <span className="vote-icon" aria-hidden>
-                    {!missing && (
-                      <img
-                        src={`/icons/${platform}.png`}
-                        alt=""
-                        onError={() =>
-                          setMissingIcons((prev) => ({
-                            ...prev,
-                            [platform]: true,
-                          }))
-                        }
-                      />
-                    )}
-                    {missing && (
-                      <span className="vote-icon-fallback vote-icon-neutral" aria-hidden>
-                        <span />
-                      </span>
-                    )}
-                  </span>
-                  <span>{platformLabels[index] ?? "기타"}</span>
-                </span>
-              );
-            })}
-          </div>
-
-          <p className="vote-dates">{periodText}</p>
-
-          {vote.note && (
-            <div className="vote-note-box">
-              <div className="vote-note-head">
-                <span className="vote-note-icon" aria-hidden>
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 3l2.2 4.5 5 .7-3.6 3.5.8 5-4.4-2.3-4.4 2.3.8-5L4.8 8.2l5-.7L12 3z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </span>
-                <span>리워드</span>
+        <div className="vote-panel compact-panel">
+          {/* 섹션 1: 플랫폼 목록과 투표 버튼을 가로로 배치 */}
+          <div className="panel-actions">
+            <div className="panel-platforms">
+              <span className="panel-label">투표처</span>
+              <div className="platform-grid-compact">
+                {platforms.map((platform) => {
+                   const missing = missingIcons[platform];
+                   return (
+                    <span key={`${vote.id}-${platform}`} className="compact-icon" title={platform}>
+                        {!missing && (
+                        <img
+                            src={`/icons/${platform}.png`}
+                            alt={platform}
+                            onError={() =>
+                            setMissingIcons((prev) => ({
+                                ...prev,
+                                [platform]: true,
+                            }))
+                            }
+                        />
+                        )}
+                        {missing && (
+                        <span className="vote-icon-fallback vote-icon-neutral" aria-hidden>
+                            <span />
+                        </span>
+                        )}
+                    </span>
+                   );
+                })}
               </div>
-              <p className="vote-note-text">{vote.note}</p>
             </div>
-          )}
+            
+            <a
+              className={`vote-action-btn ${hasUrl ? "" : "is-disabled"}`}
+              href={vote.url ?? "#"}
+              target="_blank"
+              rel="noreferrer"
+              onClick={stopRowToggle}
+            >
+              투표하러 가기
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+          </div>
 
-          <a
-            className={`vote-link-detail ${hasUrl ? "" : "is-disabled"}`}
-            href={vote.url ?? "#"}
-            target="_blank"
-            rel="noreferrer"
-            onClick={stopRowToggle}
-          >
-            바로가기
-          </a>
+          {/* 섹션 2: 기간 및 리워드 정보를 하단에 작게 배치 */}
+          <div className="panel-footer">
+            <div className="panel-info">
+              <span className="panel-label">기간</span>
+              <span className="panel-value">{periodText}</span>
+            </div>
+            {vote.note && (
+              <div className="panel-info note">
+                <span className="panel-label text-accent">리워드</span>
+                <span className="panel-value">{vote.note}</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
