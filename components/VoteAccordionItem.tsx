@@ -45,8 +45,6 @@ export default function VoteAccordionItem({
   const label = statusLabels[status];
   const openDate = formatDate(vote.opensAt);
   const closeDate = formatDate(vote.closesAt);
-  const hasOptions = (vote.options ?? []).length > 0;
-  const hasMeta = Boolean(vote.link || openDate || closeDate || hasOptions);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -66,16 +64,7 @@ export default function VoteAccordionItem({
         onKeyDown={handleKeyDown}
       >
         <span className="vote-icon" aria-hidden>
-          <svg viewBox="0 0 24 24">
-            <path
-              d="M6 5h12a1 1 0 0 1 1 1v9a4 4 0 0 1-4 4H7a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1zm2.5 4.2 2.1 2.1 4.9-4.9"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <img src="/icons/idolchamp.png" alt="" />
         </span>
         <span className="vote-title">
           <span className="vote-title-text">{vote.title}</span>
@@ -83,20 +72,22 @@ export default function VoteAccordionItem({
             {label}
           </span>
         </span>
-        <a
-          className={`vote-link ${vote.link ? "" : "is-disabled"}`}
-          href={vote.link ?? "#"}
-          target="_blank"
-          rel="noreferrer"
-          onClick={(event) => {
-            event.stopPropagation();
-            if (!vote.link) {
-              event.preventDefault();
-            }
-          }}
-        >
-          바로 가기
-        </a>
+        {!isOpen && (
+          <a
+            className={`vote-link ${vote.link ? "" : "is-disabled"}`}
+            href={vote.link ?? "#"}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!vote.link) {
+                event.preventDefault();
+              }
+            }}
+          >
+            바로 가기
+          </a>
+        )}
         <span className="vote-chevron" aria-hidden>
           <svg viewBox="0 0 24 24">
             <path
@@ -110,14 +101,12 @@ export default function VoteAccordionItem({
           </svg>
         </span>
       </div>
-      {isOpen && hasMeta && (
+      {isOpen && (
         <div className="vote-panel">
-          <div className="vote-meta">
-            {vote.link && (
-              <a className="vote-link-detail" href={vote.link} target="_blank" rel="noreferrer">
-                바로 가기
-              </a>
-            )}
+          <div className="vote-panel-head">
+            <span className="vote-panel-icon" aria-hidden>
+              <img src="/icons/idolchamp.png" alt="" />
+            </span>
             {(openDate || closeDate) && (
               <span className="vote-dates">
                 {openDate && <span>오픈 {openDate}</span>}
@@ -126,12 +115,16 @@ export default function VoteAccordionItem({
               </span>
             )}
           </div>
-          {hasOptions && (
-            <ul className="vote-options">
-              {(vote.options ?? []).map((option) => (
-                <li key={option}>{option}</li>
-              ))}
-            </ul>
+          {vote.link && (
+            <a
+              className="vote-link-detail"
+              href={vote.link}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(event) => event.stopPropagation()}
+            >
+              바로 가기
+            </a>
           )}
         </div>
       )}
