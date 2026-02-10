@@ -140,7 +140,7 @@ export default function MelonPlaylist() {
                 {/* ⚠️ 중요: 실제 사용하실 이미지 파일명으로 src를 변경해주세요! */}
                 {/* 예: src="/images/playlist_guide.jpg" */}
                 <img 
-                  src="/icons/playlist_placeholder.png" 
+                  src="/icons/planetb_playlist_b.png" 
                   alt="플레이리스트 곡 구성" 
                   style={{ width: '100%', height: 'auto', display: 'block' }}
                   onError={(e) => {
