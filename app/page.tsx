@@ -47,7 +47,6 @@ const coverStyles: Record<string, React.CSSProperties> = {
   khm11903: { background: "linear-gradient(135deg, #2c3e50, #4ca1af)" },
 };
 
-
 const officialLinks = [
   {
     id: "cafe",
@@ -170,13 +169,28 @@ function formatDeadline(closesAt?: string) {
   }).format(closeDate);
 }
 
-function VotePreviewIcon({ platform }: { platform: string }) {
-  const [isMissing, setIsMissing] = useState(false);
+function VotePreviewPlatforms({ vote }: { vote: VoteItem }) {
+  const [missingMap, setMissingMap] = useState<Record<string, boolean>>({});
+  const platforms = (vote.platforms?.length ? vote.platforms : [vote.platform]).filter(Boolean).slice(0, 5);
 
   return (
-    <span className="vote-preview-icon" aria-hidden>
-      {!isMissing && <img src={`/icons/${platform}.png`} alt="" onError={() => setIsMissing(true)} />}
-      {isMissing && <span className="vote-icon-fallback vote-icon-neutral" aria-hidden><span /></span>}
+    <span className="vote-preview-icons" aria-hidden>
+      {platforms.map((platform) => (
+        <span key={`${vote.id}-${platform}`} className="vote-preview-icon">
+          {!missingMap[platform] && (
+            <img
+              src={`/icons/${platform}.png`}
+              alt=""
+              onError={() => setMissingMap((prev) => ({ ...prev, [platform]: true }))}
+            />
+          )}
+          {missingMap[platform] && (
+            <span className="vote-icon-fallback vote-icon-neutral" aria-hidden>
+              <span />
+            </span>
+          )}
+        </span>
+      ))}
     </span>
   );
 }
@@ -320,7 +334,7 @@ export default function HomePage() {
                 const status = resolveStatus(vote.opensAt, vote.closesAt);
                 return (
                   <article key={vote.id} className="vote-preview-item">
-                    <VotePreviewIcon platform={vote.platform} />
+                    <VotePreviewPlatforms vote={vote} />
                     <p className="vote-preview-title">{vote.title}</p>
                     <span className="vote-status" data-status={status}>
                       {status === "upcoming" ? "예정" : "진행중"}
