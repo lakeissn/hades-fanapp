@@ -5,6 +5,7 @@ import Button from "../components/Button";
 import Card from "../components/Card";
 import LiveCard from "../components/LiveCard";
 import MemberChip from "../components/MemberChip";
+import MelonPlaylist from "../components/MelonPlaylist";
 
 const guideCategories = [
   { id: "streaming", label: "스트리밍 가이드", href: "/guides/streaming" },
@@ -311,6 +312,9 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Melon One-Click Section */}
+      <MelonPlaylist />
 
       <section className="section-block">
         <div className="section-head">
