@@ -1750,53 +1750,184 @@ main {
     grid-template-columns: repeat(2, minmax(0, 1fr)); /* PC에서는 2열 배치 */
   }
 }
-/* --- 🍈 Popup Scroll & Layout Fix --- */
+/* --- 🍈 Melon Trigger Card (유지) --- */
+/* (기존 트리거 카드 CSS가 있다면 그대로 두셔도 됩니다. 아래는 팝업 전용입니다.) */
 
+/* --- 🍈 Popup Design Restoration & Scroll Fix --- */
+
+/* 1. 레이아웃 구조 (스크롤 고정용) */
 .modal-content {
-  /* 기존 스타일 유지 + 아래 내용 확인/수정 */
-  max-height: 85vh; /* 화면 높이의 85%로 제한 */
+  background: #1e1e2e; /* 배경색 복구 */
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh; /* 화면 꽉 차지 않게 적당히 */
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  /* 핵심: 내부 스크롤을 위한 Flex 구조 */
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* 전체가 아닌 내부 스크롤을 위해 숨김 */
-  padding: 0 !important; /* 내부 패딩은 섹션별로 별도 관리 */
+  overflow: hidden; /* 전체 스크롤 막음 */
+  padding: 0 !important; /* 내부 패딩 제거 (섹션별 적용) */
+  position: relative;
 }
 
-/* 헤더 고정 (스크롤해도 닫기 버튼이 항상 보이게) */
+/* 2. 헤더 고정 (상단에 딱 붙어있음) */
 .modal-header {
-  flex-shrink: 0;
+  flex-shrink: 0; /* 크기 줄어들지 않음 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 20px 24px;
-  background: #1a1a2e; /* 팝업 배경색과 통일 */
-  z-index: 20;
+  background: #1e1e2e; /* 본문과 색상 통일 */
+  z-index: 50;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* 실제 스크롤이 일어나는 컨텐츠 영역 */
-.modal-scroll-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 24px 24px 24px;
-  /* 모바일 가속 스크롤 */
-  -webkit-overflow-scrolling: touch; 
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* 커스텀 스크롤바 디자인 (세련되게) */
+.modal-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #fff;
+}
+
+/* 3. 스크롤 영역 (여기에만 스크롤 생김) */
+.modal-scroll-area {
+  flex: 1; /* 남은 공간 다 차지 */
+  overflow-y: auto; /* 세로 스크롤 허용 */
+  padding: 24px; /* 내부 여백 */
+  -webkit-overflow-scrolling: touch; /* 모바일 부드러운 스크롤 */
+}
+
+/* 스크롤바 디자인 (숨김 처리하거나 예쁘게) */
 .modal-scroll-area::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 .modal-scroll-area::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-}
-.modal-scroll-area::-webkit-scrollbar-track {
-  background: transparent;
+  border-radius: 4px;
 }
 
-.playlist-image-area {
-  margin-top: 10px;
-  width: 100%;
+/* --- ✨ 디자인 요소 복구 (버튼, 탭) --- */
+
+/* 기기 선택 탭 */
+.device-tabs-scroll {
+  display: flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px;
+  border-radius: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+.device-tabs-scroll::-webkit-scrollbar { display: none; }
+
+.device-tab-item {
+  flex: 1;
+  min-width: fit-content;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  background: transparent;
+  border: none;
   border-radius: 12px;
-  overflow: hidden;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.device-tab-item.active {
+  background: #2a2a3e;
+  color: #00cd3c;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  font-weight: 700;
+}
+
+/* 링크 버튼 그리드 */
+.link-button-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.one-click-btn {
+  width: 100%;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: linear-gradient(145deg, rgba(35, 35, 50, 0.8), rgba(25, 25, 40, 0.9));
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: #e0e0e0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.one-click-btn:hover {
+  border-color: #00cd3c;
+  background: rgba(0, 205, 60, 0.05);
+  transform: translateY(-2px);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-number {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #00cd3c;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.one-click-btn:hover .btn-number {
+  background: #00cd3c;
+  color: #111;
+}
+
+/* 이미지 영역 */
+.playlist-image-area {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
+  line-height: 0; /* 이미지 하단 여백 제거 */
 }
 
 .playlist-image-area img {
