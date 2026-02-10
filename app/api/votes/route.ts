@@ -233,7 +233,8 @@ async function loadVotesFromSheet() {
     .filter((row) => !isExpired(row.closesAt ?? ""))
     .map((row) => {
       const platforms = parsePlatforms(row.platform ?? "");
-      const openDate = parseDateKst(row.opensAt ?? "");
+      const rawOpensAt = row.opensAt?.trim() ?? "";
+      const openDate = parseDateKst(rawOpensAt);
       const closeDate = parseDateKst(row.closesAt ?? "");
 
       return {
@@ -244,7 +245,7 @@ async function loadVotesFromSheet() {
         platforms,
         platformLabels: platforms.map(labelForPlatform),
         url: row.url?.trim() ?? "",
-        opensAt: openDate ? openDate.toISOString() : undefined,
+        opensAt: isInProgressKeyword(rawOpensAt) ? "진행중" : openDate ? openDate.toISOString() : undefined,
         closesAt: closeDate ? closeDate.toISOString() : undefined,
         note: row.note?.trim() || undefined,
       } as VoteItem;
