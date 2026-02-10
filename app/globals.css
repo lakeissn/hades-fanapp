@@ -1750,3 +1750,117 @@ main {
     grid-template-columns: repeat(2, minmax(0, 1fr)); /* PC에서는 2열 배치 */
   }
 }
+/* --- 🍈 Popup New Layout (Multi-Link) --- */
+
+/* 기기 선택 탭 (Segmented Control 스타일) */
+.device-tabs-scroll {
+  display: flex;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px;
+  border-radius: 16px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox 스크롤바 숨김 */
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.device-tabs-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari 스크롤바 숨김 */
+}
+
+.device-tab-item {
+  flex: 1;
+  min-width: fit-content;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.device-tab-item.active {
+  background: #2a2a3e;
+  color: #00cd3c;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-weight: 700;
+}
+
+/* 3단 링크 버튼 그리드 */
+.link-button-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.one-click-btn {
+  width: 100%;
+  height: 52px; /* 44px 이상 확보 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: linear-gradient(145deg, rgba(30, 30, 45, 0.8), rgba(20, 20, 35, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #e0e0e0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none; /* a 태그 기본 밑줄 제거 */
+}
+
+.one-click-btn:hover {
+  border-color: #00cd3c;
+  background: rgba(0, 205, 60, 0.1);
+  transform: translateY(-2px);
+  color: #fff;
+}
+
+.btn-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #00cd3c;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.one-click-btn:hover .btn-number {
+  background: #00cd3c;
+  color: #000;
+}
+
+/* 하단 이미지 영역 (곡 구성 이미지) */
+.playlist-image-area {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
+  position: relative;
+}
+
+.playlist-image-area img {
+  width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0.9;
+}
