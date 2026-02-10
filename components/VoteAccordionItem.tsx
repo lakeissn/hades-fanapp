@@ -88,8 +88,14 @@ export default function VoteAccordionItem({
 
   const platforms = useMemo(() => {
     const rawPlatforms = (vote as VoteItem & { platforms?: string[] }).platforms;
-    const values = (rawPlatforms?.length ? rawPlatforms : (vote.platform || "").split("|"))
-      .map((item) => item.trim())
+    const values = (rawPlatforms?.length
+      ? rawPlatforms
+      : (vote.platform || "")
+          .replace(/[|,/]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .split(" "))
+      .map((item) => item.trim().toLowerCase())
       .filter(Boolean);
     return Array.from(new Set(values)).slice(0, 20);
   }, [vote.platform, vote]);
