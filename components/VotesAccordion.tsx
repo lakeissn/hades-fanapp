@@ -6,8 +6,9 @@ import VoteAccordionItem from "./VoteAccordionItem";
 export type VoteItem = {
   id: string;
   title: string;
-  options?: string[];
-  link?: string;
+  platform: string;
+  platformLabel: string;
+  url: string;
   opensAt?: string;
   closesAt?: string;
 };
