@@ -24,17 +24,21 @@ export default function LiveCard({
   const [avatarError, setAvatarError] = useState(false);
   const initials = name.slice(0, 2);
 
-  const backgroundStyle = thumbUrl
-    ? {
-        backgroundImage: `url(${thumbUrl})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }
-    : coverStyle;
-
   return (
     <a className="live-card" href={soopUrl} target="_blank" rel="noreferrer">
-      <div className="live-cover" style={backgroundStyle}>
+      <div className="live-cover" style={thumbUrl ? undefined : coverStyle}>
+        {thumbUrl ? (
+          <>
+            <div
+              className="live-cover-bg"
+              aria-hidden
+              style={{ backgroundImage: `url(${thumbUrl})` }}
+            />
+            <img className="live-cover-img" src={thumbUrl} alt="" aria-hidden />
+          </>
+        ) : (
+          <div className="live-cover-fallback" aria-hidden />
+        )}
         <span className="live-badge">
           <span className="live-dot" /> LIVE
         </span>
