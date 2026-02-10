@@ -1757,34 +1757,32 @@ main {
 
 /* 1. 레이아웃 구조 (스크롤 고정용) */
 .modal-content {
-  background: #1e1e2e; /* 배경색 복구 */
-  width: 90%;
-  max-width: 400px;
-  max-height: 80vh; /* 화면 꽉 차지 않게 적당히 */
+  background: #1e1e2e; 
+  width: 92%; /* 모바일에서도 꽉 차게 */
+  max-width: 520px; /* 🚨 핵심 수정: 400px -> 520px로 대폭 확대 */
+  max-height: 85vh; /* 높이도 조금 더 여유 있게 */
   border-radius: 24px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
   
-  /* 핵심: 내부 스크롤을 위한 Flex 구조 */
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* 전체 스크롤 막음 */
-  padding: 0 !important; /* 내부 패딩 제거 (섹션별 적용) */
+  overflow: hidden; 
+  padding: 0 !important; 
   position: relative;
 }
 
 /* 2. 헤더 고정 (상단에 딱 붙어있음) */
 .modal-header {
-  flex-shrink: 0; /* 크기 줄어들지 않음 */
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  background: #1e1e2e; /* 본문과 색상 통일 */
+  padding: 22px 28px; /* 헤더 여백도 살짝 늘림 */
+  background: #1e1e2e;
   z-index: 50;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
-
 .modal-title {
   font-size: 18px;
   font-weight: 700;
@@ -1809,10 +1807,10 @@ main {
 
 /* 3. 스크롤 영역 (여기에만 스크롤 생김) */
 .modal-scroll-area {
-  flex: 1; /* 남은 공간 다 차지 */
-  overflow-y: auto; /* 세로 스크롤 허용 */
-  padding: 24px; /* 내부 여백 */
-  -webkit-overflow-scrolling: touch; /* 모바일 부드러운 스크롤 */
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px; /* 내부 여백도 시원하게 */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* 스크롤바 디자인 (숨김 처리하거나 예쁘게) */
@@ -1831,7 +1829,7 @@ main {
   display: flex;
   gap: 8px;
   background: rgba(0, 0, 0, 0.2);
-  padding: 6px;
+  padding: 8px; /* 패딩 약간 확대 */
   border-radius: 16px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -1842,16 +1840,16 @@ main {
 
 .device-tab-item {
   flex: 1;
-  min-width: fit-content;
-  padding: 10px 18px;
-  font-size: 13px;
+  min-width: fit-content; /* 내용물만큼 확보 */
+  padding: 11px 20px; /* 터치 영역 확대 */
+  font-size: 14px; /* 글씨 크기 1px 키움 */
   font-weight: 600;
   color: #888;
   background: transparent;
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  white-space: nowrap;
+  white-space: nowrap; /* 줄바꿈 방지 */
   transition: all 0.2s ease;
 }
 
@@ -1921,13 +1919,12 @@ main {
 }
 
 /* 이미지 영역 */
-.playlist-image-area {
+/* 이미지가 더 선명하게 보이도록 */
+.playlist-image-area img {
   width: 100%;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #000;
-  line-height: 0; /* 이미지 하단 여백 제거 */
+  height: auto;
+  display: block;
+  object-fit: contain; /* 비율 유지 */
 }
 
 .playlist-image-area img {
