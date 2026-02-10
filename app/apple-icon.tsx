@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export const size = {
   width: 180,
@@ -7,7 +9,10 @@ export const size = {
 
 export const contentType = "image/png";
 
-export default function AppleIcon() {
+export default async function AppleIcon() {
+  const png = await readFile(join(process.cwd(), "public", "icons", "hades_helper.png"));
+  const src = `data:image/png;base64,${png.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -20,25 +25,7 @@ export default function AppleIcon() {
           background: "#000000",
         }}
       >
-        <div
-          style={{
-            width: 130,
-            height: 130,
-            borderRadius: 36,
-            background: "linear-gradient(135deg,#ff6adf,#ff5fa2)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#17081f",
-            fontSize: 76,
-            fontWeight: 800,
-            letterSpacing: "-0.06em",
-            lineHeight: 1,
-            fontFamily: "Arial",
-          }}
-        >
-          H
-        </div>
+        <img src={src} width={148} height={148} alt="Hades helper" />
       </div>
     ),
     size
