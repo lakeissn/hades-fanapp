@@ -29,6 +29,8 @@ type VoteItem = {
   title: string;
   platform: string;
   platformLabel: string;
+  platforms?: string[];
+  platformLabels?: string[];
   url: string | null;
   opensAt?: string;
   closesAt?: string;
@@ -60,10 +62,7 @@ const officialLinks = [
     href: "https://cafe.naver.com/moomoo",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M6.5 4h3.6l4.4 7V4h3v16h-3.6l-4.4-7v7h-3V4z"
-          fill="currentColor"
-        />
+        <path d="M6.5 4h3.6l4.4 7V4h3v16h-3.6l-4.4-7v7h-3V4z" fill="currentColor" />
       </svg>
     ),
   },
@@ -109,19 +108,32 @@ const officialLinks = [
   },
 ];
 
+function parseKstDate(value?: string) {
+  if (!value) return null;
+  const raw = value.trim();
+  if (!raw || raw.replace(/\s+/g, "") === "진행중") return null;
+
+  const direct = new Date(raw);
+  if (!Number.isNaN(direct.getTime())) return direct;
+
+  const normalized = raw.replace(/\./g, "-").replace(/\//g, "-").replace(/\s+/g, " ").trim();
+  const withSeconds = /\d{2}:\d{2}:\d{2}$/.test(normalized)
+    ? normalized
+    : /\d{2}:\d{2}$/.test(normalized)
+      ? `${normalized}:00`
+      : `${normalized} 00:00:00`;
+
+  const parsed = new Date(`${withSeconds.replace(" ", "T")}+09:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function resolveStatus(opensAt?: string, closesAt?: string) {
   const now = Date.now();
-  const openTime = opensAt ? new Date(opensAt).getTime() : null;
-  const closeTime = closesAt ? new Date(closesAt).getTime() : null;
+  const openTime = parseKstDate(opensAt)?.getTime() ?? null;
+  const closeTime = parseKstDate(closesAt)?.getTime() ?? null;
 
-  if (openTime && !Number.isNaN(openTime) && openTime > now) {
-    return "upcoming";
-  }
-
-  if (closeTime && !Number.isNaN(closeTime) && closeTime <= now) {
-    return "closed";
-  }
-
+  if (openTime && openTime > now) return "upcoming";
+  if (closeTime && closeTime <= now) return "closed";
   return "open";
 }
 
@@ -130,20 +142,14 @@ function isVisibleVote(vote: VoteItem) {
 }
 
 function formatDeadline(closesAt?: string) {
-  if (!closesAt) {
-    return "상시 진행";
-  }
-  const closeDate = new Date(closesAt);
-  if (Number.isNaN(closeDate.getTime())) {
-    return "마감 정보 없음";
-  }
+  if (!closesAt) return "상시 진행";
+  const closeDate = parseKstDate(closesAt);
+  if (!closeDate) return "마감 정보 없음";
 
   const remainingMs = closeDate.getTime() - Date.now();
   if (remainingMs > 0) {
     const hours = Math.floor(remainingMs / (1000 * 60 * 60));
-    if (hours < 24) {
-      return `${Math.max(hours, 1)}시간 후 마감`;
-    }
+    if (hours < 24) return `${Math.max(hours, 1)}시간 후 마감`;
     return `${Math.floor(hours / 24)}일 후 마감`;
   }
 
@@ -162,7 +168,11 @@ function VotePreviewIcon({ platform }: { platform: string }) {
   return (
     <span className="vote-preview-icon" aria-hidden>
       {!isMissing && <img src={`/icons/${platform}.png`} alt="" onError={() => setIsMissing(true)} />}
-      {isMissing && <span className="vote-icon-fallback">V</span>}
+      {isMissing && (
+        <span className="vote-icon-fallback vote-icon-neutral" aria-hidden>
+          <span />
+        </span>
+      )}
     </span>
   );
 }
@@ -180,22 +190,17 @@ export default function HomePage() {
       try {
         const response = await fetch("/api/members/status");
         const data = (await response.json()) as MemberStatus[];
-        if (isMounted) {
-          setMembers(data);
-        }
+        if (isMounted) setMembers(data);
       } catch {
-        if (isMounted) {
-          setMembers([]);
-        }
+        if (isMounted) setMembers([]);
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
 
     fetchMembers();
     const interval = setInterval(fetchMembers, 30_000);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -209,22 +214,15 @@ export default function HomePage() {
       try {
         const response = await fetch("/api/votes");
         const data = (await response.json()) as VoteItem[];
-        if (isMounted) {
-          setVotes(data);
-        }
+        if (isMounted) setVotes(data);
       } catch {
-        if (isMounted) {
-          setVotes([]);
-        }
+        if (isMounted) setVotes([]);
       } finally {
-        if (isMounted) {
-          setIsVotesLoading(false);
-        }
+        if (isMounted) setIsVotesLoading(false);
       }
     };
 
     fetchVotes();
-
     return () => {
       isMounted = false;
     };
@@ -326,7 +324,6 @@ export default function HomePage() {
       <Card>
         <div className="section-head">
           <h2>가이드 카테고리</h2>
-          <span className="muted">팬들이 좋아하는 시작 포인트</span>
         </div>
         <div className="card-body">
           <div className="chip-row">
