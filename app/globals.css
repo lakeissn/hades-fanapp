@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'GmarketSansMedium';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+}
+
 :root {
   color-scheme: dark;
   --bg: #0b0b14;
@@ -19,13 +26,17 @@
   padding: 0;
 }
 
+html, body {
+  font-family: "GmarketSansMedium", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+}
+
 body {
   min-height: 100vh;
   background: radial-gradient(circle at top, rgba(128, 90, 255, 0.15), transparent 45%),
     radial-gradient(circle at 30% 20%, rgba(243, 107, 255, 0.12), transparent 40%),
     var(--bg);
   color: var(--text);
-  font-family: "Pretendard", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  font-family: "GmarketSansMedium", "Noto Sans KR", system-ui, -apple-system, sans-serif;
   font-size: 17px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -293,8 +304,33 @@ main {
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
+  overflow: hidden;
+}
+
+.live-cover-bg {
+  position: absolute;
+  inset: 0;
   background-size: cover;
   background-position: center;
+  filter: blur(16px) saturate(0.9);
+  transform: scale(1.08);
+  opacity: 0.55;
+}
+
+.live-cover-img {
+  position: absolute;
+  inset: 12px;
+  width: calc(100% - 24px);
+  height: calc(100% - 24px);
+  object-fit: contain;
+  object-position: center;
+  z-index: 0;
+}
+
+.live-cover-fallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(68, 47, 120, 0.8), rgba(28, 52, 95, 0.75));
 }
 
 .live-cover::after {
@@ -941,5 +977,146 @@ main {
   }
   .link-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+
+.vote-icon-neutral {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vote-icon-neutral span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(208, 198, 255, 0.78);
+}
+
+.vote-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vote-more {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.vote-platform-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.vote-platform-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #e7dcff;
+}
+
+.vote-platform-item .vote-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.vote-dates {
+  font-size: 15px;
+}
+
+.vote-note-text {
+  font-size: 14px;
+}
+
+.vote-link-detail {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.guides-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.guides-hero h2 {
+  font-size: 32px;
+  margin-top: 4px;
+}
+
+.guides-hero-sub {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.guides-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.guide-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(140, 120, 255, 0.28);
+  border-radius: 18px;
+  background: linear-gradient(140deg, rgba(14, 14, 35, 0.88), rgba(26, 20, 48, 0.86));
+  padding: 16px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.guide-card:hover {
+  border-color: rgba(179, 107, 255, 0.75);
+  transform: translateY(-2px);
+}
+
+.guide-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.guide-card-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(179, 107, 255, 0.16);
+  font-size: 16px;
+}
+
+.guide-card-date {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.guide-card h3 {
+  font-size: 20px;
+}
+
+.guide-card p {
+  color: #d8d0ff;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.guide-card-cta {
+  font-size: 13px;
+  color: #9fdfff;
+}
+
+@media (min-width: 860px) {
+  .guides-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
