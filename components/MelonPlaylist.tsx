@@ -45,11 +45,12 @@ export default function MelonPlaylist() {
   }, [isOpen]);
 
  // 탭 목록 정의 부분 수정
+// 탭 목록 순서 재배치
 const tabs: { id: DeviceType; label: string }[] = [
-  { id: "mobile", label: "모바일" }, // 텍스트 축소
-  { id: "ipad", label: "아이패드" },
+  { id: "mobile", label: "모바일" },
   { id: "pc", label: "PC" },
   { id: "mac", label: "MAC" },
+  { id: "ipad", label: "아이패드" }, // 아이패드를 마지막으로
 ];
 
   return (
