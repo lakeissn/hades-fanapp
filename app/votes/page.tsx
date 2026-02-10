@@ -1,22 +1,44 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Badge from "../../components/Badge";
 import Card from "../../components/Card";
+import VotesAccordion, { VoteItem } from "../../components/VotesAccordion";
 
-const pollSamples = [
-  {
-    id: "poll-1",
-    title: "오늘 방송 BGM은?",
-    options: ["원곡", "팬메이드", "시크릿"],
-    votes: 284,
-  },
-  {
-    id: "poll-2",
-    title: "다음 컨텐츠 선택",
-    options: ["챌린지", "에피소드", "팬아트 리뷰"],
-    votes: 402,
-  },
-];
+type Vote = VoteItem;
 
 export default function VotesPage() {
+  const [votes, setVotes] = useState<Vote[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchVotes = async () => {
+      try {
+        const response = await fetch("/api/votes");
+        const data = (await response.json()) as Vote[];
+        if (isMounted) {
+          setVotes(data);
+        }
+      } catch {
+        if (isMounted) {
+          setVotes([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchVotes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <main>
       <div className="section-head">
@@ -24,25 +46,20 @@ export default function VotesPage() {
           <p className="section-tag">VOTES</p>
           <h2>투표 목록</h2>
         </div>
-        <Badge tone="accent">샘플 데이터</Badge>
+        <Badge tone="accent">실시간</Badge>
       </div>
       <Card>
-        <div className="poll-grid">
-          {pollSamples.map((poll) => (
-            <article key={poll.id} className="poll-card">
-              <h3>{poll.title}</h3>
-              <ul>
-                {poll.options.map((option) => (
-                  <li key={option}>
-                    <span>{option}</span>
-                    <span className="muted">투표수</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="muted">누적 {poll.votes}표</p>
-            </article>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="empty-state">
+            <p>투표 목록을 불러오는 중...</p>
+          </div>
+        ) : votes.length === 0 ? (
+          <div className="empty-state">
+            <p>현재 진행 중인 투표가 없습니다.</p>
+          </div>
+        ) : (
+          <VotesAccordion votes={votes} />
+        )}
       </Card>
     </main>
   );
