@@ -25,10 +25,12 @@ const guideCategories = [
 export default function GuidesPage() {
   return (
     <main className="guides-page">
-      <header className="guides-hero">
-        <p className="section-tag">GUIDES</p>
-        <h2>가이드</h2>
-        <p className="guides-hero-sub">처음 온 팬도 바로 따라갈 수 있는 핵심 가이드 모음.</p>
+      <header className="section-head page-header guides-hero">
+        <div>
+          <p className="section-tag">GUIDES</p>
+          <h2>가이드</h2>
+          <p className="guides-hero-sub">처음 온 팬도 바로 따라갈 수 있는 핵심 가이드 모음.</p>
+        </div>
       </header>
 
       <section className="guides-grid" aria-label="가이드 카테고리 목록">
