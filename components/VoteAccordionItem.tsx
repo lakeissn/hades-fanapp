@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { KeyboardEvent, SyntheticEvent } from "react";
 import { VoteItem } from "./VotesAccordion";
 
@@ -41,10 +42,17 @@ export default function VoteAccordionItem({
   isOpen: boolean;
   onToggle: () => void;
 }) {
+  const [isIconMissing, setIsIconMissing] = useState(false);
   const status = resolveStatus(vote.opensAt, vote.closesAt);
   const label = statusLabels[status];
   const openDate = formatDate(vote.opensAt);
   const closeDate = formatDate(vote.closesAt);
+
+  const periodText = openDate || closeDate
+    ? [openDate ? `오픈 ${openDate}` : null, closeDate ? `마감 ${closeDate}` : null]
+        .filter(Boolean)
+        .join(" · ")
+    : "기간 정보 없음";
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -68,14 +76,14 @@ export default function VoteAccordionItem({
         onKeyDown={handleKeyDown}
       >
         <span className="vote-icon" aria-hidden>
-          <img
-            src={`/icons/${vote.platform}.png`}
-            alt=""
-            onError={(event) => {
-              (event.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-          />
-          <span className="vote-icon-fallback">V</span>
+          {!isIconMissing && (
+            <img
+              src={`/icons/${vote.platform}.png`}
+              alt=""
+              onError={() => setIsIconMissing(true)}
+            />
+          )}
+          {isIconMissing && <span className="vote-icon-fallback">V</span>}
         </span>
         <span className="vote-title">
           <span className="vote-title-text">{vote.title}</span>
@@ -109,26 +117,32 @@ export default function VoteAccordionItem({
       </div>
       {isOpen && (
         <div className="vote-panel">
-          <div className="vote-panel-head">
-            <span className="vote-panel-icon" aria-hidden>
-              <img
-                src={`/icons/${vote.platform}.png`}
-                alt=""
-                onError={(event) => {
-                  (event.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
-              <span className="vote-icon-fallback">V</span>
-            </span>
+          <div className="vote-panel-top">
             <span className="vote-platform-label">{vote.platformLabel}</span>
-            {(openDate || closeDate) && (
-              <span className="vote-dates">
-                {openDate && <span>오픈 {openDate}</span>}
-                {openDate && closeDate && <span className="vote-date-sep">·</span>}
-                {closeDate && <span>마감 {closeDate}</span>}
-              </span>
-            )}
+            <span className="vote-status" data-status={status}>
+              {label}
+            </span>
           </div>
+
+          <p className="vote-dates">{periodText}</p>
+
+          {vote.note && (
+            <div className="vote-note-box">
+              <div className="vote-note-head">
+                <span className="vote-note-icon" aria-hidden>
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M12 3l2.2 4.5 5 .7-3.6 3.5.8 5-4.4-2.3-4.4 2.3.8-5L4.8 8.2l5-.7L12 3z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </span>
+                <span>리워드</span>
+              </div>
+              <p className="vote-note-text">{vote.note}</p>
+            </div>
+          )}
+
           <a
             className="vote-link-detail"
             href={vote.url}
