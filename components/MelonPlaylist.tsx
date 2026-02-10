@@ -31,14 +31,7 @@ const labels = ["원클릭 1", "원클릭 2", "원클릭 3"];
 
 export default function MelonPlaylist() {
   const [device, setDevice] = useState<DeviceType>("mobile");
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-
-  const handleCopy = (text: string, index: number) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    });
-  };
+  const [isOpen, setIsOpen] = useState(false);
 
   const tabs: { id: DeviceType; label: string }[] = [
     { id: "mobile", label: "모바일" },
@@ -48,56 +41,71 @@ export default function MelonPlaylist() {
   ];
 
   return (
-    <section className="melon-deck glass">
-      <div className="melon-head">
-        <div className="melon-title-group">
-          <span className="melon-icon">🍈</span>
-          <div>
-            <h3>멜론 원클릭</h3>
-            <p>기기에 맞는 버튼을 눌러 바로 재생하세요</p>
-          </div>
+    <section className={`melon-deck ${isOpen ? "open" : "closed"}`}>
+      <div 
+        className="melon-header" 
+        onClick={() => setIsOpen(!isOpen)}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="melon-brand">
+          <svg className="melon-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+             <circle cx="50" cy="50" r="50" fill="#00CD3C"/>
+             <path d="M50 22C34.5 22 22 34.5 22 50C22 65.5 34.5 78 50 78C65.5 78 78 65.5 78 50C78 34.5 65.5 22 50 22ZM50 72C37.8 72 28 62.2 28 50C28 37.8 37.8 28 50 28C62.2 28 72 37.8 72 50C72 62.2 62.2 72 50 72Z" fill="white" fillOpacity="0.2"/>
+             <path d="M68 38L62 38V62H56V44H54L48 62H42L36 44H34V62H28V38H34L45 56L56 38H62" fill="white" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
+          </svg>
+          <span className="melon-title">Melon 원클릭 플레이리스트</span>
+        </div>
+        <div className="melon-toggle">
+          <svg 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s" }}
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
         </div>
       </div>
 
-      <div className="melon-tabs-scroll">
-        <div className="melon-tabs">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`melon-tab ${device === tab.id ? "active" : ""}`}
-              onClick={() => setDevice(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="melon-tracks">
-        {melonLinks[device].map((link, index) => (
-          <div key={index} className="melon-track">
-            <a href={link} className="melon-play-btn">
-              <span className="play-icon">▶</span>
-              <span className="play-label">{labels[index]}</span>
-              <span className="play-sub">바로 실행</span>
-            </a>
-            <button
-              className="melon-copy-btn"
-              onClick={() => handleCopy(link, index)}
-              title="링크 복사"
-            >
-              {copiedIndex === index ? (
-                <span className="check-icon">✓</span>
-              ) : (
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-              )}
-            </button>
+      {isOpen && (
+        <div className="melon-body">
+          <div className="melon-tabs-scroll">
+            <div className="melon-tabs">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`melon-tab ${device === tab.id ? "active" : ""}`}
+                  onClick={() => setDevice(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
+
+          <div className="melon-tracks">
+            {melonLinks[device].map((link, index) => (
+              <a key={index} href={link} className="melon-play-btn">
+                <div className="play-info">
+                  <span className="play-label">{labels[index]}</span>
+                  <span className="play-sub">바로 실행</span>
+                </div>
+                <div className="play-action">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
