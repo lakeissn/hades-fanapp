@@ -12,8 +12,7 @@ const melonLinks = {
   mac: "melonplayer://play?menuid=0&cflag=1&cid=600855294,600779781,600740747,600406668,600406667,600406669",
 };
 
-// 💡 팁: 실제 이미지가 준비되면 이 컴포넌트 대신 <img src="..." />를 사용하세요.
-// 현재는 CSS로 "비슷한 느낌"의 트랙리스트를 구현했습니다.
+// 팝업 내부 비주얼 (수정 금지)
 function PlaylistVisual() {
   return (
     <div className="playlist-visual">
@@ -63,33 +62,39 @@ export default function MelonPlaylist() {
 
   return (
     <>
-      {/* 1. 메인 화면에 보이는 카드 (트리거) */}
+      {/* ✨ 1. 메인 화면 트리거 (디자인 전면 수정됨) */}
       <section 
-        className="melon-deck-premium" 
+        className="melon-trigger-card" 
         onClick={() => setIsOpen(true)}
         role="button"
         tabIndex={0}
+        aria-label="멜론 원클릭 플레이리스트 열기"
       >
-        <div className="melon-header">
-          <div className="melon-brand">
-            <svg className="melon-logo" viewBox="0 0 100 100" fill="none">
-               <circle cx="50" cy="50" r="50" fill="#00CD3C"/>
-               <path d="M50 22C34.5 22 22 34.5 22 50C22 65.5 34.5 78 50 78C65.5 78 78 65.5 78 50C78 34.5 65.5 22 50 22ZM50 72C37.8 72 28 62.2 28 50C28 37.8 37.8 28 50 28C62.2 28 72 37.8 72 50C72 62.2 62.2 72 50 72Z" fill="white" fillOpacity="0.2"/>
-               <path d="M68 38L62 38V62H56V44H54L48 62H42L36 44H34V62H28V38H34L45 56L56 38H62" fill="white" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
+        <div className="melon-trigger-left">
+          {/* 아이콘: 작고 심플하게 */}
+          <div className="melon-mini-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 18V5l12 7-12 6z" />
             </svg>
-            <span className="melon-title">Melon 원클릭 플레이리스트</span>
           </div>
-          <div className="melon-toggle">
-            <span style={{ fontSize: '13px', color: '#00cd3c', fontWeight: 600 }}>OPEN</span>
+          <div className="melon-trigger-info">
+            <span className="melon-trigger-title">Melon One-Click</span>
+            <span className="melon-trigger-sub">터치 한 번으로 스밍 시작</span>
           </div>
+        </div>
+
+        {/* 액션 아이콘 */}
+        <div className="melon-trigger-action">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+             <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
         </div>
       </section>
 
-      {/* 2. 팝업 모달 (Portal 사용) */}
+      {/* 🔒 2. 팝업 모달 (기존 코드 100% 유지) */}
       {mounted && isOpen && createPortal(
         <div className="modal-overlay" onClick={() => setIsOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            {/* 헤더 */}
             <div className="modal-header">
               <span className="modal-title">
                 <span style={{ color: '#00cd3c' }}>●</span> 원클릭 플레이리스트
@@ -101,10 +106,8 @@ export default function MelonPlaylist() {
               </button>
             </div>
 
-            {/* 비주얼 영역 (이미지 대신 CSS 디자인) */}
             <PlaylistVisual />
 
-            {/* 액션 영역 */}
             <div className="modal-actions">
               <div className="device-tabs">
                 {tabs.map((tab) => (
