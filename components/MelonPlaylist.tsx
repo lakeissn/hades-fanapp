@@ -44,12 +44,13 @@ export default function MelonPlaylist() {
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
-  const tabs: { id: DeviceType; label: string }[] = [
-    { id: "mobile", label: "모바일(안드/아이폰)" },
-    { id: "ipad", label: "아이패드" },
-    { id: "pc", label: "PC" },
-    { id: "mac", label: "MAC" },
-  ];
+ // 탭 목록 정의 부분 수정
+const tabs: { id: DeviceType; label: string }[] = [
+  { id: "mobile", label: "모바일" }, // 텍스트 축소
+  { id: "ipad", label: "아이패드" },
+  { id: "pc", label: "PC" },
+  { id: "mac", label: "MAC" },
+];
 
   return (
     <>
