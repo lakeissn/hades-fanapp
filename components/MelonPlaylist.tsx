@@ -48,6 +48,7 @@ export default function MelonPlaylist() {
         role="button"
         tabIndex={0}
       >
+        {/* 아래 div className="melon-brand" 부분이 중요합니다 */}
         <div className="melon-brand">
           <svg className="melon-logo" viewBox="0 0 100 100" fill="none">
              <circle cx="50" cy="50" r="50" fill="#00CD3C"/>
@@ -56,6 +57,7 @@ export default function MelonPlaylist() {
           </svg>
           <span className="melon-title">Melon 원클릭 플레이리스트</span>
         </div>
+        
         <div className="melon-toggle">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M6 9l6 6 6-6" style={{ transform: isOpen ? "rotate(180deg)" : "none", transformOrigin: "center", transition: "0.3s" }} />
