@@ -54,7 +54,7 @@ export default function VotesPage() {
 
   return (
     <main>
-      <div className="section-head">
+      <div className="section-head page-header">
         <div>
           <p className="section-tag">VOTES</p>
           <h2>투표 목록</h2>
