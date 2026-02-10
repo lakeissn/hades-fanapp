@@ -11,6 +11,7 @@ export type VoteItem = {
   url: string;
   opensAt?: string;
   closesAt?: string;
+  note?: string;
 };
 
 type VotesAccordionProps = {
