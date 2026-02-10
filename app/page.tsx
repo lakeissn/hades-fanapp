@@ -171,7 +171,18 @@ function formatDeadline(closesAt?: string) {
 
 function VotePreviewPlatforms({ vote }: { vote: VoteItem }) {
   const [missingMap, setMissingMap] = useState<Record<string, boolean>>({});
-  const platforms = (vote.platforms?.length ? vote.platforms : [vote.platform]).filter(Boolean).slice(0, 5);
+  const platforms = (
+    vote.platforms?.length
+      ? vote.platforms
+      : (vote.platform || "")
+          .replace(/[|,/]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .split(" ")
+  )
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, 5);
 
   return (
     <span className="vote-preview-icons" aria-hidden>
