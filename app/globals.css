@@ -390,7 +390,7 @@ main {
 .tag-row {
   display: flex;
   gap: 6px;
-  margin-top: 2px;
+  margin-top: 0;
   flex-wrap: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -561,6 +561,11 @@ main {
   align-items: center;
 }
 
+.vote-preview-icons {
+  display: inline-flex;
+  align-items: center;
+}
+
 .vote-preview-icon {
   width: 24px;
   height: 24px;
@@ -571,6 +576,10 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+ .vote-preview-icon + .vote-preview-icon {
+  margin-left: -6px;
 }
 
 .vote-preview-title {
