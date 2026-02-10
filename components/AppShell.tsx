@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const links = [
   { href: "/", label: "홈" },
@@ -12,12 +13,63 @@ const links = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [noticeState, setNoticeState] = useState<"hidden" | "default" | "denied">("hidden");
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return;
+    }
+
+    const dismissed = window.localStorage.getItem("hades_notice_dismissed") === "1";
+    const permission = Notification.permission;
+
+    if (permission === "granted") {
+      setNoticeState("hidden");
+      return;
+    }
+
+    if (permission === "denied") {
+      setNoticeState(dismissed ? "hidden" : "denied");
+      return;
+    }
+
+    setNoticeState(dismissed ? "hidden" : "default");
+  }, []);
+
+  const hideNotice = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("hades_notice_dismissed", "1");
+    }
+    setNoticeState("hidden");
+  };
+
+  const requestNoticePermission = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      window.localStorage.removeItem("hades_notice_dismissed");
+      setNoticeState("hidden");
+      return;
+    }
+
+    if (permission === "denied") {
+      setNoticeState("denied");
+      return;
+    }
+
+    setNoticeState("default");
+  };
 
   return (
     <div className="app-shell">
       <div className="header-wrap">
         <header className="header">
-          <div className="logo">Hades Fanapp</div>
+          <Link className="logo" href="/" aria-label="HADES FANAPP 홈으로 이동">
+            HADES FANAPP
+          </Link>
           <nav className="header-nav" aria-label="주요 메뉴">
             {links.map((link) => (
               <a
@@ -56,6 +108,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </header>
       </div>
+
+      {noticeState !== "hidden" && (
+        <div className="notice-banner" role="status" aria-live="polite">
+          <p>
+            {noticeState === "denied"
+              ? "알림이 차단되어 있어요. 브라우저 설정에서 알림을 허용해 주세요."
+              : "알림을 켜면 새 투표/라이브 소식을 바로 받을 수 있어요."}
+          </p>
+          <div className="notice-actions">
+            {noticeState === "default" && (
+              <button type="button" className="notice-allow" onClick={requestNoticePermission}>
+                알림 허용
+              </button>
+            )}
+            <button type="button" className="notice-later" onClick={hideNotice}>
+              {noticeState === "denied" ? "닫기" : "나중에"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="container">{children}</div>
     </div>
   );
