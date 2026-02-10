@@ -1766,9 +1766,10 @@ main {
   }
 }
 /* --- 🍈 Melon Trigger Card (유지) --- */
-/* --- 🍈 Melon Popup Fixed Layout (Final Polish + No-Scroll) --- */
 
-/* 1. 모달 오버레이 (중앙 정렬 강제) */
+/* --- 🍈 Melon Popup Fixed Layout (Final Polish + Badge Restore) --- */
+
+/* 1. 모달 오버레이 */
 .modal-overlay {
   position: fixed !important;
   top: 0 !important;
@@ -1835,14 +1836,7 @@ main {
   justify-content: center;
 }
 
-.modal-close:hover {
-  background: rgba(255, 50, 50, 0.15);
-  color: #ff4d4d;
-  border-color: rgba(255, 50, 50, 0.3);
-  transform: rotate(90deg);
-}
-
-/* 4. 스크롤 영역 (본문) */
+/* 4. 스크롤 영역 */
 .modal-scroll-area {
   flex: 1;
   overflow-y: auto;
@@ -1856,34 +1850,30 @@ main {
   border-radius: 10px;
 }
 
-/* 5. 탭 디자인 (중앙 정렬 및 스크롤 제거 패치) */
+/* 5. 탭 디자인 (중앙 정렬 + 고정형) */
 .device-tabs-scroll {
   display: flex;
-  /* 🚨 핵심: 모든 환경에서 중앙 정렬 및 스크롤 금지 */
   justify-content: center; 
   align-items: center;
-  gap: 4px; /* 모바일을 위해 간격 축소 */
+  gap: 4px;
   background: rgba(0, 0, 0, 0.25);
   padding: 6px;
   border-radius: 18px;
   margin-bottom: 28px;
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.03);
-  overflow: hidden !important; /* 스크롤 절대 불가 */
+  overflow: hidden !important; 
   width: 100%;
 }
 
 .device-tab-item {
-  /* 🚨 핵심: 공간 균등 분할 및 찌그러짐 방지 */
   flex: 1 !important; 
   min-width: 0 !important;
-  padding: 11px 2px; /* 좌우 여백 최소화 */
-  
+  padding: 11px 2px;
   font-size: 14px;
-  font-weight: 700; /* 🚨 모든 상태 고정 (레이아웃 흔들림 제거) */
+  font-weight: 700; 
   color: rgba(255, 255, 255, 0.5);
   background: transparent;
-  border: none;
   border-radius: 14px;
   cursor: pointer;
   white-space: nowrap;
@@ -1897,14 +1887,7 @@ main {
   box-shadow: 0 4px 15px rgba(0, 205, 60, 0.3);
 }
 
-/* 6. 버튼 디자인 */
-.link-button-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 28px;
-}
-
+/* 6. 버튼 및 숫자 배지 (🚨 기존 예쁜 디자인으로 복구) */
 .one-click-btn {
   width: 100%;
   height: 60px;
@@ -1923,27 +1906,30 @@ main {
   text-decoration: none;
 }
 
-.one-click-btn:hover {
-  border-color: #00cd3c;
-  background: linear-gradient(145deg, rgba(0, 205, 60, 0.15), rgba(0, 205, 60, 0.25));
-  transform: translateY(-3px);
-  color: #fff;
-  box-shadow: 0 8px 25px -5px rgba(0, 205, 60, 0.3);
-}
-
 .btn-number {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 2px solid rgba(0, 205, 60, 0.4);
+  /* 🚨 기존 스타일 복구: 반투명 면 배경 */
+  background: rgba(255, 255, 255, 0.1); 
+  border: none; /* 테두리 제거 */
   color: #00cd3c;
   font-size: 14px;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
+  line-height: 1; /* 🚨 숫자 쏠림 방지 핵심 */
+  transition: all 0.25s ease;
 }
 
+.one-click-btn:hover .btn-number {
+  background: #00cd3c;
+  color: #0a2a12;
+  box-shadow: 0 0 10px rgba(0, 205, 60, 0.5);
+}
+
+/* 이미지 및 기타 반응형 유지 */
 .playlist-image-area {
   width: 100%;
   border-radius: 18px;
@@ -1958,26 +1944,8 @@ main {
   display: block;
 }
 
-/* --- 📱 Mobile Responsive Patch --- */
-
 @media (max-width: 480px) {
-  .modal-scroll-area {
-    padding: 20px 14px !important; 
-  }
-  .one-click-btn {
-    height: 54px;
-    padding: 0 16px;
-  }
-  .device-tab-item {
-    font-size: 12px; /* 모바일에서 텍스트 더 축소 */
-    padding: 10px 1px;
-  }
-}
-
-/* 🚨 극소형 화면 (iPhone SE 등) 대응 */
-@media (max-width: 340px) {
-  .device-tab-item {
-    font-size: 11px;
-    letter-spacing: -0.05em;
-  }
+  .modal-scroll-area { padding: 20px 14px !important; }
+  .device-tab-item { font-size: 12px; }
+  .one-click-btn { height: 54px; padding: 0 16px; }
 }
