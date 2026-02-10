@@ -65,7 +65,7 @@ const officialLinks = [
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
-          d="M4 4h9.2c4.5 0 6.8 2.2 6.8 6.5 0 4.7-2.3 7.1-6.8 7.1H9.6v-3.2h3.8c2.3 0 3.4-1.1 3.4-3.8 0-2.4-1.1-3.5-3.4-3.5H7v10.5H4V4z"
+          d="M6.5 4h3.6l4.4 7V4h3v16h-3.6l-4.4-7v7h-3V4z"
           fill="currentColor"
         />
       </svg>
@@ -73,7 +73,7 @@ const officialLinks = [
   },
   {
     id: "youtube",
-    label: "유튜브",
+    label: "YouTube",
     href: "https://www.youtube.com/@HADES_offi",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -87,7 +87,7 @@ const officialLinks = [
   },
   {
     id: "instagram",
-    label: "인스타그램",
+    label: "Instagram",
     href: "https://www.instagram.com/hades_offi/",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -255,7 +255,7 @@ export default function HomePage() {
           {officialLinks.map((link) => (
             <a
               key={link.id}
-              className="link-card"
+              className={`link-card link-${link.id}`}
               href={link.href}
               target="_blank"
               rel="noreferrer"
@@ -264,6 +264,18 @@ export default function HomePage() {
                 {link.icon}
               </span>
               <span className="link-label">{link.label}</span>
+              <span className="link-chevron" aria-hidden>
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M9 6l6 6-6 6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
             </a>
           ))}
         </div>
