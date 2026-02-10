@@ -34,6 +34,7 @@ type VoteItem = {
   url: string;
   opensAt?: string;
   closesAt?: string;
+  note?: string;
 };
 
 const FALLBACK_CSV_URL =
@@ -190,6 +191,7 @@ async function loadVotesFromSheet() {
       url: row.url?.trim() ?? "",
       opensAt: row.opensAt?.trim() || undefined,
       closesAt: row.closesAt?.trim() || undefined,
+      note: row.note?.trim() || undefined,
     }))
     .filter((vote) => vote.title && vote.url);
 
