@@ -25,7 +25,7 @@ const guideCategories = [
 export default function GuidesPage() {
   return (
     <main className="guides-page">
-      <header className="section-head page-header guides-hero">
+      <header className="section-head page-header">
         <div>
           <p className="section-tag">GUIDES</p>
           <h2>가이드</h2>
