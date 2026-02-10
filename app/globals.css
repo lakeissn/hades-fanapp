@@ -1317,194 +1317,220 @@ main {
 
 /* app/globals.css */
 
-/* ... (기존 상단 코드 유지) ... */
-/* ... (맨 아래쪽 melon 관련 코드를 찾아서 지우고 아래 내용으로 덮어쓰세요) ... */
+/* --- 🎵 Melon Modal & Visualizer --- */
 
-/* --- 🎵 Melon Playlist (Redesigned) --- */
+/* 모달 오버레이 (배경) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out forwards;
+}
 
-.melon-deck-premium {
-  /* 배경: 유리 질감 + 그라데이션 */
-  background: linear-gradient(160deg, rgba(20, 20, 35, 0.8), rgba(10, 10, 20, 0.9));
-  border: 1px solid rgba(179, 107, 255, 0.2);
-  border-radius: 24px;
+/* 모달 컨테이너 */
+.modal-content {
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(160deg, #1a1a2e, #16213e);
+  border: 1px solid rgba(0, 205, 60, 0.3);
+  border-radius: 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  position: relative;
   overflow: hidden;
-  backdrop-filter: blur(20px);
-  margin-bottom: 24px;
-  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
-  transition: border-color 0.3s ease;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.melon-deck-premium.open {
-  border-color: rgba(0, 205, 60, 0.5); /* 멜론 그린 포인트 */
-  box-shadow: 0 20px 60px -10px rgba(0, 205, 60, 0.15);
-}
-
-/* 헤더 영역 */
-.melon-header {
-  padding: 20px 24px;
+/* 모달 헤더 */
+.modal-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.01);
-  transition: background 0.2s;
-}
-
-.melon-header:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.melon-brand {
-  display: flex;
   align-items: center;
-  gap: 14px; /* 아이콘과 텍스트 사이 간격 */
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
 }
 
-/* 🔴 [핵심 수정] 아이콘 크기 고정 */
-.melon-logo {
-  width: 32px; 
-  height: 32px;
-  flex-shrink: 0; /* 찌그러짐 방지 */
-  filter: drop-shadow(0 0 8px rgba(0, 205, 60, 0.4)); /* 살짝 빛나게 */
-}
-
-.melon-title {
+.modal-title {
   font-size: 18px;
   font-weight: 700;
   color: #fff;
-  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.melon-toggle {
-  color: rgba(255, 255, 255, 0.3);
+.modal-close {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
   transition: color 0.2s;
 }
 
-.melon-header:hover .melon-toggle {
+.modal-close:hover {
   color: #fff;
 }
 
-/* 본문 영역 */
-.melon-body {
-  padding: 0 24px 28px;
-  animation: slideDown 0.3s ease-out forwards;
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* 탭 (기기 선택) 디자인 */
-.melon-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  padding: 4px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 16px;
-  width: fit-content;
-}
-
-.melon-tab {
-  padding: 8px 18px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #888;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.melon-tab:hover {
-  color: #ccc;
-}
-
-.melon-tab.active {
-  background: rgba(255, 255, 255, 0.1);
-  color: #00cd3c; /* 멜론 그린 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* 트랙 리스트 디자인 (참고 이미지 느낌 반영) */
-.melon-tracks {
+/* 플레이리스트 비주얼 (이미지 대체용 CSS 디자인) */
+.playlist-visual {
+  padding: 30px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 20px;
+  background: radial-gradient(circle at 50% 0%, rgba(0, 205, 60, 0.1), transparent 70%);
 }
 
-.melon-play-btn {
+.album-art-placeholder {
+  width: 160px;
+  height: 160px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #00cd3c, #00962b);
+  box-shadow: 0 12px 30px rgba(0, 205, 60, 0.3);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 18px;
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  justify-content: center;
+  font-size: 48px;
+  color: rgba(255, 255, 255, 0.9);
   position: relative;
   overflow: hidden;
 }
 
-/* 호버 시 고급스러운 인터랙션 */
-.melon-play-btn:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(0, 205, 60, 0.4);
-  transform: scale(1.01);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+.album-art-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%);
+  background-size: 200% 200%;
+  animation: shine 3s infinite;
 }
 
-.melon-play-btn:active {
-  transform: scale(0.98);
+.playlist-info {
+  text-align: center;
 }
 
-.play-info {
+.playlist-info h3 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.playlist-info p {
+  color: #00cd3c;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* 트랙 리스트 미리보기 */
+.track-list-preview {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 0 10px;
 }
 
-.play-label {
-  font-size: 16px;
-  font-weight: 700;
-  color: #e0e0e0;
-}
-
-.play-sub {
-  font-size: 12px;
-  color: #888;
-  font-weight: 500;
-}
-
-.play-action {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(0, 205, 60, 0.15); /* 은은한 멜론색 배경 */
-  color: #00cd3c;
+.track-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(0, 205, 60, 0.3);
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.track-num {
+  font-size: 12px;
+  color: #00cd3c;
+  font-weight: 700;
+  width: 16px;
+}
+
+.track-name {
+  font-size: 14px;
+  color: #e0e0e0;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-artist {
+  font-size: 12px;
+  color: #888;
+}
+
+/* 하단 액션 영역 */
+.modal-actions {
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.device-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.device-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  border-radius: 10px;
   transition: all 0.2s;
 }
 
-.melon-play-btn:hover .play-action {
-  background: #00cd3c;
-  color: #000; /* 아이콘 검정색으로 반전 */
-  box-shadow: 0 0 15px rgba(0, 205, 60, 0.6);
-  transform: rotate(90deg); /* 플레이 버튼 회전 효과 */
+.device-tab.active {
+  background: #333;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
-/* 모바일 대응 */
-@media (max-width: 480px) {
-  .melon-header { padding: 16px 20px; }
-  .melon-body { padding: 0 20px 24px; }
-  .melon-tabs { width: 100%; justify-content: space-between; }
-  .melon-tab { flex: 1; padding: 10px 0; text-align: center; }
+.play-button-large {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #00cd3c, #00b033);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 8px 20px rgba(0, 205, 60, 0.25);
 }
+
+.play-button-large:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 205, 60, 0.35);
+  filter: brightness(1.1);
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes shine { 0% { transform: translate(-150%, -150%) rotate(45deg); } 100% { transform: translate(150%, 150%) rotate(45deg); } }
 /* --- Guide Detail Page (Premium Style) --- */
 
 .guide-detail-page {
