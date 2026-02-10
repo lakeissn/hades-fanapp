@@ -8,15 +8,20 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "standalone",
     background_color: "#000000",
-    theme_color: "#0b0b14",
+    theme_color: "#000000",
     icons: [
       {
-        src: "/icon",
+        src: "/icons/hades_helper.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/icons/hades_helper.png",
         sizes: "512x512",
         type: "image/png",
       },
       {
-        src: "/apple-icon",
+        src: "/icons/hades_helper.png",
         sizes: "180x180",
         type: "image/png",
       },
