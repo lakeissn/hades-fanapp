@@ -48,6 +48,7 @@ type MemberStatus = {
   liveUrl: string | null;
   title: string | null;
   thumbUrl: string | null;
+  tags: string[];
   fetchedAt: string;
 };
 
@@ -89,12 +90,37 @@ function extractTitleTag(html: string) {
   return match?.[1] ?? null;
 }
 
+function parseTagsFromHtml(html: string) {
+  const values = new Set<string>();
+
+  const broadTagMatch = html.match(/"broad_tag"\s*:\s*\[(.*?)\]/i);
+  if (broadTagMatch?.[1]) {
+    const inner = broadTagMatch[1];
+    const tagMatches = inner.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g) ?? [];
+    tagMatches
+      .map((item) => item.slice(1, -1))
+      .map((item) => item.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))))
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((item) => values.add(item));
+  }
+
+  const domLikeMatches = html.match(/class=["'][^"']*tag[^"']*["'][^>]*>([^<]{1,40})</gi) ?? [];
+  domLikeMatches
+    .map((chunk) => chunk.replace(/<[^>]+>/g, "").trim())
+    .filter(Boolean)
+    .forEach((item) => values.add(item));
+
+  return Array.from(values).slice(0, 5);
+}
+
 async function fetchLiveMeta(liveUrl: string) {
   const response = await fetch(liveUrl, { cache: "no-store" });
   const html = await response.text();
   const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
   const thumbUrl = extractMetaContent(html, "og:image");
-  return { title, thumbUrl };
+  const tags = parseTagsFromHtml(html);
+  return { title, thumbUrl, tags };
 }
 
 async function fetchStatus(bjid: string) {
@@ -137,15 +163,6 @@ async function fetchStatus(bjid: string) {
         data.thumbUrl
       );
 
-      if (apiTitle && apiThumb) {
-        return {
-          isLive: true,
-          liveUrl,
-          title: apiTitle,
-          thumbUrl: apiThumb,
-        };
-      }
-
       try {
         const meta = await fetchLiveMeta(liveUrl);
         return {
@@ -153,19 +170,22 @@ async function fetchStatus(bjid: string) {
           liveUrl,
           title: apiTitle ?? meta.title,
           thumbUrl: apiThumb ?? meta.thumbUrl,
+          tags: meta.tags,
         };
-      } catch {
+      } catch (error) {
+        console.error(`[members/status] tag parse failed for ${bjid}`, error);
         return {
           isLive: true,
           liveUrl,
           title: apiTitle,
           thumbUrl: apiThumb,
+          tags: [],
         };
       }
     }
-    return { isLive: false, liveUrl: null, title: null, thumbUrl: null };
+    return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
   } catch {
-    return { isLive: false, liveUrl: null, title: null, thumbUrl: null };
+    return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
   } finally {
     clearTimeout(timeout);
   }
