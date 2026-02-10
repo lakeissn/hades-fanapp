@@ -1317,193 +1317,248 @@ main {
 
 /* app/globals.css */
 
-/* ... (기존 상단 코드 유지) ... */
-/* ... (맨 아래쪽 melon 관련 코드를 찾아서 지우고 아래 내용으로 덮어쓰세요) ... */
+/* --- 🧊 UI Components --- */
+.container {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 88px 20px 88px;
+}
 
-/* --- 🎵 Melon Playlist (Redesigned) --- */
-
-.melon-deck-premium {
-  /* 배경: 유리 질감 + 그라데이션 */
-  background: linear-gradient(160deg, rgba(20, 20, 35, 0.8), rgba(10, 10, 20, 0.9));
-  border: 1px solid rgba(179, 107, 255, 0.2);
+.glass {
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
   border-radius: 24px;
-  overflow: hidden;
-  backdrop-filter: blur(20px);
-  margin-bottom: 24px;
-  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
-  transition: border-color 0.3s ease;
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+  padding: 20px;
 }
 
-.melon-deck-premium.open {
-  border-color: rgba(0, 205, 60, 0.5); /* 멜론 그린 포인트 */
-  box-shadow: 0 20px 60px -10px rgba(0, 205, 60, 0.15);
-}
-
-/* 헤더 영역 */
-.melon-header {
-  padding: 20px 24px;
+/* --- 🎵 Melon Card (Main Screen) --- */
+.melon-entry-card {
+  background: linear-gradient(135deg, rgba(30, 30, 50, 0.7), rgba(15, 15, 25, 0.9));
+  border: 1px solid rgba(179, 107, 255, 0.3);
+  border-radius: 28px;
+  padding: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.01);
-  transition: background 0.2s;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
 }
 
-.melon-header:hover {
-  background: rgba(255, 255, 255, 0.03);
+.melon-entry-card:hover {
+  transform: translateY(-5px) scale(1.01);
+  border-color: #00cd3c;
+  box-shadow: 0 15px 40px rgba(0, 205, 60, 0.15);
 }
 
-.melon-brand {
+.melon-entry-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 20% 50%, rgba(0, 205, 60, 0.1), transparent 50%);
+  pointer-events: none;
+}
+
+.melon-brand-info {
   display: flex;
   align-items: center;
-  gap: 14px; /* 아이콘과 텍스트 사이 간격 */
+  gap: 18px;
+  z-index: 1;
 }
 
-/* 🔴 [핵심 수정] 아이콘 크기 고정 */
-.melon-logo {
-  width: 32px; 
-  height: 32px;
-  flex-shrink: 0; /* 찌그러짐 방지 */
-  filter: drop-shadow(0 0 8px rgba(0, 205, 60, 0.4)); /* 살짝 빛나게 */
+.melon-logo-circle {
+  width: 52px;
+  height: 52px;
+  background: #00cd3c;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(0, 205, 60, 0.3);
 }
 
-.melon-title {
-  font-size: 18px;
-  font-weight: 700;
+.melon-entry-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.melon-entry-title h3 {
+  font-size: 20px;
+  font-weight: 800;
   color: #fff;
-  letter-spacing: -0.01em;
 }
 
-.melon-toggle {
-  color: rgba(255, 255, 255, 0.3);
-  transition: color 0.2s;
+.melon-entry-title p {
+  font-size: 13px;
+  color: #a1a1c9;
 }
 
-.melon-header:hover .melon-toggle {
+/* --- 🖼️ Modal (Popup) System --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background: #11111e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  border-radius: 32px;
+  position: relative;
+  overflow-y: auto;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8);
+  animation: scaleUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleUp { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+.modal-header {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  position: sticky;
+  top: 0;
+  background: rgba(17, 17, 30, 0.9);
+  backdrop-filter: blur(10px);
+  z-index: 2;
+}
+
+.modal-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
   color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
-/* 본문 영역 */
-.melon-body {
-  padding: 0 24px 28px;
-  animation: slideDown 0.3s ease-out forwards;
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+.modal-body {
+  padding: 24px;
 }
 
-/* 탭 (기기 선택) 디자인 */
-.melon-tabs {
+/* 플레이리스트 이미지 영역 */
+.playlist-desc-image {
+  width: 100%;
+  border-radius: 20px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  background: #000;
+}
+
+.playlist-desc-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.device-tabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
-  padding: 4px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 16px;
-  width: fit-content;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  border-radius: 18px;
+  margin-bottom: 24px;
 }
 
-.melon-tab {
-  padding: 8px 18px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #888;
-  background: transparent;
+.device-tab {
+  flex: 1;
   border: none;
+  background: transparent;
+  color: #888;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  border-radius: 12px;
+  transition: all 0.2s;
 }
 
-.melon-tab:hover {
-  color: #ccc;
+.device-tab.active {
+  background: rgba(0, 205, 60, 0.15);
+  color: #00cd3c;
 }
 
-.melon-tab.active {
-  background: rgba(255, 255, 255, 0.1);
-  color: #00cd3c; /* 멜론 그린 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* 트랙 리스트 디자인 (참고 이미지 느낌 반영) */
-.melon-tracks {
+.track-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.melon-play-btn {
+.track-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 18px 22px;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 18px;
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  position: relative;
-  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  text-decoration: none;
+  transition: all 0.3s;
 }
 
-/* 호버 시 고급스러운 인터랙션 */
-.melon-play-btn:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(0, 205, 60, 0.4);
-  transform: scale(1.01);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+.track-item:hover {
+  background: rgba(0, 205, 60, 0.08);
+  border-color: rgba(0, 205, 60, 0.3);
+  transform: translateX(5px);
 }
 
-.melon-play-btn:active {
-  transform: scale(0.98);
-}
-
-.play-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.play-label {
-  font-size: 16px;
+.track-info h4 {
+  font-size: 17px;
   font-weight: 700;
-  color: #e0e0e0;
+  color: #fff;
 }
 
-.play-sub {
+.track-info p {
   font-size: 12px;
-  color: #888;
-  font-weight: 500;
+  color: #777;
 }
 
-.play-action {
+.track-play-icon {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(0, 205, 60, 0.15); /* 은은한 멜론색 배경 */
+  background: rgba(0, 205, 60, 0.1);
   color: #00cd3c;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(0, 205, 60, 0.3);
-  transition: all 0.2s;
+  border: 1px solid rgba(0, 205, 60, 0.2);
 }
 
-.melon-play-btn:hover .play-action {
+.track-item:hover .track-play-icon {
   background: #00cd3c;
-  color: #000; /* 아이콘 검정색으로 반전 */
-  box-shadow: 0 0 15px rgba(0, 205, 60, 0.6);
-  transform: rotate(90deg); /* 플레이 버튼 회전 효과 */
-}
-
-/* 모바일 대응 */
-@media (max-width: 480px) {
-  .melon-header { padding: 16px 20px; }
-  .melon-body { padding: 0 20px 24px; }
-  .melon-tabs { width: 100%; justify-content: space-between; }
-  .melon-tab { flex: 1; padding: 10px 0; text-align: center; }
+  color: #000;
 }
 /* --- Guide Detail Page (Premium Style) --- */
 
