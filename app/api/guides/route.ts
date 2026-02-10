@@ -1,9 +1,9 @@
-diff --git a/app/api/guides/[id]/route.ts b/app/api/guides/[id]/route.ts
+diff --git a/app/api/guides/route.ts b/app/api/guides/route.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..1fe38ae43a776affeaf6eeedba7d6bcd708235ca
+index 0000000000000000000000000000000000000000..88b3da7a4214dff9227a41847edced95711b3e06
 --- /dev/null
-+++ b/app/api/guides/[id]/route.ts
-@@ -0,0 +1,65 @@
++++ b/app/api/guides/route.ts
+@@ -0,0 +1,53 @@
 +import { promises as fs } from "fs";
 +import path from "path";
 +import { NextResponse } from "next/server";
@@ -18,12 +18,14 @@ index 0000000000000000000000000000000000000000..1fe38ae43a776affeaf6eeedba7d6bcd
 +  steps: string[];
 +};
 +
++const defaultGuides: Guide[] = [];
++
 +async function ensureGuidesFile() {
 +  await fs.mkdir(dataDir, { recursive: true });
 +  try {
 +    await fs.access(guidesPath);
 +  } catch {
-+    await fs.writeFile(guidesPath, JSON.stringify([], null, 2), "utf8");
++    await fs.writeFile(guidesPath, JSON.stringify(defaultGuides, null, 2), "utf8");
 +  }
 +}
 +
@@ -37,35 +39,21 @@ index 0000000000000000000000000000000000000000..1fe38ae43a776affeaf6eeedba7d6bcd
 +  await fs.writeFile(guidesPath, JSON.stringify(guides, null, 2), "utf8");
 +}
 +
-+export async function PUT(
-+  request: Request,
-+  { params }: { params: { id: string } }
-+) {
-+  const payload = (await request.json()) as Partial<Guide>;
++export async function GET() {
 +  const guides = await readGuides();
-+  const index = guides.findIndex((guide) => guide.id === params.id);
-+  if (index === -1) {
-+    return NextResponse.json({ message: "Guide not found" }, { status: 404 });
-+  }
-+  const updated = {
-+    ...guides[index],
-+    ...payload,
-+    id: guides[index].id,
-+  };
-+  guides[index] = updated;
-+  await writeGuides(guides);
-+  return NextResponse.json(updated);
++  return NextResponse.json(guides);
 +}
 +
-+export async function DELETE(
-+  _request: Request,
-+  { params }: { params: { id: string } }
-+) {
++export async function POST(request: Request) {
++  const payload = (await request.json()) as Omit<Guide, "id">;
 +  const guides = await readGuides();
-+  const nextGuides = guides.filter((guide) => guide.id !== params.id);
-+  if (nextGuides.length === guides.length) {
-+    return NextResponse.json({ message: "Guide not found" }, { status: 404 });
-+  }
-+  await writeGuides(nextGuides);
-+  return NextResponse.json({ ok: true });
++  const created: Guide = {
++    id: crypto.randomUUID(),
++    category: payload.category ?? "streaming",
++    title: payload.title ?? "",
++    steps: payload.steps ?? [],
++  };
++  guides.push(created);
++  await writeGuides(guides);
++  return NextResponse.json(created, { status: 201 });
 +}
