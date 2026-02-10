@@ -27,7 +27,9 @@ type MemberStatus = {
 type VoteItem = {
   id: string;
   title: string;
-  link?: string;
+  platform: string;
+  platformLabel: string;
+  url: string;
   opensAt?: string;
   closesAt?: string;
 };
@@ -106,43 +108,43 @@ const officialLinks = [
   },
 ];
 
-function isExpired(closesAt?: string) {
-  if (!closesAt) {
-    return false;
-  }
-  const closesDate = new Date(closesAt);
-  if (Number.isNaN(closesDate.getTime())) {
-    return false;
-  }
-  return closesDate.getTime() <= Date.now();
-}
-
 function isOpenNow(vote: VoteItem) {
   const now = Date.now();
   const openTime = vote.opensAt ? new Date(vote.opensAt).getTime() : null;
+  const closeTime = vote.closesAt ? new Date(vote.closesAt).getTime() : null;
+
   if (openTime && !Number.isNaN(openTime) && openTime > now) {
     return false;
   }
-  return !isExpired(vote.closesAt);
+
+  if (closeTime && !Number.isNaN(closeTime) && closeTime <= now) {
+    return false;
+  }
+
+  return true;
 }
 
 function formatDeadline(closesAt?: string) {
   if (!closesAt) {
-    return "마감 정보 없음";
+    return "상시 진행";
   }
   const closeDate = new Date(closesAt);
   if (Number.isNaN(closeDate.getTime())) {
     return "마감 정보 없음";
   }
+
   const remainingMs = closeDate.getTime() - Date.now();
   if (remainingMs > 0) {
     const hours = Math.floor(remainingMs / (1000 * 60 * 60));
     if (hours < 24) {
-      return `${hours}시간 후 마감`;
+      const safeHours = Math.max(hours, 1);
+      return `${safeHours}시간 후 마감`;
     }
+
     const days = Math.floor(hours / 24);
     return `${days}일 후 마감`;
   }
+
   return new Intl.DateTimeFormat("ko-KR", {
     month: "2-digit",
     day: "2-digit",
@@ -292,6 +294,16 @@ export default function HomePage() {
             <div className="vote-preview-list">
               {votePreviewItems.map((vote) => (
                 <article key={vote.id} className="vote-preview-item">
+                  <span className="vote-preview-icon" aria-hidden>
+                    <img
+                      src={`/icons/${vote.platform}.png`}
+                      alt=""
+                      onError={(event) => {
+                        (event.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    <span className="vote-icon-fallback">V</span>
+                  </span>
                   <p className="vote-preview-title">{vote.title}</p>
                   <span className="vote-status" data-status="open">
                     진행중
