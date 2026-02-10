@@ -1986,34 +1986,20 @@ main {
     letter-spacing: -0.05em;
   }
 }
-/* ✅ 원클릭 버튼 내부가 어떤 구조든 "한 줄 정렬" 강제 */
-.one-click-btn{
-  position: relative !important;
+/* ✅ 숫자(동그라미) + 텍스트를 "가로로" 붙이기 */
+.one-click-btn .btn-label{
   display: flex !important;
-  flex-direction: row !important;
   align-items: center !important;
-  justify-content: flex-start !important;
-
-  /* 숫자 들어갈 자리 확보 */
-  padding-left: 60px !important;
+  gap: 10px !important;          /* 숫자-글자 간격 */
+  flex-direction: row !important; /* 혹시 column 먹고 있으면 강제 */
 }
 
-/* ✅ 숫자 동그라미를 왼쪽에 고정 */
+/* ✅ 숫자 뱃지는 줄어들지 않게 */
 .one-click-btn .btn-number{
-  position: absolute !important;
-  left: 22px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
+  flex: 0 0 auto !important;
 }
 
-/* ✅ 버튼 안에 텍스트가 span/div/p 등 뭐로 감싸져 있어도 줄바꿈 방지 */
-.one-click-btn span,
-.one-click-btn div,
-.one-click-btn p{
-  white-space: nowrap;
-}
-
-/* ✅ 오른쪽 아이콘(↗ svg)이 있으면 오른쪽 끝으로 */
+/* ✅ 오른쪽 아이콘은 오른쪽 끝으로 */
 .one-click-btn svg{
   margin-left: auto !important;
 }
