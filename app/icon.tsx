@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export const size = {
   width: 512,
@@ -7,7 +9,10 @@ export const size = {
 
 export const contentType = "image/png";
 
-export default function Icon() {
+export default async function Icon() {
+  const png = await readFile(join(process.cwd(), "public", "icons", "hades_helper.png"));
+  const src = `data:image/png;base64,${png.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -20,26 +25,7 @@ export default function Icon() {
           background: "#000000",
         }}
       >
-        <div
-          style={{
-            width: 330,
-            height: 330,
-            borderRadius: 96,
-            background: "linear-gradient(135deg,#ff6adf,#ff5fa2)",
-            boxShadow: "0 20px 56px rgba(255,90,178,0.38)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#17081f",
-            fontSize: 190,
-            fontWeight: 800,
-            letterSpacing: "-0.06em",
-            lineHeight: 1,
-            fontFamily: "Arial",
-          }}
-        >
-          H
-        </div>
+        <img src={src} width={420} height={420} alt="Hades helper" />
       </div>
     ),
     size
