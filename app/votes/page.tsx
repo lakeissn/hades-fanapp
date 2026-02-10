@@ -1,11 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Badge from "../../components/Badge";
 import Card from "../../components/Card";
 import VotesAccordion, { VoteItem } from "../../components/VotesAccordion";
 
 type Vote = VoteItem;
+
+function isActiveVote(vote: Vote) {
+  if (!vote.closesAt) {
+    return true;
+  }
+  const closesAt = new Date(vote.closesAt);
+  if (Number.isNaN(closesAt.getTime())) {
+    return true;
+  }
+  return closesAt.getTime() > Date.now();
+}
 
 export default function VotesPage() {
   const [votes, setVotes] = useState<Vote[]>([]);
@@ -39,6 +50,8 @@ export default function VotesPage() {
     };
   }, []);
 
+  const visibleVotes = useMemo(() => votes.filter(isActiveVote), [votes]);
+
   return (
     <main>
       <div className="section-head">
@@ -53,12 +66,12 @@ export default function VotesPage() {
           <div className="empty-state">
             <p>투표 목록을 불러오는 중...</p>
           </div>
-        ) : votes.length === 0 ? (
+        ) : visibleVotes.length === 0 ? (
           <div className="empty-state">
             <p>현재 진행 중인 투표가 없습니다.</p>
           </div>
         ) : (
-          <VotesAccordion votes={votes} />
+          <VotesAccordion votes={visibleVotes} />
         )}
       </Card>
     </main>
