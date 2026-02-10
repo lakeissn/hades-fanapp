@@ -1,59 +1,211 @@
-import { promises as fs } from "fs";
-import path from "path";
 import { NextResponse } from "next/server";
 
-const dataDir = path.join(process.cwd(), "data");
-const votesPath = path.join(dataDir, "votes.json");
+type VotePlatform =
+  | "idolchamp"
+  | "mubeat"
+  | "upick"
+  | "fancast"
+  | "fanplus"
+  | "podoal"
+  | "whosfan"
+  | "duakad"
+  | "10asia"
+  | "muniverse"
+  | "my1pick"
+  | "mnetplus"
+  | "fannstar"
+  | "higher";
 
-type Vote = {
-  id: string;
+type VoteRow = {
+  enabled: string;
   title: string;
-  options: string[];
-  link?: string;
-  opensAt?: string;
-  closesAt?: string;
-  status?: "open" | "closed";
+  platform: string;
+  url: string;
+  opensAt: string;
+  closesAt: string;
+  note: string;
 };
 
-const defaultVotes: Vote[] = [];
+type VoteItem = {
+  id: string;
+  title: string;
+  platform: string;
+  platformLabel: string;
+  url: string;
+  opensAt?: string;
+  closesAt?: string;
+};
 
-async function ensureVotesFile() {
-  await fs.mkdir(dataDir, { recursive: true });
-  try {
-    await fs.access(votesPath);
-  } catch {
-    await fs.writeFile(votesPath, JSON.stringify(defaultVotes, null, 2), "utf8");
+const FALLBACK_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPX-EvmCuv7Dk_ozK2PhR0VmxW94s3-bZkY5Kou8FMXBR7f4indzBJ5GayAwv_VurZa0Dsp7SsrnBL/pub?gid=0&single=true&output=csv";
+
+const PLATFORM_LABELS: Record<VotePlatform, string> = {
+  idolchamp: "아이돌챔프",
+  mubeat: "뮤빗",
+  upick: "유픽",
+  fancast: "팬캐스트",
+  fanplus: "팬플러스",
+  podoal: "포도알",
+  whosfan: "후즈팬",
+  duakad: "덕애드",
+  "10asia": "텐아시아",
+  muniverse: "뮤니버스",
+  my1pick: "마이원픽",
+  mnetplus: "엠넷플러스",
+  fannstar: "팬앤스타",
+  higher: "하이어",
+};
+
+const CACHE_TTL_MS = 60_000;
+
+let memoryCache:
+  | {
+      expiresAt: number;
+      data: VoteItem[];
+    }
+  | null = null;
+
+function normalizeBoolean(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+}
+
+function normalizePlatform(platform: string) {
+  return platform.trim().toLowerCase();
+}
+
+function labelForPlatform(platform: string) {
+  const key = normalizePlatform(platform) as VotePlatform;
+  return PLATFORM_LABELS[key] ?? "기타";
+}
+
+function parseDate(value: string) {
+  if (!value.trim()) return null;
+  const date = new Date(value.trim());
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
+function isExpired(closesAt: string) {
+  const date = parseDate(closesAt);
+  if (!date) return false;
+  return date.getTime() <= Date.now();
+}
+
+function createStableId(row: VoteRow) {
+  const raw = `${normalizePlatform(row.platform)}|${row.title.trim()}|${row.closesAt.trim()}`;
+  let hash = 0;
+  for (let i = 0; i < raw.length; i += 1) {
+    hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
   }
+  return `vote-${hash.toString(36)}`;
 }
 
-async function readVotes() {
-  await ensureVotesFile();
-  const raw = await fs.readFile(votesPath, "utf8");
-  return JSON.parse(raw) as Vote[];
+function parseCsvLine(line: string) {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current.trim());
+  return values;
 }
 
-async function writeVotes(votes: Vote[]) {
-  await fs.writeFile(votesPath, JSON.stringify(votes, null, 2), "utf8");
+function parseCsv(content: string) {
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length <= 1) {
+    return [];
+  }
+
+  const [headerLine, ...rows] = lines;
+  const headers = parseCsvLine(headerLine);
+
+  return rows.map((line) => {
+    const values = parseCsvLine(line);
+    const record: Record<string, string> = {};
+
+    headers.forEach((header, index) => {
+      record[header] = values[index] ?? "";
+    });
+
+    return record as VoteRow;
+  });
+}
+
+async function loadVotesFromSheet() {
+  const now = Date.now();
+  if (memoryCache && memoryCache.expiresAt > now) {
+    return memoryCache.data;
+  }
+
+  const csvUrl = process.env.VOTES_SHEET_CSV_URL ?? FALLBACK_CSV_URL;
+  const response = await fetch(csvUrl, {
+    next: { revalidate: 60 },
+    headers: {
+      Accept: "text/csv,*/*;q=0.9",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch votes csv: ${response.status}`);
+  }
+
+  const csv = await response.text();
+  const parsedRows = parseCsv(csv);
+
+  const filteredVotes = parsedRows
+    .filter((row) => normalizeBoolean(row.enabled ?? ""))
+    .filter((row) => !isExpired(row.closesAt ?? ""))
+    .map((row) => ({
+      id: createStableId(row),
+      title: row.title?.trim() ?? "",
+      platform: normalizePlatform(row.platform ?? ""),
+      platformLabel: labelForPlatform(row.platform ?? ""),
+      url: row.url?.trim() ?? "",
+      opensAt: row.opensAt?.trim() || undefined,
+      closesAt: row.closesAt?.trim() || undefined,
+    }))
+    .filter((vote) => vote.title && vote.url);
+
+  memoryCache = {
+    expiresAt: now + CACHE_TTL_MS,
+    data: filteredVotes,
+  };
+
+  return filteredVotes;
 }
 
 export async function GET() {
-  const votes = await readVotes();
-  return NextResponse.json(votes);
-}
-
-export async function POST(request: Request) {
-  const payload = (await request.json()) as Omit<Vote, "id">;
-  const votes = await readVotes();
-  const created: Vote = {
-    id: crypto.randomUUID(),
-    title: payload.title ?? "",
-    options: payload.options ?? [],
-    link: payload.link,
-    opensAt: payload.opensAt,
-    closesAt: payload.closesAt,
-    status: payload.status ?? "open",
-  };
-  votes.push(created);
-  await writeVotes(votes);
-  return NextResponse.json(created, { status: 201 });
+  try {
+    const votes = await loadVotesFromSheet();
+    return NextResponse.json(votes);
+  } catch {
+    return NextResponse.json([], { status: 200 });
+  }
 }
