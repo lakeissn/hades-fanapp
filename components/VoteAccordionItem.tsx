@@ -100,7 +100,6 @@ export default function VoteAccordionItem({
     return Array.from(new Set(values)).slice(0, 20);
   }, [vote.platform, vote]);
 
-  // 기존 platformLabels 로직은 유지하되, 새 디자인에서는 아이콘 위주로 보여줍니다.
   const platformLabels = useMemo(() => {
     const rawLabels = (vote as VoteItem & { platformLabels?: string[] }).platformLabels;
     if (rawLabels?.length) {
@@ -139,7 +138,7 @@ export default function VoteAccordionItem({
 
   return (
     <div className={`vote-item ${isOpen ? "is-open" : ""}`}>
-      {/* 닫혀있을 때 보이는 헤더 (기존 디자인 유지) */}
+      {/* 닫혀있을 때 보이는 헤더 */}
       <div
         className="vote-row"
         role="button"
@@ -206,10 +205,10 @@ export default function VoteAccordionItem({
         </span>
       </div>
 
-      {/* 확장되었을 때 보이는 패널 (공간 절약형 Compact HUD 디자인 적용) */}
+      {/* 확장 패널 (글자 크기 확대 적용) */}
       {isOpen && (
         <div className="vote-panel compact-panel">
-          {/* 섹션 1: 플랫폼 목록과 투표 버튼을 가로로 배치 */}
+          {/* 상단 액션 영역 */}
           <div className="panel-actions">
             <div className="panel-platforms">
               <span className="panel-label">투표처</span>
@@ -249,22 +248,22 @@ export default function VoteAccordionItem({
               onClick={stopRowToggle}
             >
               투표하러 가기
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </a>
           </div>
 
-          {/* 섹션 2: 기간 및 리워드 정보를 하단에 작게 배치 */}
+          {/* 하단 정보 영역 (폰트 크기 확대) */}
           <div className="panel-footer">
             <div className="panel-info">
               <span className="panel-label">기간</span>
-              <span className="panel-value">{periodText}</span>
+              <span className="panel-value date-text">{periodText}</span>
             </div>
             {vote.note && (
               <div className="panel-info note">
                 <span className="panel-label text-accent">리워드</span>
-                <span className="panel-value">{vote.note}</span>
+                <span className="panel-value note-text">{vote.note}</span>
               </div>
             )}
           </div>
