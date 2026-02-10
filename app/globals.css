@@ -1766,7 +1766,7 @@ main {
   }
 }
 /* --- 🍈 Melon Trigger Card (유지) --- */
-/* --- 🍈 Melon Popup Fixed Layout (Final Polish) --- */
+/* --- 🍈 Melon Popup Fixed Layout (Final Polish + No-Scroll) --- */
 
 /* 1. 모달 오버레이 (중앙 정렬 강제) */
 .modal-overlay {
@@ -1842,7 +1842,7 @@ main {
   transform: rotate(90deg);
 }
 
-/* 4. 스크롤 영역 */
+/* 4. 스크롤 영역 (본문) */
 .modal-scroll-area {
   flex: 1;
   overflow-y: auto;
@@ -1856,31 +1856,34 @@ main {
   border-radius: 10px;
 }
 
-/* 5. 탭 디자인 (중앙 정렬 패치) */
+/* 5. 탭 디자인 (중앙 정렬 및 스크롤 제거 패치) */
 .device-tabs-scroll {
   display: flex;
-  justify-content: center; /* 🚨 PC에서 중앙 정렬 */
-  gap: 8px;
+  /* 🚨 핵심: 모든 환경에서 중앙 정렬 및 스크롤 금지 */
+  justify-content: center; 
+  align-items: center;
+  gap: 4px; /* 모바일을 위해 간격 축소 */
   background: rgba(0, 0, 0, 0.25);
   padding: 6px;
   border-radius: 18px;
-  overflow-x: auto;
-  scrollbar-width: none;
   margin-bottom: 28px;
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.03);
+  overflow: hidden !important; /* 스크롤 절대 불가 */
+  width: 100%;
 }
 
-/* 탭 아이템 (글자 뚝 끊김 방지) */
 .device-tab-item {
-  flex: 1; /* 🚨 PC에서 균등 분할 */
-  min-width: fit-content;
-  padding: 11px 16px;
+  /* 🚨 핵심: 공간 균등 분할 및 찌그러짐 방지 */
+  flex: 1 !important; 
+  min-width: 0 !important;
+  padding: 11px 2px; /* 좌우 여백 최소화 */
+  
   font-size: 14px;
-  font-weight: 700; /* 🚨 모든 상태 두께 고정 (흔들림 방지) */
+  font-weight: 700; /* 🚨 모든 상태 고정 (레이아웃 흔들림 제거) */
   color: rgba(255, 255, 255, 0.5);
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 14px;
   cursor: pointer;
   white-space: nowrap;
@@ -1892,7 +1895,6 @@ main {
   background: linear-gradient(135deg, #00cd3c, #00b533);
   color: #00220a;
   box-shadow: 0 4px 15px rgba(0, 205, 60, 0.3);
-  /* font-weight: 800; 제거됨 (너비 변화 방지) */
 }
 
 /* 6. 버튼 디자인 */
@@ -1956,26 +1958,26 @@ main {
   display: block;
 }
 
-/* --- 📱 Mobile Responsive Patch (모바일 최적화) --- */
+/* --- 📱 Mobile Responsive Patch --- */
 
 @media (max-width: 480px) {
-  .device-tabs-scroll {
-    justify-content: flex-start; /* 🚨 모바일은 스크롤을 위해 왼쪽부터 */
-    padding-right: 20px;
-  }
-
-  .device-tab-item {
-    flex: 0 0 auto !important; /* 🚨 찌그러짐 방지 */
-    padding: 10px 14px;
-    font-size: 13px;
-  }
-
   .modal-scroll-area {
     padding: 20px 14px !important; 
   }
-
   .one-click-btn {
     height: 54px;
     padding: 0 16px;
+  }
+  .device-tab-item {
+    font-size: 12px; /* 모바일에서 텍스트 더 축소 */
+    padding: 10px 1px;
+  }
+}
+
+/* 🚨 극소형 화면 (iPhone SE 등) 대응 */
+@media (max-width: 340px) {
+  .device-tab-item {
+    font-size: 11px;
+    letter-spacing: -0.05em;
   }
 }
