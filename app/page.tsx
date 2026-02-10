@@ -21,6 +21,7 @@ type MemberStatus = {
   liveUrl: string | null;
   title: string | null;
   thumbUrl: string | null;
+  tags: string[];
   fetchedAt: string;
 };
 
@@ -44,15 +45,6 @@ const coverStyles: Record<string, React.CSSProperties> = {
   chaenna02: { background: "linear-gradient(135deg, #16222a, #3a6073)" },
   kymakyma: { background: "linear-gradient(135deg, #141e30, #243b55)" },
   khm11903: { background: "linear-gradient(135deg, #2c3e50, #4ca1af)" },
-};
-
-const memberTags: Record<string, string[]> = {
-  whatcherry4: ["한국어", "버추얼", "노래", "하데스"],
-  singgyul: ["게임", "소통", "편안함", "클립"],
-  ldrboo: ["보이는라디오", "토크", "밤"],
-  chaenna02: ["버추얼", "힐링", "잡담"],
-  kymakyma: ["ASMR", "음악", "감성"],
-  khm11903: ["리액션", "예능", "챌린지"],
 };
 
 const officialLinks = [
@@ -239,7 +231,7 @@ export default function HomePage() {
   return (
     <main>
       <section className="section-block">
-        <div className="section-head">
+        <div className="section-head page-header">
           <div>
             <p className="section-tag">LIVE NOW</p>
             <h2>지금 방송 중인 멤버</h2>
@@ -265,7 +257,7 @@ export default function HomePage() {
               coverStyle={coverStyles[member.id] ?? { background: "#1f1f2f" }}
               title={member.title}
               thumbUrl={member.thumbUrl}
-              tags={memberTags[member.id] ?? ["라이브"]}
+              tags={member.tags.length > 0 ? member.tags : ["라이브"]}
             />
           ))}
         </div>
