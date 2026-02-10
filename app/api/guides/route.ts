@@ -1,53 +1,71 @@
-import { promises as fs } from "fs";
-import path from "path";
-import { NextResponse } from "next/server";
-
-const dataDir = path.join(process.cwd(), "data");
-const guidesPath = path.join(dataDir, "guides.json");
-
-type Guide = {
-  id: string;
-  category: "streaming" | "gift" | "download";
-  title: string;
-  steps: string[];
-};
-
-const defaultGuides: Guide[] = [];
-
-async function ensureGuidesFile() {
-  await fs.mkdir(dataDir, { recursive: true });
-  try {
-    await fs.access(guidesPath);
-  } catch {
-    await fs.writeFile(guidesPath, JSON.stringify(defaultGuides, null, 2), "utf8");
-  }
-}
-
-async function readGuides() {
-  await ensureGuidesFile();
-  const raw = await fs.readFile(guidesPath, "utf8");
-  return JSON.parse(raw) as Guide[];
-}
-
-async function writeGuides(guides: Guide[]) {
-  await fs.writeFile(guidesPath, JSON.stringify(guides, null, 2), "utf8");
-}
-
-export async function GET() {
-  const guides = await readGuides();
-  return NextResponse.json(guides);
-}
-
-export async function POST(request: Request) {
-  const payload = (await request.json()) as Omit<Guide, "id">;
-  const guides = await readGuides();
-  const created: Guide = {
-    id: crypto.randomUUID(),
-    category: payload.category ?? "streaming",
-    title: payload.title ?? "",
-    steps: payload.steps ?? [],
-  };
-  guides.push(created);
-  await writeGuides(guides);
-  return NextResponse.json(created, { status: 201 });
-}
+diff --git a/app/api/guides/[id]/route.ts b/app/api/guides/[id]/route.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..1fe38ae43a776affeaf6eeedba7d6bcd708235ca
+--- /dev/null
++++ b/app/api/guides/[id]/route.ts
+@@ -0,0 +1,65 @@
++import { promises as fs } from "fs";
++import path from "path";
++import { NextResponse } from "next/server";
++
++const dataDir = path.join(process.cwd(), "data");
++const guidesPath = path.join(dataDir, "guides.json");
++
++type Guide = {
++  id: string;
++  category: "streaming" | "gift" | "download";
++  title: string;
++  steps: string[];
++};
++
++async function ensureGuidesFile() {
++  await fs.mkdir(dataDir, { recursive: true });
++  try {
++    await fs.access(guidesPath);
++  } catch {
++    await fs.writeFile(guidesPath, JSON.stringify([], null, 2), "utf8");
++  }
++}
++
++async function readGuides() {
++  await ensureGuidesFile();
++  const raw = await fs.readFile(guidesPath, "utf8");
++  return JSON.parse(raw) as Guide[];
++}
++
++async function writeGuides(guides: Guide[]) {
++  await fs.writeFile(guidesPath, JSON.stringify(guides, null, 2), "utf8");
++}
++
++export async function PUT(
++  request: Request,
++  { params }: { params: { id: string } }
++) {
++  const payload = (await request.json()) as Partial<Guide>;
++  const guides = await readGuides();
++  const index = guides.findIndex((guide) => guide.id === params.id);
++  if (index === -1) {
++    return NextResponse.json({ message: "Guide not found" }, { status: 404 });
++  }
++  const updated = {
++    ...guides[index],
++    ...payload,
++    id: guides[index].id,
++  };
++  guides[index] = updated;
++  await writeGuides(guides);
++  return NextResponse.json(updated);
++}
++
++export async function DELETE(
++  _request: Request,
++  { params }: { params: { id: string } }
++) {
++  const guides = await readGuides();
++  const nextGuides = guides.filter((guide) => guide.id !== params.id);
++  if (nextGuides.length === guides.length) {
++    return NextResponse.json({ message: "Guide not found" }, { status: 404 });
++  }
++  await writeGuides(nextGuides);
++  return NextResponse.json({ ok: true });
++}
