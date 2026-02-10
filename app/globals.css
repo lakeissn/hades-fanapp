@@ -1316,164 +1316,83 @@ main {
 }
 /* --- Melon Playlist (Collapsible & Themed) --- */
 
-.melon-deck {
-  background: linear-gradient(145deg, rgba(20, 24, 35, 0.9), rgba(10, 10, 24, 0.95));
-  border: 1px solid rgba(179, 107, 255, 0.15);
-  border-radius: 20px;
+/* 멜론 프리미엄 데크 */
+.melon-deck-premium {
+  background: rgba(18, 18, 35, 0.6);
+  border: 1px solid rgba(179, 107, 255, 0.2);
+  border-radius: 24px;
   overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  margin-bottom: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
-.melon-deck.open {
-  border-color: rgba(0, 205, 60, 0.4); /* Melon Green Hint when open */
-  box-shadow: 0 10px 30px rgba(0, 205, 60, 0.1);
+.melon-deck-premium.open {
+  border-color: rgba(179, 107, 255, 0.5);
+  box-shadow: 0 0 30px rgba(179, 107, 255, 0.15);
 }
 
-/* Header (Always Visible) */
 .melon-header {
+  padding: 18px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.02);
   transition: background 0.2s;
 }
 
-.melon-header:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.melon-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.melon-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  box-shadow: 0 0 10px rgba(0, 205, 60, 0.3);
-}
-
 .melon-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #e6e8ff;
-  letter-spacing: -0.01em;
-}
-
-.melon-toggle {
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-}
-
-/* Body (Collapsible) */
-.melon-body {
-  padding: 0 20px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  animation: slideDown 0.3s ease-out forwards;
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Tabs */
-.melon-tabs-scroll {
-  padding: 16px 0;
-  overflow-x: auto;
-  margin: 0 -4px;
-}
-
-.melon-tabs-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.melon-tabs {
-  display: flex;
-  gap: 8px;
+  font-size: 17px;
+  font-weight: 800;
+  background: linear-gradient(90deg, #fff, #b36bff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .melon-tab {
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid transparent;
-  cursor: pointer;
-  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(179, 107, 255, 0.1);
+  color: #a1a1c9;
+  padding: 10px 20px;
+  border-radius: 14px;
+  font-weight: 700;
   transition: all 0.2s;
-}
-
-.melon-tab:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
 
 .melon-tab.active {
-  background: rgba(0, 205, 60, 0.15); /* Melon Green Tint */
-  color: #00CD3C;
-  border-color: rgba(0, 205, 60, 0.3);
-}
-
-/* Track List */
-.melon-tracks {
-  display: grid;
-  gap: 10px;
+  background: rgba(179, 107, 255, 0.2);
+  color: #fff;
+  border-color: #b36bff;
+  box-shadow: 0 0 15px rgba(179, 107, 255, 0.3);
 }
 
 .melon-play-btn {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 16px 20px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  transition: all 0.2s;
-  text-decoration: none;
+  transition: all 0.3s;
 }
 
 .melon-play-btn:hover {
-  background: rgba(0, 205, 60, 0.08);
-  border-color: rgba(0, 205, 60, 0.4);
-  transform: translateX(4px);
-}
-
-.play-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.play-label {
-  font-size: 15px;
-  font-weight: 600;
-  color: #e6e8ff;
-}
-
-.play-sub {
-  font-size: 11px;
-  color: var(--muted);
+  background: rgba(179, 107, 255, 0.1);
+  border-color: rgba(179, 107, 255, 0.4);
+  transform: translateX(6px);
 }
 
 .play-action {
-  width: 32px;
-  height: 32px;
+  background: #b36bff; /* 멜론 그린 대신 하데스 퍼플 사용 */
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #00CD3C;
-  color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(0, 205, 60, 0.3);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(179, 107, 255, 0.4);
 }
 
 /* Mobile Fix */
