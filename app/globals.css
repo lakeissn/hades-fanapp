@@ -1308,60 +1308,82 @@ main {
     padding: 14px;
   }
 }
-/* --- Melon Command Center Style --- */
+/* --- Melon Playlist (Collapsible & Themed) --- */
 
 .melon-deck {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  background: linear-gradient(160deg, rgba(10, 20, 15, 0.7), rgba(6, 30, 10, 0.6));
-  border: 1px solid rgba(0, 255, 136, 0.15); /* Melon signature green hint */
+  background: linear-gradient(145deg, rgba(20, 24, 35, 0.9), rgba(10, 10, 24, 0.95));
+  border: 1px solid rgba(179, 107, 255, 0.15);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-.melon-head {
+.melon-deck.open {
+  border-color: rgba(0, 205, 60, 0.4); /* Melon Green Hint when open */
+  box-shadow: 0 10px 30px rgba(0, 205, 60, 0.1);
+}
+
+/* Header (Always Visible) */
+.melon-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 14px 20px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.2s;
 }
 
-.melon-title-group {
+.melon-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.melon-brand {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.melon-icon {
-  font-size: 24px;
-  background: rgba(0, 255, 136, 0.1);
-  width: 44px;
-  height: 44px;
+.melon-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 205, 60, 0.3);
+}
+
+.melon-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e6e8ff;
+  letter-spacing: -0.01em;
+}
+
+.melon-toggle {
+  color: var(--muted);
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  border: 1px solid rgba(0, 255, 136, 0.2);
 }
 
-.melon-title-group h3 {
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.2;
+/* Body (Collapsible) */
+.melon-body {
+  padding: 0 20px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  animation: slideDown 0.3s ease-out forwards;
 }
 
-.melon-title-group p {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 2px;
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Scrollable Tabs */
+/* Tabs */
 .melon-tabs-scroll {
+  padding: 16px 0;
   overflow-x: auto;
-  margin: 0 -20px;
-  padding: 0 20px;
-  -ms-overflow-style: none; /* IE/Edge */
-  scrollbar-width: none; /* Firefox */
+  margin: 0 -4px;
 }
+
 .melon-tabs-scroll::-webkit-scrollbar {
   display: none;
 }
@@ -1369,35 +1391,30 @@ main {
 .melon-tabs {
   display: flex;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 4px;
-  border-radius: 14px;
-  width: fit-content;
-  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .melon-tab {
   padding: 8px 16px;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--muted);
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .melon-tab:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .melon-tab.active {
-  color: #0b0b14;
-  background: #00e08b; /* Melon Green */
-  box-shadow: 0 2px 10px rgba(0, 224, 139, 0.3);
+  background: rgba(0, 205, 60, 0.15); /* Melon Green Tint */
+  color: #00CD3C;
+  border-color: rgba(0, 205, 60, 0.3);
 }
 
 /* Track List */
@@ -1406,76 +1423,59 @@ main {
   gap: 10px;
 }
 
-.melon-track {
-  display: flex;
-  gap: 10px;
-}
-
 .melon-play-btn {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  height: 52px;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  transition: all 0.2s ease;
-  cursor: pointer;
+  border-radius: 14px;
+  transition: all 0.2s;
   text-decoration: none;
 }
 
 .melon-play-btn:hover {
-  background: rgba(0, 224, 139, 0.1);
-  border-color: rgba(0, 224, 139, 0.4);
-  transform: translateY(-1px);
+  background: rgba(0, 205, 60, 0.08);
+  border-color: rgba(0, 205, 60, 0.4);
+  transform: translateX(4px);
 }
 
-.melon-play-btn:active {
-  transform: translateY(0);
-}
-
-.play-icon {
-  color: #00e08b;
-  font-size: 14px;
+.play-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .play-label {
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  color: #e6e8ff;
 }
 
 .play-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
-  background: rgba(0, 0, 0, 0.3);
-  padding: 4px 8px;
-  border-radius: 6px;
 }
 
-.melon-copy-btn {
-  width: 52px;
-  height: 52px;
+.play-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #00CD3C;
+  color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 205, 60, 0.3);
 }
 
-.melon-copy-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
-}
-
-.check-icon {
-  color: #00e08b;
-  font-size: 18px;
-  font-weight: bold;
+/* Mobile Fix */
+@media (max-width: 480px) {
+  .melon-header {
+    padding: 12px 16px;
+  }
+  .melon-body {
+    padding: 0 16px 16px;
+  }
 }
