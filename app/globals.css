@@ -1308,3 +1308,174 @@ main {
     padding: 14px;
   }
 }
+/* --- Melon Command Center Style --- */
+
+.melon-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: linear-gradient(160deg, rgba(10, 20, 15, 0.7), rgba(6, 30, 10, 0.6));
+  border: 1px solid rgba(0, 255, 136, 0.15); /* Melon signature green hint */
+}
+
+.melon-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.melon-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.melon-icon {
+  font-size: 24px;
+  background: rgba(0, 255, 136, 0.1);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+.melon-title-group h3 {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.melon-title-group p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Scrollable Tabs */
+.melon-tabs-scroll {
+  overflow-x: auto;
+  margin: 0 -20px;
+  padding: 0 20px;
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.melon-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.melon-tabs {
+  display: flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  border-radius: 14px;
+  width: fit-content;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.melon-tab {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.melon-tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.melon-tab.active {
+  color: #0b0b14;
+  background: #00e08b; /* Melon Green */
+  box-shadow: 0 2px 10px rgba(0, 224, 139, 0.3);
+}
+
+/* Track List */
+.melon-tracks {
+  display: grid;
+  gap: 10px;
+}
+
+.melon-track {
+  display: flex;
+  gap: 10px;
+}
+
+.melon-play-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.melon-play-btn:hover {
+  background: rgba(0, 224, 139, 0.1);
+  border-color: rgba(0, 224, 139, 0.4);
+  transform: translateY(-1px);
+}
+
+.melon-play-btn:active {
+  transform: translateY(0);
+}
+
+.play-icon {
+  color: #00e08b;
+  font-size: 14px;
+}
+
+.play-label {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.play-sub {
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.melon-copy-btn {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.melon-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.check-icon {
+  color: #00e08b;
+  font-size: 18px;
+  font-weight: bold;
+}
