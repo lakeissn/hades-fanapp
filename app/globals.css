@@ -1766,43 +1766,38 @@ main {
   }
 }
 /* --- 🍈 Melon Trigger Card (유지) --- */
-/* --- 🍈 Melon Popup Fixed Layout (Final Fix) --- */
+/* --- 🍈 Melon Popup Fixed Layout (Final Polish) --- */
 
-/* 1. 모달 오버레이 (화면 전체 덮기 & 중앙 정렬 강제) */
+/* 1. 모달 오버레이 (중앙 정렬 강제) */
 .modal-overlay {
-  position: fixed !important; /* 무조건 화면 고정 */
+  position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  z-index: 99999 !important; /* 다른 모든 요소보다 위에 */
-  background: rgba(0, 0, 0, 0.85); /* 배경 조금 더 어둡게 */
+  z-index: 99999 !important;
+  background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(14px);
   display: flex !important;
-  align-items: center !important; /* 수직 중앙 */
-  justify-content: center !important; /* 수평 중앙 */
+  align-items: center !important;
+  justify-content: center !important;
   padding: 20px;
   box-sizing: border-box;
 }
 
-/* 2. 모달 컨테이너 (디자인 유지 + 위치 보정) */
+/* 2. 모달 컨테이너 */
 .modal-content {
-  /* 색감 및 디자인 (이전과 동일) */
   background: linear-gradient(165deg, #1a1a24 0%, #222232 100%);
   border-radius: 24px;
   box-shadow: 0 30px 60px -15px rgba(0, 205, 60, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  
-  /* 크기 및 구조 */
   width: 100%;
   max-width: 520px;
-  max-height: 85vh; /* 화면 높이의 85%까지만 */
-  
-  /* 내부 스크롤 구조 */
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  margin: auto; /* 플렉스 중앙 정렬 보조 */
+  margin: auto;
 }
 
 /* 3. 헤더 (고정) */
@@ -1827,10 +1822,6 @@ main {
   letter-spacing: -0.02em;
 }
 
-.modal-title span[style*="#00cd3c"] {
-  text-shadow: 0 0 12px rgba(0, 205, 60, 0.6);
-}
-
 .modal-close {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -1851,7 +1842,7 @@ main {
   transform: rotate(90deg);
 }
 
-/* 4. 스크롤 영역 (내부만 스크롤) */
+/* 4. 스크롤 영역 */
 .modal-scroll-area {
   flex: 1;
   overflow-y: auto;
@@ -1864,16 +1855,14 @@ main {
   background: rgba(0, 205, 60, 0.3);
   border-radius: 10px;
 }
-.modal-scroll-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 205, 60, 0.6);
-}
 
-/* 5. 탭 & 버튼 디자인 (이전과 동일한 예쁜 디자인) */
+/* 5. 탭 디자인 (중앙 정렬 패치) */
 .device-tabs-scroll {
   display: flex;
-  gap: 10px;
+  justify-content: center; /* 🚨 PC에서 중앙 정렬 */
+  gap: 8px;
   background: rgba(0, 0, 0, 0.25);
-  padding: 8px;
+  padding: 6px;
   border-radius: 18px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -1882,29 +1871,31 @@ main {
   border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
+/* 탭 아이템 (글자 뚝 끊김 방지) */
 .device-tab-item {
-  flex: 1;
+  flex: 1; /* 🚨 PC에서 균등 분할 */
   min-width: fit-content;
-  padding: 11px 20px;
+  padding: 11px 16px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700; /* 🚨 모든 상태 두께 고정 (흔들림 방지) */
   color: rgba(255, 255, 255, 0.5);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 14px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  text-align: center;
+  transition: all 0.2s ease;
 }
 
 .device-tab-item.active {
   background: linear-gradient(135deg, #00cd3c, #00b533);
   color: #00220a;
-  border-color: transparent;
   box-shadow: 0 4px 15px rgba(0, 205, 60, 0.3);
-  font-weight: 800;
+  /* font-weight: 800; 제거됨 (너비 변화 방지) */
 }
 
+/* 6. 버튼 디자인 */
 .link-button-grid {
   display: flex;
   flex-direction: column;
@@ -1928,8 +1919,6 @@ main {
   cursor: pointer;
   transition: all 0.25s ease;
   text-decoration: none;
-  position: relative;
-  overflow: hidden;
 }
 
 .one-click-btn:hover {
@@ -1940,17 +1929,10 @@ main {
   box-shadow: 0 8px 25px -5px rgba(0, 205, 60, 0.3);
 }
 
-.btn-label {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
 .btn-number {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: transparent;
   border: 2px solid rgba(0, 205, 60, 0.4);
   color: #00cd3c;
   font-size: 14px;
@@ -1958,13 +1940,6 @@ main {
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  transition: all 0.25s ease;
-}
-
-.one-click-btn:hover .btn-number {
-  background: #00cd3c;
-  border-color: #00cd3c;
-  color: #0a2a12;
 }
 
 .playlist-image-area {
@@ -1979,65 +1954,28 @@ main {
   width: 100%;
   height: auto;
   display: block;
-  object-fit: contain;
-}
-/* --- 📱 Mobile Responsive Patch --- */
-
-/* 탭이 좁은 화면에서 찌그러지지 않도록 고정 */
-.device-tab-item {
-  flex: 0 0 auto !important; /* 🚨 중요: 좁아져도 크기가 줄어들지 않음 */
-  padding: 10px 16px;
 }
 
-/* 모바일 전용 스타일 조정 (화면 너비 480px 이하) */
+/* --- 📱 Mobile Responsive Patch (모바일 최적화) --- */
+
 @media (max-width: 480px) {
-  /* 1. 팝업 내부 좌우 여백을 줄여서 콘텐츠(이미지, 버튼)를 더 크게 */
+  .device-tabs-scroll {
+    justify-content: flex-start; /* 🚨 모바일은 스크롤을 위해 왼쪽부터 */
+    padding-right: 20px;
+  }
+
+  .device-tab-item {
+    flex: 0 0 auto !important; /* 🚨 찌그러짐 방지 */
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
   .modal-scroll-area {
     padding: 20px 14px !important; 
   }
 
-  .modal-header {
-    padding: 18px 20px !important;
-  }
-
-  /* 2. 탭 폰트 크기 및 간격 조정 (잘림 방지) */
-  .device-tab-item {
-    font-size: 13px;
-    padding: 8px 12px;
-    border-radius: 10px;
-  }
-
-  .device-tabs-scroll {
-    gap: 6px;
-    padding: 6px;
-    margin-bottom: 20px;
-    /* 가로 스크롤 시 끝부분이 잘려 보이지 않게 여백 추가 */
-    padding-right: 20px; 
-  }
-
-  /* 3. 버튼 크기 최적화 */
   .one-click-btn {
     height: 54px;
     padding: 0 16px;
-    font-size: 14px;
-  }
-
-  .btn-number {
-    width: 24px;
-    height: 24px;
-    font-size: 12px;
-  }
-
-  /* 4. 이미지 영역 극대화 */
-  .playlist-image-area {
-    border-radius: 12px;
-    margin-bottom: 10px;
-  }
-}
-
-/* 스크롤바가 모바일에서 너무 투박하지 않게 숨김 처리 (기능은 작동) */
-@media (max-width: 480px) {
-  .device-tabs-scroll::-webkit-scrollbar {
-    display: none;
   }
 }
