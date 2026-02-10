@@ -6,6 +6,10 @@ export const metadata = {
   description: "Hades fanapp MVP",
   themeColor: "#0b0b14",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icons/hades_helper.png",
+    apple: "/icons/hades_helper.png",
+  },
 };
 
 export default function RootLayout({
