@@ -617,8 +617,7 @@ main {
 }
 
 .vote-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
@@ -645,7 +644,7 @@ main {
   border-radius: 8px;
   background: rgba(179, 107, 255, 0.15);
   overflow: hidden;
-  flex-shrink: 0;
+  flex: 0 0 auto;
   position: relative;
 }
 
@@ -668,15 +667,19 @@ main {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .vote-title-text {
   font-size: 16px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .vote-status {
@@ -687,7 +690,7 @@ main {
   letter-spacing: 0.08em;
   background: rgba(179, 107, 255, 0.2);
   color: #e6dbff;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 .vote-status[data-status="open"] {
@@ -715,6 +718,7 @@ main {
   font-weight: 600;
   white-space: nowrap;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  flex: 0 0 auto;
 }
 
 .vote-link:hover {
@@ -736,6 +740,7 @@ main {
   justify-content: center;
   color: rgba(214, 214, 255, 0.7);
   transition: transform 0.2s ease;
+  flex: 0 0 auto;
 }
 
 .vote-item.is-open .vote-chevron {
@@ -920,22 +925,13 @@ main {
     scroll-snap-type: x mandatory;
   }
   .vote-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "icon title chevron" "icon link chevron";
-  }
-  .vote-icon {
-    grid-area: icon;
-  }
-  .vote-title {
-    grid-area: title;
+    display: flex;
   }
   .vote-link {
-    grid-area: link;
-    justify-self: start;
+    display: none;
   }
-
   .vote-chevron {
-    grid-area: chevron;
+    margin-left: auto;
   }
 }
 
@@ -1005,6 +1001,7 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
 }
 
 .vote-more {
