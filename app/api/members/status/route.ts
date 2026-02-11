@@ -90,37 +90,68 @@ function extractTitleTag(html: string) {
   return match?.[1] ?? null;
 }
 
+/**
+ * ✅ 수정된 태그 파싱 로직
+ * 1. JSON 형태의 broad_tag, tag_list를 모두 찾습니다.
+ * 2. HTML 클래스 기반 태그를 보조적으로 찾습니다.
+ */
 function parseTagsFromHtml(html: string) {
   const values = new Set<string>();
 
-  const broadTagMatch = html.match(/"broad_tag"\s*:\s*\[(.*?)\]/i);
-  if (broadTagMatch?.[1]) {
-    const inner = broadTagMatch[1];
-    const tagMatches = inner.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g) ?? [];
-    tagMatches
-      .map((item) => item.slice(1, -1))
-      .map((item) => item.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))))
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .forEach((item) => values.add(item));
+  // 패턴 1: JSON 내부의 태그 데이터 스캔
+  const jsonPatterns = [
+    /"broad_tag"\s*:\s*\[(.*?)\]/i,
+    /"tag_list"\s*:\s*\[(.*?)\]/i
+  ];
+
+  for (const pattern of jsonPatterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      const inner = match[1];
+      const tagMatches = inner.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g) ?? [];
+      tagMatches
+        .map((item) => item.slice(1, -1))
+        .map((item) => item.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))))
+        .map((item) => item.trim())
+        .filter((item) => item && item !== "null" && item !== "undefined")
+        .forEach((item) => values.add(item));
+    }
   }
 
+  // 패턴 2: DOM 기반 태그 스캔 (보조)
   const domLikeMatches = html.match(/class=["'][^"']*tag[^"']*["'][^>]*>([^<]{1,40})</gi) ?? [];
   domLikeMatches
-    .map((chunk) => chunk.replace(/<[^>]+>/g, "").trim())
+    .map((chunk) => chunk.replace(/<[^>]+>/g, "").replace(/[#\s]/g, "").trim())
     .filter(Boolean)
     .forEach((item) => values.add(item));
 
   return Array.from(values).slice(0, 5);
 }
 
+/**
+ * ✅ 수정된 메타데이터 패칭 로직
+ * User-Agent를 추가하여 SOOP의 차단을 방지합니다.
+ */
 async function fetchLiveMeta(liveUrl: string) {
-  const response = await fetch(liveUrl, { cache: "no-store" });
-  const html = await response.text();
-  const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
-  const thumbUrl = extractMetaContent(html, "og:image");
-  const tags = parseTagsFromHtml(html);
-  return { title, thumbUrl, tags };
+  try {
+    const response = await fetch(liveUrl, { 
+      cache: "no-store",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+      }
+    });
+    
+    if (!response.ok) return { title: null, thumbUrl: null, tags: [] };
+    
+    const html = await response.text();
+    const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
+    const thumbUrl = extractMetaContent(html, "og:image");
+    const tags = parseTagsFromHtml(html);
+    return { title, thumbUrl, tags };
+  } catch (e) {
+    return { title: null, thumbUrl: null, tags: [] };
+  }
 }
 
 async function fetchStatus(bjid: string) {
@@ -144,6 +175,7 @@ async function fetchStatus(bjid: string) {
       method: "POST",
       headers: {
         "content-type": "application/x-www-form-urlencoded",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
       body: body.toString(),
       signal: controller.signal,
@@ -152,6 +184,7 @@ async function fetchStatus(bjid: string) {
 
     const data = (await response.json()) as LiveApiResponse;
     const bnoValue = Number(data.CHANNEL?.BNO ?? 0);
+    
     if (bnoValue > 0) {
       const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bnoValue}`;
       const apiTitle = pickFirstString(data.CHANNEL?.TITLE, data.title);
@@ -163,25 +196,16 @@ async function fetchStatus(bjid: string) {
         data.thumbUrl
       );
 
-      try {
-        const meta = await fetchLiveMeta(liveUrl);
-        return {
-          isLive: true,
-          liveUrl,
-          title: apiTitle ?? meta.title,
-          thumbUrl: apiThumb ?? meta.thumbUrl,
-          tags: meta.tags,
-        };
-      } catch (error) {
-        console.error(`[members/status] tag parse failed for ${bjid}`, error);
-        return {
-          isLive: true,
-          liveUrl,
-          title: apiTitle,
-          thumbUrl: apiThumb,
-          tags: [],
-        };
-      }
+      // 메타데이터(태그 등)를 가져오기 위한 추가 요청
+      const meta = await fetchLiveMeta(liveUrl);
+      
+      return {
+        isLive: true,
+        liveUrl,
+        title: apiTitle ?? meta.title,
+        thumbUrl: apiThumb ?? meta.thumbUrl,
+        tags: meta.tags,
+      };
     }
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
   } catch {
