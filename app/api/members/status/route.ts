@@ -68,26 +68,6 @@ type LiveApiResponse = {
 
 let cached: { data: MemberStatus[]; expiresAt: number } | null = null;
 
-// ✅ (추가) fetch 타임아웃 유틸 (이게 핵심)
-async function fetchWithTimeout(
-  input: RequestInfo | URL,
-  init: RequestInit = {},
-  timeoutMs = 6000
-) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const res = await fetch(input, {
-      ...init,
-      signal: controller.signal,
-    });
-    return res;
-  } finally {
-    clearTimeout(id);
-  }
-}
-
 // 3. 기존 유틸리티 함수들 (유지)
 function pickFirstString(...values: Array<string | undefined | null>) {
   return values.find((value) => typeof value === "string" && value.trim().length > 0) ?? null;
@@ -130,19 +110,13 @@ function parseTagsFromHtml(html: string) {
 // 4. HTML 메타데이터 추출 (실패해도 전체 로직에 영향 주지 않도록 설계)
 async function fetchLiveMeta(liveUrl: string) {
   try {
-    const response = await fetchWithTimeout(
-      liveUrl,
-      {
-        cache: "no-store",
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        },
+    const response = await fetch(liveUrl, {
+      cache: "no-store",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
-      6000
-    );
-
+    });
     if (!response.ok) return { tags: [], category: null };
     const html = await response.text();
     const categoryMatch = html.match(/szBroadCategory\s*=\s*['"]([^'"]+)['"]/i);
@@ -155,22 +129,23 @@ async function fetchLiveMeta(liveUrl: string) {
 // 5. 핵심 상태 확인 함수 (정확히 함수로 감싸고 에러 전파 방지)
 async function fetchStatus(bjid: string) {
   try {
-    const apiUrl = `https://live.sooplive.co.kr/afreeca/player_live_api.php?bj_id=${bjid}`;
+    // ✅ 핵심 수정 1) bj_id -> bjid / type=live 추가
+    const apiUrl = `https://live.sooplive.co.kr/afreeca/player_live_api.php?bjid=${bjid}&type=live`;
 
-    // ✅ (수정) 여기에도 타임아웃 + 헤더 추가 (차단/무한대기 방지)
-    const response = await fetchWithTimeout(
-      apiUrl,
-      {
-        cache: "no-store",
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          Accept: "application/json,text/plain,*/*",
-          Referer: `https://play.sooplive.co.kr/${bjid}`,
-        },
+    // ✅ 핵심 수정 2) GET -> POST 로 변경 (요즘 이쪽이 더 안정적)
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "application/json,text/plain,*/*",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        Referer: `https://play.sooplive.co.kr/${bjid}`,
       },
-      6000
-    );
+      // body는 없어도 되는 경우가 많지만, 안정성 위해 같이 보냄
+      body: `bjid=${encodeURIComponent(bjid)}&type=live`,
+    });
 
     if (!response.ok) return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
 
@@ -181,7 +156,7 @@ async function fetchStatus(bjid: string) {
     if (bnoValue > 0) {
       const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bnoValue}`;
 
-      // ✅ 중요: HTML 파싱이 실패해도 방송 정보는 반환하도록 try-catch 분리
+      // HTML 파싱이 실패해도 방송 정보는 반환하도록 분리
       let metaTags: string[] = [];
       let category: string | null = null;
       try {
@@ -189,7 +164,7 @@ async function fetchStatus(bjid: string) {
         metaTags = meta.tags;
         category = meta.category;
       } catch {
-        // 여기서 throw 안 함
+        // ignore
       }
 
       const apiTags = data.CHANNEL?.TAG ? data.CHANNEL.TAG.split(",").filter(Boolean) : [];
