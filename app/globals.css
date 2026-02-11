@@ -429,21 +429,21 @@ main {
   overflow-wrap: anywhere;
 }
 
-/* ✅ 태그: 기존 flex wrap 유지 + 잘림 방지 */
+/* ✅ 태그 영역: 빨간색 디버그 제거 및 레이아웃 수정 */
 .tag-row {
-  outline: 2px solid red !important;
-  min-height: 24px !important;
-  background: rgba(255,0,0,0.15) !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .tag-pill {
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
   color: #dcd3ff;
-  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
