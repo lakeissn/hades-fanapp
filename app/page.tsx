@@ -7,12 +7,6 @@ import LiveCard from "../components/LiveCard";
 import MemberChip from "../components/MemberChip";
 import MelonPlaylist from "../components/MelonPlaylist";
 
-const guideCategories = [
-  { id: "streaming", label: "스트리밍 가이드", href: "/guides/streaming" },
-  { id: "gift", label: "선물하기", href: "/guides/gift" },
-  { id: "download", label: "다운로드", href: "/guides/download" },
-];
-
 type MemberStatus = {
   id: string;
   name: string;
@@ -334,23 +328,10 @@ export default function HomePage() {
         </div>
       </Card>
 
-      {/* ✅ Melon One-Click Section (투표 목록 아래로 이동) */}
+      {/* Melon One-Click Section */}
       <MelonPlaylist />
 
-      <Card>
-        <div className="section-head">
-          <h2>가이드 카테고리</h2>
-        </div>
-        <div className="card-body">
-          <div className="chip-row">
-            {guideCategories.map((category) => (
-              <Button key={category.id} href={category.href}>
-                {category.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </Card>
+      {/* 가이드 카테고리 섹션 삭제됨 - 추후 다른 콘텐츠로 대체 예정 */}
 
       <section className="section-block">
         <div className="section-head">
