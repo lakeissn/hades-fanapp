@@ -296,20 +296,24 @@ main {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.10);
   background: rgba(10, 10, 20, 0.55);
-  min-height: 360px;
+  min-height: auto;
   flex: 0 0 88%;
   scroll-snap-align: start;
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.40);
   transition: all 0.3s ease;
 }
 
-.live-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(179, 107, 255, 0.25);
-  background: rgba(12, 12, 24, 0.66);
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(179, 107, 255, 0.1);
+.live-cover {
+  /* ✅ 수정: 높이 비율을 16:9로 고정하여 여백을 없앱니다 */
+  aspect-ratio: 16 / 9; 
+  width: 100%;
+  position: relative;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  overflow: hidden;
 }
 
 .live-cover {
@@ -338,7 +342,7 @@ main {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover; 
   object-position: center;
   z-index: 0;
 }
@@ -397,9 +401,9 @@ main {
 }
 
 .live-title {
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 1.32;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
