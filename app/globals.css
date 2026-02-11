@@ -2,20 +2,21 @@
   color-scheme: dark;
   --bg: #0b0b14;
   --bg-elevated: rgba(18, 18, 32, 0.6);
-  --bg-glass: rgba(18, 18, 40, 0.55);
+  --bg-glass: rgba(18, 18, 40, 0.45);
 
   --text: #e6e8ff;
   --muted: #a1a1c9;
 
-  /* ✅ 기존 보라색 border가 “테두리 강조/각진 느낌”을 만드는 주범이라 톤 다운 */
-  --border: rgba(255, 255, 255, 0.10);
+  /* ✅ 테두리를 더 투명하게 */
+  --border: rgba(255, 255, 255, 0.08);
 
-  --primary: #b36bff;
+  /* ✅ 보라색 톤을 더 차분하게 */
+  --primary: #9d6bde;
   --primary-strong: #f36bff;
   --accent: #55d6ff;
 
-  /* ✅ 전체 그림자도 조금 더 자연스럽게 */
-  --shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+  /* ✅ 그림자를 더 부드럽게 */
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 
   --focus: rgba(179, 107, 255, 0.6);
 }
@@ -28,8 +29,10 @@
 
 body {
   min-height: 100vh;
-  background: radial-gradient(circle at top, rgba(128, 90, 255, 0.15), transparent 45%),
-    radial-gradient(circle at 30% 20%, rgba(243, 107, 255, 0.12), transparent 40%),
+  /* ✅ 그라데이션을 더 높이 올리고 투명도 낮춤 */
+  background: 
+    radial-gradient(circle at 50% 0%, rgba(128, 90, 255, 0.08), transparent 35%),
+    radial-gradient(circle at 20% 10%, rgba(243, 107, 255, 0.06), transparent 30%),
     var(--bg);
   color: var(--text);
   font-family: "Pretendard", "Noto Sans KR", system-ui, -apple-system, sans-serif;
@@ -68,13 +71,15 @@ main {
   padding: 88px 20px 88px;
 }
 
-/* ✅ glass: “그라데이션 테두리 느낌” 대신 더 차분한 카드 표면 */
+/* ✅ glass: 더 자연스러운 유리 효과 */
 .glass {
   background: var(--bg-glass);
   border: 1px solid var(--border);
   border-radius: 24px;
-  backdrop-filter: blur(18px);
-  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    var(--shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   padding: 20px;
 }
 
@@ -94,10 +99,7 @@ main {
   align-items: center;
   padding: 16px 20px;
   background: rgba(8, 8, 20, 0.7);
-
-  /* ✅ 너무 튀지 않게 */
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
   backdrop-filter: blur(16px);
 }
 
@@ -149,7 +151,6 @@ main {
 }
 
 .nav-link.active::after {
-  /* ✅ 여긴 밑줄이라 유지 (테두리 아님) */
   background: linear-gradient(90deg, rgba(179, 107, 255, 0.95), rgba(85, 214, 255, 0.95));
   box-shadow: 0 0 14px rgba(179, 107, 255, 0.7);
 }
@@ -159,10 +160,7 @@ main {
   min-height: 44px;
   min-width: 44px;
   border-radius: 12px;
-
-  /* ✅ border 톤 다운 */
-  border: 1px solid rgba(255, 255, 255, 0.10);
-
+  border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(12, 12, 25, 0.6);
   gap: 4px;
   align-items: center;
@@ -183,10 +181,7 @@ main {
   top: 64px;
   right: 20px;
   background: rgba(10, 10, 24, 0.95);
-
-  /* ✅ border 톤 다운 */
-  border: 1px solid rgba(255, 255, 255, 0.10);
-
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 10px;
   display: flex;
@@ -211,7 +206,7 @@ main {
   background: rgba(179, 107, 255, 0.14);
 }
 
-/* ✅ 버튼도 “그라데이션 덩어리” 느낌 줄이기 */
+/* ✅ 버튼: 더 자연스러운 스타일 */
 .button {
   min-height: 44px;
   display: inline-flex;
@@ -220,21 +215,20 @@ main {
   gap: 8px;
   padding: 10px 18px;
   border-radius: 999px;
-
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.04);
-
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .button:hover {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(179, 107, 255, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .section-block {
@@ -294,29 +288,28 @@ main {
   border-radius: 999px;
 }
 
-/* ✅ LIVE CARD: 보라색 테두리/강한 호버를 제거하고 “자연스러운 카드”로 */
+/* ✅ LIVE CARD: 더 자연스러운 호버 효과 */
 .live-card {
   display: flex;
   flex-direction: column;
   border-radius: 22px;
   overflow: hidden;
-
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(10, 10, 20, 0.62);
-
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(10, 10, 20, 0.55);
   min-height: 360px;
   flex: 0 0 88%;
   scroll-snap-align: start;
-
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.40);
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .live-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-3px);
+  border-color: rgba(179, 107, 255, 0.25);
   background: rgba(12, 12, 24, 0.66);
-  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.48);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(179, 107, 255, 0.1);
 }
 
 .live-cover {
@@ -330,7 +323,6 @@ main {
   overflow: hidden;
 }
 
-/* ✅ 문법 오류 FIX + 자연스러운 배경 */
 .live-cover-bg {
   position: absolute;
   inset: 0;
@@ -338,7 +330,7 @@ main {
   background-position: center;
   filter: blur(10px) saturate(0.85);
   transform: scale(1.12);
-  opacity: 0.35; /* ✅ 여기 주석 깨져있던 거 고침 */
+  opacity: 0.35;
 }
 
 .live-cover-img {
@@ -430,11 +422,8 @@ main {
   font-size: 11px;
   padding: 3px 8px;
   border-radius: 999px;
-
-  /* ✅ 태그도 보라색 테두리 너무 튀지 않게 */
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
-
   color: #dcd3ff;
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -492,11 +481,8 @@ main {
   gap: 12px;
   padding: 12px 14px;
   border-radius: 18px;
-
-  /* ✅ 보라 border -> 뉴트럴 */
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(10, 10, 24, 0.50);
-
   min-height: 44px;
 }
 
@@ -530,9 +516,7 @@ main {
 .empty-state {
   padding: 22px;
   border-radius: 18px;
-
   border: 1px dashed rgba(255, 255, 255, 0.18);
-
   color: var(--muted);
   text-align: center;
 }
@@ -543,7 +527,7 @@ main {
 }
 
 .poll-card {
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   padding: 16px;
   background: rgba(9, 9, 20, 0.38);
@@ -567,9 +551,7 @@ main {
   color: var(--text);
   padding: 8px 12px;
   border-radius: 12px;
-
-  border: 1px solid rgba(255, 255, 255, 0.10);
-
+  border: 1px solid rgba(255, 255, 255, 0.08);
   min-height: 44px;
   align-items: center;
 }
@@ -592,7 +574,7 @@ main {
 }
 
 .vote-preview-item {
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 11px 14px;
   background: rgba(10, 10, 24, 0.42);
@@ -647,14 +629,14 @@ main {
 
 .vote-item {
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(12, 12, 30, 0.58);
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .vote-item.is-open {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.14);
   background: rgba(14, 14, 34, 0.62);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
 }
@@ -743,20 +725,18 @@ main {
   min-height: 36px;
   padding: 6px 12px;
   border-radius: 999px;
-
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
-
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: all 0.2s ease;
   flex: 0 0 auto;
 }
 
 .vote-link:hover {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(179, 107, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
 }
 
@@ -782,7 +762,7 @@ main {
 }
 
 .vote-panel {
-  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 12px 16px 16px;
   display: grid;
   gap: 12px;
@@ -799,7 +779,7 @@ main {
 .vote-platform-label {
   font-size: 12px;
   color: rgba(222, 213, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 999px;
   padding: 3px 10px;
   background: rgba(255, 255, 255, 0.05);
@@ -812,7 +792,7 @@ main {
 }
 
 .vote-note-box {
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   background: rgba(18, 14, 34, 0.52);
   padding: 10px 12px;
@@ -852,22 +832,19 @@ main {
   min-height: 44px;
   padding: 10px 14px;
   border-radius: 999px;
-
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
-
   font-size: 14px;
   font-weight: 700;
 }
 
-/* links */
+/* ✅ links: 더 자연스러운 스타일 */
 .link-grid {
   display: grid;
   gap: 14px;
   grid-template-columns: 1fr;
 }
 
-/* ✅ link-card도 그라데이션 덩어리 느낌 줄이기 */
 .link-card {
   min-height: 52px;
   display: inline-flex;
@@ -875,21 +852,19 @@ main {
   gap: 14px;
   padding: 12px 18px;
   border-radius: 20px;
-
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.04);
-
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .link-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(179, 107, 255, 0.2);
   background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .link-card:active {
@@ -1023,7 +998,7 @@ main {
   }
 }
 
-/* 아래부터는 네가 준 원본 유지(홈 영향 적거나 별도 기능) */
+/* 아래부터는 원본 유지(홈 영향 적거나 별도 기능) */
 /* ------------------------------------------------------------------ */
 
 .vote-icon-neutral {
@@ -1109,19 +1084,18 @@ main {
   gap: 14px;
 }
 
-/* guide-card는 홈이 아니지만, 톤을 맞추고 싶으면 여기만 추가로 바꾸면 됨 */
 .guide-card {
   display: grid;
   gap: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.04);
   padding: 16px;
-  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .guide-card:hover {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(179, 107, 255, 0.2);
   background: rgba(255, 255, 255, 0.06);
   transform: translateY(-2px);
 }
@@ -1176,11 +1150,9 @@ main {
   z-index: 19;
   margin: 0 auto;
   width: min(960px, calc(100% - 24px));
-
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   background: rgba(13, 11, 28, 0.88);
-
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
   padding: 10px 12px;
   display: flex;
@@ -1232,7 +1204,7 @@ main {
   gap: 20px;
   padding: 20px 24px;
   background: rgba(6, 6, 16, 0.6);
-  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .panel-actions {
@@ -1268,7 +1240,7 @@ main {
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   padding: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1362,10 +1334,6 @@ main {
 
 /* app/globals.css */
 /* --- 아래 모달/멜론/가이드 디테일 CSS는 원본 유지 --- */
-/* (너무 길어서 여기부터는 네 코드 그대로 유지해도 되고,
-   만약 “홈 화면만” 손보는 게 목표면 여기 건드릴 필요 거의 없음) */
-
-/* ====== 이하 네 원본(모달/멜론/가이드 디테일) 그대로 ====== */
 
 /* --- 🍈 Popup Design Glow Up (색감 교체) --- */
 
@@ -2091,32 +2059,29 @@ main {
   align-items: center;
   line-height: 1.35;
 }
+
 /* 아이콘 + 플랫폼명 pill */
 .platform-pill {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-
   padding: 6px 12px;
   border-radius: 999px;
-
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
-
   color: rgba(230, 232, 255, 0.92);
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
 }
 
-/* 기존 compact-icon을 pill 안에서 “아이콘 박스”로 쓰기 */
 .platform-pill .compact-icon {
   width: 22px;
   height: 22px;
   border-radius: 8px;
   padding: 3px;
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .platform-pill .compact-icon img {
