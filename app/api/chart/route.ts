@@ -45,7 +45,7 @@ function parseChartHtml(html: string): ChartEntry[] {
   // 곡 제목
   const titleMatches = html.match(/<div class="ellipsis rank01">[\s\S]*?<a[^>]*>(.*?)<\/a>/g) ?? [];
   // 아티스트
-  const artistMatches = html.match(/<div class="ellipsis rank02">[\s\S]*?<span class="checkEllipsis">(.*?)<\/span>/g) ?? [];
+  const artistMatches = html.match(/<div class="ellipsis rank02">[\s\S]*?<\/div>/g) ?? [];
   // 앨범
   const albumMatches = html.match(/<div class="ellipsis rank03">[\s\S]*?<a[^>]*>(.*?)<\/a>/g) ?? [];
   // 앨범아트 이미지
@@ -58,9 +58,10 @@ function parseChartHtml(html: string): ChartEntry[] {
     return match?.[1]?.trim() ?? "";
   });
 
-  const artists = artistMatches.map(m => {
-    const match = m.match(/<span class="checkEllipsis">(.*?)<\/span>/);
-    return match?.[1]?.trim() ?? "";
+  const artists = artistMatches.map((block) => {
+  // rank02 안의 a 텍스트들을 합치기 (복수 아티스트 대응)
+  const as = [...block.matchAll(/<a[^>]*>(.*?)<\/a>/g)].map(m => m[1].trim());
+  return as.join(", ");
   });
 
   const albums = albumMatches.map(m => {
@@ -73,7 +74,7 @@ function parseChartHtml(html: string): ChartEntry[] {
     return match?.[1] ?? "";
   });
 
-  const count = Math.min(titles.length, 100);
+  const count = Math.min(titles.length, artists.length, albums.length, 100);
 
   for (let i = 0; i < count; i++) {
     entries.push({
