@@ -68,13 +68,36 @@ type LiveApiResponse = {
 
 let cached: { data: MemberStatus[]; expiresAt: number } | null = null;
 
+// ✅ (추가) fetch 타임아웃 유틸 (이게 핵심)
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 6000
+) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+    return res;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 // 3. 기존 유틸리티 함수들 (유지)
 function pickFirstString(...values: Array<string | undefined | null>) {
   return values.find((value) => typeof value === "string" && value.trim().length > 0) ?? null;
 }
 
 function extractMetaContent(html: string, property: string) {
-  const regex = new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i");
+  const regex = new RegExp(
+    `<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`,
+    "i"
+  );
   const match = html.match(regex);
   return match?.[1] ?? null;
 }
@@ -91,10 +114,13 @@ function parseTagsFromHtml(html: string) {
     /szTags\s*=\s*['"]([^'"]+)['"]/i,
   ];
 
-  varPatterns.forEach(pattern => {
+  varPatterns.forEach((pattern) => {
     const match = html.match(pattern);
     if (match?.[1]) {
-      match[1].split(/[,/]+/).filter(Boolean).forEach(p => values.add(p.trim()));
+      match[1]
+        .split(/[,/]+/)
+        .filter(Boolean)
+        .forEach((p) => values.add(p.trim()));
     }
   });
 
@@ -104,10 +130,19 @@ function parseTagsFromHtml(html: string) {
 // 4. HTML 메타데이터 추출 (실패해도 전체 로직에 영향 주지 않도록 설계)
 async function fetchLiveMeta(liveUrl: string) {
   try {
-    const response = await fetch(liveUrl, { 
-      cache: "no-store", 
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" } 
-    });
+    const response = await fetchWithTimeout(
+      liveUrl,
+      {
+        cache: "no-store",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+      },
+      6000
+    );
+
     if (!response.ok) return { tags: [], category: null };
     const html = await response.text();
     const categoryMatch = html.match(/szBroadCategory\s*=\s*['"]([^'"]+)['"]/i);
@@ -121,8 +156,22 @@ async function fetchLiveMeta(liveUrl: string) {
 async function fetchStatus(bjid: string) {
   try {
     const apiUrl = `https://live.sooplive.co.kr/afreeca/player_live_api.php?bj_id=${bjid}`;
-    const response = await fetch(apiUrl, { cache: "no-store" });
-    
+
+    // ✅ (수정) 여기에도 타임아웃 + 헤더 추가 (차단/무한대기 방지)
+    const response = await fetchWithTimeout(
+      apiUrl,
+      {
+        cache: "no-store",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "application/json,text/plain,*/*",
+          Referer: `https://play.sooplive.co.kr/${bjid}`,
+        },
+      },
+      6000
+    );
+
     if (!response.ok) return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
 
     const data = (await response.json()) as LiveApiResponse;
@@ -131,7 +180,7 @@ async function fetchStatus(bjid: string) {
     // 방송 중인 경우
     if (bnoValue > 0) {
       const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bnoValue}`;
-      
+
       // ✅ 중요: HTML 파싱이 실패해도 방송 정보는 반환하도록 try-catch 분리
       let metaTags: string[] = [];
       let category: string | null = null;
@@ -139,15 +188,15 @@ async function fetchStatus(bjid: string) {
         const meta = await fetchLiveMeta(liveUrl);
         metaTags = meta.tags;
         category = meta.category;
-      } catch (e) {
-        console.error("Meta fetch failed, skipping tags");
+      } catch {
+        // 여기서 throw 안 함
       }
 
-      const apiTags = data.CHANNEL?.TAG ? data.CHANNEL.TAG.split(',').filter(Boolean) : [];
+      const apiTags = data.CHANNEL?.TAG ? data.CHANNEL.TAG.split(",").filter(Boolean) : [];
       const finalTags = new Set<string>();
       if (category) finalTags.add(category);
-      metaTags.forEach(t => finalTags.add(t));
-      apiTags.forEach(t => finalTags.add(t));
+      metaTags.forEach((t) => finalTags.add(t));
+      apiTags.forEach((t) => finalTags.add(t));
 
       return {
         isLive: true,
@@ -157,9 +206,9 @@ async function fetchStatus(bjid: string) {
         tags: Array.from(finalTags),
       };
     }
-    
+
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
-  } catch (err) {
+  } catch {
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
   }
 }
