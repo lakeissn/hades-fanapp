@@ -4,6 +4,12 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { VoteItem } from "./VotesAccordion";
 
+const statusLabels: Record<string, string> = {
+  open: "진행중",
+  upcoming: "오픈 예정",
+  closed: "마감됨",
+};
+
 function parseKstDate(value?: string) {
   if (!value) return null;
   const raw = value.trim();
@@ -76,24 +82,30 @@ export default function VoteAccordionItem({
   onToggle: () => void;
 }) {
   const [missingIcons, setMissingIcons] = useState<Record<string, boolean>>({});
+  const status = resolveStatus(vote.opensAt, vote.closesAt);
+  const label = statusLabels[status];
   const hasUrl = Boolean(vote.url);
 
-  // --- 동적 폰트 축소 로직 ---
+  // --- 🚀 동적 폰트 축소 로직 (ResizeObserver 기반) ---
   const [fontSize, setFontSize] = useState(16);
-  const titleRef = useRef<HTMLSpanElement>(null);
   const containerRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const fitText = () => {
-      if (containerRef.current && titleRef.current) {
+      if (containerRef.current && textRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
-        // 너비 측정을 위해 폰트 크기 초기화
-        titleRef.current.style.fontSize = '16px';
-        const textWidth = titleRef.current.scrollWidth;
+        const textElement = textRef.current;
+        
+        // 정확한 측정을 위해 잠시 기본 폰트 크기로 설정
+        const originalStyle = textElement.style.fontSize;
+        textElement.style.fontSize = '16px';
+        const textWidth = textElement.scrollWidth;
+        textElement.style.fontSize = originalStyle;
 
         if (textWidth > containerWidth && containerWidth > 0) {
           const ratio = containerWidth / textWidth;
-          // 최소 10px까지만 줄어들도록 설정
+          // iPhone SE(320px) 대응을 위해 최소 10px까지 축소 허용
           const newSize = Math.max(10, Math.floor(16 * ratio * 10) / 10);
           setFontSize(newSize);
         } else {
@@ -107,8 +119,8 @@ export default function VoteAccordionItem({
     if (containerRef.current) observer.observe(containerRef.current);
     
     return () => observer.disconnect();
-  }, [vote.title]);
-  // -------------------------
+  }, [vote.title]); // 제목 변경 시 재계산
+  // ------------------------------------------------
 
   const platforms = useMemo(() => {
     const rawPlatforms = (vote as VoteItem & { platforms?: string[] }).platforms;
@@ -124,9 +136,9 @@ export default function VoteAccordionItem({
     return Array.from(new Set(values)).slice(0, 20);
   }, [vote.platform, vote]);
 
-  const closeDateLong = formatLongDate(vote.closesAt);
   const openDate = formatShortDate(vote.opensAt);
   const closeDate = formatShortDate(vote.closesAt);
+  const closeDateLong = formatLongDate(vote.closesAt);
   const isOpenKeyword = isInProgressKeyword(vote.opensAt);
 
   const periodText = isOpenKeyword
@@ -153,6 +165,7 @@ export default function VoteAccordionItem({
 
   return (
     <div className={`vote-item ${isOpen ? "is-open" : ""}`}>
+      {/* 닫혀있을 때 헤더 영역 */}
       <div
         className="vote-row"
         role="button"
@@ -189,16 +202,16 @@ export default function VoteAccordionItem({
           {platforms.length > 3 && <span className="vote-more">+{platforms.length - 3}</span>}
         </span>
         
-        {/* 측정용 컨테이너 추가 */}
+        {/* JS 동적 폰트 축소 적용 대상 */}
         <span className="vote-title" ref={containerRef}>
           <span 
             className="vote-title-text" 
-            ref={titleRef}
+            ref={textRef}
             style={{ fontSize: `${fontSize}px` }}
           >
             {vote.title}
           </span>
-          {/* 진행중 상태 표시 뱃지 렌더링 제거 완료 */}
+          {/* 상태 뱃지 렌더링 제외 (CSS 패치와 정렬 유지) */}
         </span>
 
         {!isOpen && (
@@ -226,6 +239,7 @@ export default function VoteAccordionItem({
         </span>
       </div>
 
+      {/* 확장 패널 영역 */}
       {isOpen && (
         <div className="vote-panel compact-panel">
           <div className="panel-actions">
