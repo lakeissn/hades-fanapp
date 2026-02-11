@@ -278,7 +278,7 @@ export default function HomePage() {
               coverStyle={coverStyles[member.id] ?? { background: "#1f1f2f" }}
               title={member.title}
               thumbUrl={member.thumbUrl}
-              tags={member.tags.length > 0 ? member.tags : ["라이브"]}
+              tags={member.tags.length
             />
           ))}
         </div>
