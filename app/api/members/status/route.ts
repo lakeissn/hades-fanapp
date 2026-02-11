@@ -59,6 +59,7 @@ type LiveApiResponse = {
     THUMBNAIL?: string;
     THUMB?: string;
     THUMB_URL?: string;
+    TAG?: string; // API에서 제공하는 태그
   };
   title?: string;
   thumbnail?: string;
@@ -91,14 +92,29 @@ function extractTitleTag(html: string) {
 }
 
 /**
- * ✅ 수정된 태그 파싱 로직
- * 1. JSON 형태의 broad_tag, tag_list를 모두 찾습니다.
- * 2. HTML 클래스 기반 태그를 보조적으로 찾습니다.
+ * ✅ 개선된 태그 파싱 로직
+ * SOOP 페이지 내부의 변수(szBroadCategory, szTags 등)를 직접 찾아냅니다.
  */
 function parseTagsFromHtml(html: string) {
   const values = new Set<string>();
 
-  // 패턴 1: JSON 내부의 태그 데이터 스캔
+  // 1. 페이지 내 주요 변수 추출 (카테고리, 언어, 태그 포함)
+  const varPatterns = [
+    /szBroadCategory\s*=\s*['"]([^'"]+)['"]/i, // 예: 토크/캠방
+    /szBroadType\s*=\s*['"]([^'"]+)['"]/i,     // 예: 한국어
+    /szTags\s*=\s*['"]([^'"]+)['"]/i,          // 예: 봉준,무수,하데스
+  ];
+
+  varPatterns.forEach(pattern => {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      // 쉼표나 슬래시로 구분된 경우 나누기
+      const parts = match[1].split(/[,/]+/).filter(Boolean);
+      parts.forEach(p => values.add(p.trim()));
+    }
+  });
+
+  // 2. JSON 형태 데이터 스캔 (기존 방식 유지)
   const jsonPatterns = [
     /"broad_tag"\s*:\s*\[(.*?)\]/i,
     /"tag_list"\s*:\s*\[(.*?)\]/i
@@ -118,27 +134,15 @@ function parseTagsFromHtml(html: string) {
     }
   }
 
-  // 패턴 2: DOM 기반 태그 스캔 (보조)
-  const domLikeMatches = html.match(/class=["'][^"']*tag[^"']*["'][^>]*>([^<]{1,40})</gi) ?? [];
-  domLikeMatches
-    .map((chunk) => chunk.replace(/<[^>]+>/g, "").replace(/[#\s]/g, "").trim())
-    .filter(Boolean)
-    .forEach((item) => values.add(item));
-
-  return Array.from(values).slice(0, 5);
+  return Array.from(values);
 }
 
-/**
- * ✅ 수정된 메타데이터 패칭 로직
- * User-Agent를 추가하여 SOOP의 차단을 방지합니다.
- */
 async function fetchLiveMeta(liveUrl: string) {
   try {
     const response = await fetch(liveUrl, { 
       cache: "no-store",
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
       }
     });
     
@@ -188,23 +192,21 @@ async function fetchStatus(bjid: string) {
     if (bnoValue > 0) {
       const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bnoValue}`;
       const apiTitle = pickFirstString(data.CHANNEL?.TITLE, data.title);
-      const apiThumb = pickFirstString(
-        data.CHANNEL?.THUMBNAIL,
-        data.CHANNEL?.THUMB,
-        data.CHANNEL?.THUMB_URL,
-        data.thumbnail,
-        data.thumbUrl
-      );
+      const apiThumb = pickFirstString(data.CHANNEL?.THUMBNAIL, data.CHANNEL?.THUMB, data.CHANNEL?.THUMB_URL);
 
-      // 메타데이터(태그 등)를 가져오기 위한 추가 요청
+      // HTML 페이지에서 상세 정보(태그 등) 가져오기
       const meta = await fetchLiveMeta(liveUrl);
       
+      // API에서 준 태그와 HTML에서 찾은 태그 합치기
+      const apiTags = data.CHANNEL?.TAG ? data.CHANNEL.TAG.split(',').filter(Boolean) : [];
+      const finalTags = Array.from(new Set([...meta.tags, ...apiTags])).map(t => t.trim());
+
       return {
         isLive: true,
         liveUrl,
         title: apiTitle ?? meta.title,
         thumbUrl: apiThumb ?? meta.thumbUrl,
-        tags: meta.tags,
+        tags: finalTags,
       };
     }
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
