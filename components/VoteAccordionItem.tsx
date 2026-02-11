@@ -4,6 +4,23 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { VoteItem } from "./VotesAccordion";
 
+const PLATFORM_LABELS: Record<string, string> = {
+  idolchamp: "아이돌챔프",
+  mubeat: "뮤빗",
+  upick: "유픽",
+  fancast: "팬캐스트",
+  fanplus: "팬플러스",
+  podoal: "포도알",
+  whosfan: "후즈팬",
+  duckad: "덕애드",
+  "10asia": "10아시아",
+  muniverse: "뮤니버스",
+  my1pick: "마이원픽",
+  mnetplus: "엠넷플러스",
+  fannstar: "팬앤스타",
+  higher: "하이어",
+};
+
 function parseKstDate(value?: string) {
   if (!value) return null;
   const raw = value.trim();
