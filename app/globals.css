@@ -1276,7 +1276,7 @@ main {
 }
 
 .date-text {
-  font-size: 15px; /* 기간 폰트 확대 */
+  font-size: 14px; /* 기간 폰트 확대 */
   letter-spacing: 0.01em;
 }
 
