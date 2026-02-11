@@ -255,38 +255,50 @@ export default function VoteAccordionItem({
       </div>
 
       {/* 확장 패널 영역 */}
-      {isOpen && (
-        <div className="vote-panel compact-panel">
-          <div className="panel-actions">
-            <div className="panel-platforms">
-              <span className="panel-label">투표처</span>
-              <div className="platform-grid-compact">
-                {platforms.map((platform) => {
-                  const missing = missingIcons[platform];
-                  return (
-                    <span key={`${vote.id}-${platform}`} className="compact-icon" title={platform}>
-                      {!missing && (
-                        <img
-                          src={`/icons/${platform}.png`}
-                          alt={platform}
-                          onError={() =>
-                            setMissingIcons((prev) => ({
-                              ...prev,
-                              [platform]: true,
-                            }))
-                          }
-                        />
-                      )}
-                      {missing && (
-                        <span className="vote-icon-fallback vote-icon-neutral" aria-hidden>
-                          <span />
-                        </span>
-                      )}
+{isOpen && (
+  <div className="vote-panel compact-panel">
+    <div className="panel-actions">
+      <div className="panel-platforms">
+        <span className="panel-label">투표처</span>
+
+        <div className="platform-grid-compact">
+          {platforms.map((platform) => {
+            const missing = missingIcons[platform];
+            const label = PLATFORM_LABELS?.[platform] ?? platform;
+
+            return (
+              <span
+                key={`${vote.id}-${platform}`}
+                className="platform-pill"
+                title={label}
+              >
+                <span className="compact-icon" aria-hidden>
+                  {!missing && (
+                    <img
+                      src={`/icons/${platform}.png`}
+                      alt=""
+                      onError={() =>
+                        setMissingIcons((prev) => ({
+                          ...prev,
+                          [platform]: true,
+                        }))
+                      }
+                    />
+                  )}
+                  {missing && (
+                    <span className="vote-icon-fallback vote-icon-neutral" aria-hidden>
+                      <span />
                     </span>
-                  );
-                })}
-              </div>
-            </div>
+                  )}
+                </span>
+
+                <span className="platform-name">{label}</span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
 
             <a
               className={`vote-action-btn ${hasUrl ? "" : "is-disabled"}`}
