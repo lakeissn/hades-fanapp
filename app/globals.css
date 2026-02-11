@@ -2023,3 +2023,31 @@ main {
   white-space: nowrap;
   line-height: 1.45;
 }
+/* ✅ 기간/리워드 라인 정렬 + 간격 줄이기 패치 */
+
+/* 1) 라벨/값을 "세로 가운데"로 정렬 + 간격 줄이기 */
+.panel-info {
+  align-items: center;     /* baseline -> center */
+  gap: 10px;               /* 16px 너무 큼 -> 10px */
+  line-height: 1.35;       /* 줄높이 안정화 */
+}
+
+/* 2) 라벨 폭을 너무 크게 잡지 말고, 가운데 느낌으로 */
+.panel-info .panel-label {
+  min-width: 38px;         /* 45px -> 38px (간격 낭비 줄이기) */
+  text-align: left;        /* 혹시 흔들리면 left 고정 */
+  line-height: 1.1;        /* 라벨 높이도 정리 */
+}
+
+/* 3) 값 영역도 높이/정렬 안정화 (기간/리워드 둘 다) */
+.date-text-fit,
+.note-text-fit {
+  display: flex;
+  align-items: center;
+  min-width: 0;            /* 긴 텍스트 줄어들 수 있게 */
+}
+
+/* 4) 실제 줄어드는 텍스트도 세로 정렬 안정화 */
+.fit-text {
+  line-height: 1.35;
+}
