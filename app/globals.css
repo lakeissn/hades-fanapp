@@ -2200,3 +2200,70 @@ main {
     opacity: 0.6;
   }
 }
+/* app/globals.css 내 관련 부분 수정 */
+
+.live-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(10, 10, 20, 0.55);
+  transition: all 0.3s ease;
+}
+
+.live-cover {
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.live-body {
+  flex: 1 1 auto; /* ✅ 높이 제한(flex:3)을 해제하여 내용물이 잘리지 않게 함 */
+  display: flex;
+  gap: 14px;
+  padding: 16px 16px 18px;
+  align-items: flex-start;
+}
+
+.live-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.live-title {
+  font-size: 16px;
+  font-weight: 600; /* ✅ 굵기 완화 */
+  line-height: 1.3; /* ✅ 행간 최적화 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: nowrap; /* ✅ 1줄 유지 */
+  overflow: hidden; /* ✅ 넘치는 칩 숨김 */
+  gap: 8px; /* ✅ 칩 간격 */
+  margin-top: 12px; /* ✅ 제목과의 간격 */
+  /* 필요 시 아래 mask-image를 추가하여 우측을 자연스럽게 흐리게 할 수 있습니다 */
+  -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+}
+
+.tag-pill {
+  flex-shrink: 0; /* ✅ 칩 크기 압축 방지 */
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(179, 107, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  color: #dcd3ff;
+  white-space: nowrap;
+}
