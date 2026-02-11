@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+// ✅ Vercel/Next에서 Edge로 돌면 일부 헤더/응답 처리에서 더 자주 막히는 케이스가 있어서,
+//    확실히 Node 런타임으로 고정합니다.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 // 1. 기존 멤버 리스트 (100% 유지)
 const members = [
   {
@@ -107,14 +112,37 @@ function parseTagsFromHtml(html: string) {
   return Array.from(values);
 }
 
+// ✅ (추가) JSON이 아닌 응답(HTML/차단 페이지 등)도 안전하게 처리
+async function safeJson<T>(res: Response): Promise<T | null> {
+  const contentType = res.headers.get("content-type") ?? "";
+  // application/json이 아니어도 json이 올 때가 있어서 text로 받아 파싱합니다.
+  const text = await res.text();
+  if (!text) return null;
+
+  // 차단/오류 HTML이면 JSON 파싱하지 않음
+  if (text.trim().startsWith("<!doctype") || text.trim().startsWith("<html")) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // content-type이 json인데도 깨져있는 경우가 있어서 null
+    if (contentType.includes("application/json")) return null;
+    return null;
+  }
+}
+
 // 4. HTML 메타데이터 추출 (실패해도 전체 로직에 영향 주지 않도록 설계)
 async function fetchLiveMeta(liveUrl: string) {
   try {
     const response = await fetch(liveUrl, {
       cache: "no-store",
       headers: {
+        // ✅ 메타 가져올 때도 UA 넣기 (일부 지역/서버에서 기본 UA 차단 케이스)
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });
     if (!response.ok) return { tags: [], category: null };
@@ -126,45 +154,57 @@ async function fetchLiveMeta(liveUrl: string) {
   }
 }
 
+// ✅ (추가) SOOP 라이브 API 호출을 “브라우저처럼” 만들어주는 공통 헤더
+function soopApiHeaders(bjid: string) {
+  const referer = `https://play.sooplive.co.kr/${bjid}`;
+  return {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    Accept: "application/json, text/plain, */*",
+    Referer: referer,
+    Origin: "https://play.sooplive.co.kr",
+  };
+}
+
 // 5. 핵심 상태 확인 함수 (정확히 함수로 감싸고 에러 전파 방지)
 async function fetchStatus(bjid: string) {
   try {
-    // ✅ 핵심 수정 1) bj_id -> bjid / type=live 추가
-    const apiUrl = `https://live.sooplive.co.kr/afreeca/player_live_api.php?bjid=${bjid}&type=live`;
+    // ✅ 1) 먼저 기존 방식(bj_id=) 시도 (헤더 강화 + JSON 안전 파싱)
+    const apiUrl1 = `https://live.sooplive.co.kr/afreeca/player_live_api.php?bj_id=${encodeURIComponent(bjid)}`;
+    let res = await fetch(apiUrl1, { cache: "no-store", headers: soopApiHeaders(bjid) });
 
-    // ✅ 핵심 수정 2) GET -> POST 로 변경 (요즘 이쪽이 더 안정적)
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      cache: "no-store",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "application/json,text/plain,*/*",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        Referer: `https://play.sooplive.co.kr/${bjid}`,
-      },
-      // body는 없어도 되는 경우가 많지만, 안정성 위해 같이 보냄
-      body: `bjid=${encodeURIComponent(bjid)}&type=live`,
-    });
+    let data: LiveApiResponse | null = null;
+    if (res.ok) data = await safeJson<LiveApiResponse>(res);
 
-    if (!response.ok) return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
+    // ✅ 2) 실패하면 스트림링크 등에서 쓰는 방식(bjid=...&type=live)로 재시도
+    if (!data) {
+      const apiUrl2 = `https://live.sooplive.co.kr/afreeca/player_live_api.php?bjid=${encodeURIComponent(
+        bjid
+      )}&type=live`;
+      res = await fetch(apiUrl2, { cache: "no-store", headers: soopApiHeaders(bjid) });
+      if (res.ok) data = await safeJson<LiveApiResponse>(res);
+    }
 
-    const data = (await response.json()) as LiveApiResponse;
+    // ✅ 3) 그래도 data가 없으면(차단/HTML/실패) => 오프라인 처리
+    if (!data) {
+      return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
+    }
+
     const bnoValue = Number(data.CHANNEL?.BNO ?? 0);
 
     // 방송 중인 경우
     if (bnoValue > 0) {
       const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bnoValue}`;
 
-      // HTML 파싱이 실패해도 방송 정보는 반환하도록 분리
+      // ✅ 중요: HTML 파싱이 실패해도 방송 정보는 반환하도록 try-catch 분리
       let metaTags: string[] = [];
       let category: string | null = null;
       try {
         const meta = await fetchLiveMeta(liveUrl);
         metaTags = meta.tags;
         category = meta.category;
-      } catch {
-        // ignore
+      } catch (e) {
+        console.error("Meta fetch failed, skipping tags");
       }
 
       const apiTags = data.CHANNEL?.TAG ? data.CHANNEL.TAG.split(",").filter(Boolean) : [];
@@ -183,7 +223,7 @@ async function fetchStatus(bjid: string) {
     }
 
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
-  } catch {
+  } catch (err) {
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
   }
 }
