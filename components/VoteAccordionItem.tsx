@@ -4,12 +4,6 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { VoteItem } from "./VotesAccordion";
 
-const statusLabels: Record<string, string> = {
-  open: "진행중",
-  upcoming: "오픈 예정",
-  closed: "마감됨",
-};
-
 function parseKstDate(value?: string) {
   if (!value) return null;
   const raw = value.trim();
@@ -62,14 +56,42 @@ function formatLongDate(value?: string) {
   }).format(date);
 }
 
-function resolveStatus(opensAt?: string, closesAt?: string) {
-  const now = Date.now();
-  const openDate = isInProgressKeyword(opensAt) ? null : parseKstDate(opensAt);
-  const closeDate = parseKstDate(closesAt);
+/** ✅ 기간/리워드용: 컨테이너 폭에 맞춰 글자 자동 축소 */
+function useFitText(basePx: number = 14, minPx: number = 10) {
+  const [fontSize, setFontSize] = useState(basePx);
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
 
-  if (openDate && now < openDate.getTime()) return "upcoming";
-  if (closeDate && now > closeDate.getTime()) return "closed";
-  return "open";
+  useEffect(() => {
+    const fit = () => {
+      const c = containerRef.current;
+      const t = textRef.current;
+      if (!c || !t) return;
+
+      const containerWidth = c.offsetWidth;
+      if (!containerWidth) return;
+
+      const prev = t.style.fontSize;
+      t.style.fontSize = `${basePx}px`;
+      const textWidth = t.scrollWidth;
+      t.style.fontSize = prev;
+
+      if (textWidth > containerWidth) {
+        const ratio = containerWidth / textWidth;
+        const next = Math.max(minPx, Math.floor(basePx * ratio * 10) / 10);
+        setFontSize(next);
+      } else {
+        setFontSize(basePx);
+      }
+    };
+
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [basePx, minPx]);
+
+  return { fontSize, containerRef, textRef };
 }
 
 export default function VoteAccordionItem({
@@ -82,11 +104,13 @@ export default function VoteAccordionItem({
   onToggle: () => void;
 }) {
   const [missingIcons, setMissingIcons] = useState<Record<string, boolean>>({});
-  const status = resolveStatus(vote.opensAt, vote.closesAt);
-  const label = statusLabels[status];
   const hasUrl = Boolean(vote.url);
 
-  // --- 🚀 동적 폰트 축소 로직 (ResizeObserver 기반) ---
+  // ✅ 기간/리워드: 14px 기준, 최소 10px까지 축소
+  const periodFit = useFitText(14, 10);
+  const rewardFit = useFitText(14, 10);
+
+  // --- ✅ 제목(헤더) 동적 폰트 축소 로직 (기존 유지) ---
   const [fontSize, setFontSize] = useState(16);
   const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
@@ -96,16 +120,14 @@ export default function VoteAccordionItem({
       if (containerRef.current && textRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
         const textElement = textRef.current;
-        
-        // 정확한 측정을 위해 잠시 기본 폰트 크기로 설정
+
         const originalStyle = textElement.style.fontSize;
-        textElement.style.fontSize = '16px';
+        textElement.style.fontSize = "16px";
         const textWidth = textElement.scrollWidth;
         textElement.style.fontSize = originalStyle;
 
         if (textWidth > containerWidth && containerWidth > 0) {
           const ratio = containerWidth / textWidth;
-          // iPhone SE(320px) 대응을 위해 최소 10px까지 축소 허용
           const newSize = Math.max(10, Math.floor(16 * ratio * 10) / 10);
           setFontSize(newSize);
         } else {
@@ -117,9 +139,9 @@ export default function VoteAccordionItem({
     fitText();
     const observer = new ResizeObserver(fitText);
     if (containerRef.current) observer.observe(containerRef.current);
-    
+
     return () => observer.disconnect();
-  }, [vote.title]); // 제목 변경 시 재계산
+  }, [vote.title]);
   // ------------------------------------------------
 
   const platforms = useMemo(() => {
@@ -158,9 +180,7 @@ export default function VoteAccordionItem({
 
   const stopRowToggle = (event: MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
-    if (!hasUrl) {
-      event.preventDefault();
-    }
+    if (!hasUrl) event.preventDefault();
   };
 
   return (
@@ -201,17 +221,12 @@ export default function VoteAccordionItem({
           })}
           {platforms.length > 3 && <span className="vote-more">+{platforms.length - 3}</span>}
         </span>
-        
-        {/* JS 동적 폰트 축소 적용 대상 */}
+
+        {/* 제목 동적 폰트 축소 */}
         <span className="vote-title" ref={containerRef}>
-          <span 
-            className="vote-title-text" 
-            ref={textRef}
-            style={{ fontSize: `${fontSize}px` }}
-          >
+          <span className="vote-title-text" ref={textRef} style={{ fontSize: `${fontSize}px` }}>
             {vote.title}
           </span>
-          {/* 상태 뱃지 렌더링 제외 (CSS 패치와 정렬 유지) */}
         </span>
 
         {!isOpen && (
@@ -247,32 +262,32 @@ export default function VoteAccordionItem({
               <span className="panel-label">투표처</span>
               <div className="platform-grid-compact">
                 {platforms.map((platform) => {
-                   const missing = missingIcons[platform];
-                   return (
+                  const missing = missingIcons[platform];
+                  return (
                     <span key={`${vote.id}-${platform}`} className="compact-icon" title={platform}>
-                        {!missing && (
+                      {!missing && (
                         <img
-                            src={`/icons/${platform}.png`}
-                            alt={platform}
-                            onError={() =>
+                          src={`/icons/${platform}.png`}
+                          alt={platform}
+                          onError={() =>
                             setMissingIcons((prev) => ({
-                                ...prev,
-                                [platform]: true,
+                              ...prev,
+                              [platform]: true,
                             }))
-                            }
+                          }
                         />
-                        )}
-                        {missing && (
+                      )}
+                      {missing && (
                         <span className="vote-icon-fallback vote-icon-neutral" aria-hidden>
-                            <span />
+                          <span />
                         </span>
-                        )}
+                      )}
                     </span>
-                   );
+                  );
                 })}
               </div>
             </div>
-            
+
             <a
               className={`vote-action-btn ${hasUrl ? "" : "is-disabled"}`}
               href={vote.url ?? "#"}
@@ -281,8 +296,15 @@ export default function VoteAccordionItem({
               onClick={stopRowToggle}
             >
               투표하러 가기
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </a>
           </div>
@@ -290,12 +312,33 @@ export default function VoteAccordionItem({
           <div className="panel-footer">
             <div className="panel-info">
               <span className="panel-label">기간</span>
-              <span className="panel-value date-text-fit">   <span className="fit-text">{periodText}</span> </span>
+
+              {/* ✅ 기간: ref + fontSize 연결 */}
+              <span className="panel-value date-text-fit" ref={periodFit.containerRef}>
+                <span
+                  className="fit-text"
+                  ref={periodFit.textRef}
+                  style={{ fontSize: `${periodFit.fontSize}px` }}
+                >
+                  {periodText}
+                </span>
+              </span>
             </div>
+
             {vote.note && (
               <div className="panel-info note">
                 <span className="panel-label text-accent">리워드</span>
-               <span className="panel-value note-text-fit">   <span className="fit-text">{vote.note}</span> </span>
+
+                {/* ✅ 리워드: ref + fontSize 연결 */}
+                <span className="panel-value note-text-fit" ref={rewardFit.containerRef}>
+                  <span
+                    className="fit-text"
+                    ref={rewardFit.textRef}
+                    style={{ fontSize: `${rewardFit.fontSize}px` }}
+                  >
+                    {vote.note}
+                  </span>
+                </span>
               </div>
             )}
           </div>
