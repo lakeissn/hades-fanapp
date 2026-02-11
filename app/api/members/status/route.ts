@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+// 1. 기존 멤버 데이터 (보존)
 const members = [
   {
     id: "whatcherry4",
@@ -39,6 +40,7 @@ const members = [
   },
 ];
 
+// 2. 타입 정의 (보존 및 tags 추가)
 type MemberStatus = {
   id: string;
   name: string;
@@ -59,7 +61,7 @@ type LiveApiResponse = {
     THUMBNAIL?: string;
     THUMB?: string;
     THUMB_URL?: string;
-    TAG?: string; // API에서 제공하는 태그
+    TAG?: string;
   };
   title?: string;
   thumbnail?: string;
@@ -73,6 +75,7 @@ let cached:
     }
   | null = null;
 
+// 3. 기존 유틸리티 함수 (보존)
 function pickFirstString(...values: Array<string | undefined | null>) {
   return values.find((value) => typeof value === "string" && value.trim().length > 0) ?? null;
 }
@@ -91,30 +94,24 @@ function extractTitleTag(html: string) {
   return match?.[1] ?? null;
 }
 
-/**
- * ✅ 개선된 태그 파싱 로직
- * SOOP 페이지 내부의 변수(szBroadCategory, szTags 등)를 직접 찾아냅니다.
- */
+// 4. 태그 파싱 로직 (개선 및 보존)
 function parseTagsFromHtml(html: string) {
   const values = new Set<string>();
 
-  // 1. 페이지 내 주요 변수 추출 (카테고리, 언어, 태그 포함)
   const varPatterns = [
-    /szBroadCategory\s*=\s*['"]([^'"]+)['"]/i, // 예: 토크/캠방
-    /szBroadType\s*=\s*['"]([^'"]+)['"]/i,     // 예: 한국어
-    /szTags\s*=\s*['"]([^'"]+)['"]/i,          // 예: 봉준,무수,하데스
+    /szBroadCategory\s*=\s*['"]([^'"]+)['"]/i,
+    /szBroadType\s*=\s*['"]([^'"]+)['"]/i,
+    /szTags\s*=\s*['"]([^'"]+)['"]/i,
   ];
 
   varPatterns.forEach(pattern => {
     const match = html.match(pattern);
     if (match?.[1]) {
-      // 쉼표나 슬래시로 구분된 경우 나누기
       const parts = match[1].split(/[,/]+/).filter(Boolean);
       parts.forEach(p => values.add(p.trim()));
     }
   });
 
-  // 2. JSON 형태 데이터 스캔 (기존 방식 유지)
   const jsonPatterns = [
     /"broad_tag"\s*:\s*\[(.*?)\]/i,
     /"tag_list"\s*:\s*\[(.*?)\]/i
@@ -137,16 +134,16 @@ function parseTagsFromHtml(html: string) {
   return Array.from(values);
 }
 
+// 5. 메타 데이터 가져오기 (보존)
 async function fetchLiveMeta(liveUrl: string) {
   try {
-    const response = await fetch(liveUrl, { cache: "no-store", headers: { "User-Agent": "..." } });
+    const response = await fetch(liveUrl, { cache: "no-store", headers: { "User-Agent": "Mozilla/5.0" } });
     if (!response.ok) return { title: null, thumbUrl: null, tags: [], category: null };
     
     const html = await response.text();
     const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
     const thumbUrl = extractMetaContent(html, "og:image");
     
-    // 카테고리(szBroadCategory) 추출 추가
     const categoryMatch = html.match(/szBroadCategory\s*=\s*['"]([^'"]+)['"]/i);
     const category = categoryMatch?.[1] ?? null;
 
@@ -157,8 +154,13 @@ async function fetchLiveMeta(liveUrl: string) {
   }
 }
 
-try {
-    // ... (player_live_api.php 호출부)
+// 6. 개별 상태 확인 (오류가 났던 구간을 fetchStatus 함수로 정확히 감싸서 복구함)
+async function fetchStatus(bjid: string) {
+  try {
+    const apiUrl = `https://live.sooplive.co.kr/afreeca/player_live_api.php?bj_id=${bjid}`;
+    const response = await fetch(apiUrl, { cache: "no-store" });
+    if (!response.ok) return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
+
     const data = (await response.json()) as LiveApiResponse;
     const bnoValue = Number(data.CHANNEL?.BNO ?? 0);
     
@@ -167,22 +169,12 @@ try {
       const apiTitle = pickFirstString(data.CHANNEL?.TITLE, data.title);
       const apiThumb = pickFirstString(data.CHANNEL?.THUMBNAIL, data.CHANNEL?.THUMB, data.CHANNEL?.THUMB_URL);
 
-      // HTML에서 메타 데이터(태그/카테고리) 가져오기
       const meta = await fetchLiveMeta(liveUrl);
-      
-      // API 기본 태그 파싱
       const apiTags = data.CHANNEL?.TAG ? data.CHANNEL.TAG.split(',').filter(Boolean) : [];
       
-      // ✅ 개선: 카테고리 정보가 있다면 태그 목록 맨 앞에 추가
       const finalTags = new Set<string>();
-      
-      // 1. 카테고리 (예: "토크/캠방")
-      if (meta.category) finalTags.add(meta.category); 
-      
-      // 2. HTML에서 찾은 태그들
+      if (meta.category) finalTags.add(meta.category); // 카테고리 우선
       meta.tags.forEach(t => finalTags.add(t));
-      
-      // 3. API 응답 태그들
       apiTags.forEach(t => finalTags.add(t));
 
       return {
@@ -190,14 +182,16 @@ try {
         liveUrl,
         title: apiTitle ?? meta.title,
         thumbUrl: apiThumb ?? meta.thumbUrl,
-        tags: Array.from(finalTags).map(t => t.trim()).filter(Boolean), // 공백 제거
+        tags: Array.from(finalTags).map(t => t.trim()).filter(Boolean),
       };
     }
-   } catch {
+    return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
+  } catch {
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
   }
 }
 
+// 7. GET 핸들러 (보존)
 export async function GET() {
   const now = Date.now();
   if (cached && cached.expiresAt > now) {
