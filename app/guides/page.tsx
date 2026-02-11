@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Card from "@/components/Card";
 
-// 가이드 카테고리 데이터 복구
+// 가이드 카테고리 데이터
 const guideCategories = [
   {
     id: "streaming",
@@ -30,42 +30,41 @@ const guideCategories = [
 
 export default function GuidesPage() {
   return (
-    <main className="guides-page">
-      {/* 헤더 섹션 */}
-      <header className="guides-hero section-head">
-        <div>
-          <p className="section-tag">GUIDES</p>
-          <h2>가이드 목록</h2>
-          <p className="guides-hero-sub">팬 활동에 필요한 모든 정보를 모았습니다.</p>
+    <main>
+      <section className="section-block">
+        <div className="section-head page-header">
+          <div>
+            <p className="section-tag">GUIDES</p>
+            <h2>가이드 목록</h2>
+          </div>
         </div>
-      </header>
 
-      {/* 카테고리 카드 그리드 (원래 UI 복원) */}
-      <div className="guides-grid">
-        {guideCategories.map((category) => (
-          <Link 
-            key={category.id} 
-            href={`/guides/${category.id}`}
-            className="guide-card-link"
-          >
-            <article className="guide-card">
-              <div className="guide-card-head">
-                <span className="guide-card-icon">{category.icon}</span>
-                <span className="guide-card-date">{category.items}개 항목</span>
-              </div>
-              
-              <div className="guide-card-body" style={{ marginTop: '12px' }}>
-                <h3>{category.title}</h3>
-                <p style={{ marginTop: '6px' }}>{category.description}</p>
-              </div>
+        <div className="guides-grid">
+          {guideCategories.map((category) => (
+            <Link 
+              key={category.id} 
+              href={`/guides/${category.id}`}
+              className="guide-card-link"
+            >
+              <article className="guide-card">
+                <div className="guide-card-head">
+                  <span className="guide-card-icon">{category.icon}</span>
+                  <span className="guide-card-date">{category.items}개 항목</span>
+                </div>
+                
+                <div className="guide-card-body" style={{ marginTop: '12px' }}>
+                  <h3>{category.title}</h3>
+                  <p style={{ marginTop: '6px' }}>{category.description}</p>
+                </div>
 
-              <div className="guide-card-footer section-footer">
-                <span className="guide-card-cta">가이드 보기 →</span>
-              </div>
-            </article>
-          </Link>
-        ))}
-      </div>
+                <div className="guide-card-footer section-footer">
+                  <span className="guide-card-cta">가이드 보기 →</span>
+                </div>
+              </article>
+            </Link>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
