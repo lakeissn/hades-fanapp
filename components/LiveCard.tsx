@@ -29,42 +29,31 @@ export default function LiveCard({
       <div className="live-cover" style={thumbUrl ? undefined : coverStyle}>
         {thumbUrl ? (
           <>
-            <div
-              className="live-cover-bg"
-              aria-hidden
-              style={{ backgroundImage: `url(${thumbUrl})` }}
-            />
-            <img className="live-cover-img" src={thumbUrl} alt="" aria-hidden />
+            <div className="live-cover-bg" style={{ backgroundImage: `url(${thumbUrl})` }} />
+            <img className="live-cover-img" src={thumbUrl} alt="" />
           </>
         ) : (
-          <div className="live-cover-fallback" aria-hidden />
+          <div className="live-cover-fallback" />
         )}
-        <span className="live-badge">
-          <span className="live-dot" /> LIVE
-        </span>
+        <span className="live-badge"><span className="live-dot" /> LIVE</span>
       </div>
       <div className="live-body">
         <div className="avatar">
-          {avatarError ? (
-            <span>{initials}</span>
-          ) : (
-            <img
-              src={avatarUrl}
-              alt={`${name} 프로필`}
-              onError={() => setAvatarError(true)}
-            />
+          {avatarError ? <span>{initials}</span> : (
+            <img src={avatarUrl} alt={`${name} 프로필`} onError={() => setAvatarError(true)} />
           )}
         </div>
         <div className="live-text">
           <p className="live-name">{name}</p>
           <p className="live-title">{title ?? "방송 준비 중"}</p>
-          <div className="tag-row">
-            {tags.slice(0, 4).map((tag) => (
-              <span key={tag} className="tag-pill">
-                {tag}
-              </span>
-            ))}
-          </div>
+          {/* ✅ 태그 영역 복구 및 1줄 보장 구조 */}
+          {tags && tags.length > 0 && (
+            <div className="tag-row">
+              {tags.map((tag) => (
+                <span key={tag} className="tag-pill">{tag}</span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </a>
