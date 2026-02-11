@@ -24,8 +24,9 @@ export default function LiveCard({
   const [avatarError, setAvatarError] = useState(false);
   const initials = name.slice(0, 2);
 
-  // 최소 4개, 최대 7개 태그 노출
-  const visibleTags = (tags ?? []).slice(0, 7);
+  // 맨 앞 태그(카테고리) 제외, 뒤에서 4개만 표시
+  const allTags = tags ?? [];
+  const visibleTags = allTags.length > 1 ? allTags.slice(1, 5) : allTags.slice(0, 4);
 
   return (
     <a className="live-card" href={soopUrl} target="_blank" rel="noreferrer">
