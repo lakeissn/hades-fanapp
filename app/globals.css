@@ -431,11 +431,9 @@ main {
 
 /* ✅ 태그: 기존 flex wrap 유지 + 잘림 방지 */
 .tag-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-  overflow: visible;             /* ✅ hidden이면 잘려서 안 보일 수 있음 */
+  outline: 2px solid red !important;
+  min-height: 24px !important;
+  background: rgba(255,0,0,0.15) !important;
 }
 
 .tag-pill {
