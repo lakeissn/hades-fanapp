@@ -59,10 +59,18 @@ function parseChartHtml(html: string): ChartEntry[] {
   });
 
   const artists = artistMatches.map((block) => {
-  // rank02 안의 a 텍스트들을 합치기 (복수 아티스트 대응)
-  const as = [...block.matchAll(/<a[^>]*>(.*?)<\/a>/g)].map(m => m[1].trim());
-  return as.join(", ");
+  const raw = [...block.matchAll(/<a[^>]*>(.*?)<\/a>/g)]
+    .map((m) => (m[1] ?? "").trim())
+    .filter(Boolean);
+
+  // ✅ 중복 제거 (표기 흔들림 대비로 공백 정규화)
+  const uniq = Array.from(
+    new Set(raw.map((s) => s.replace(/\s+/g, " ")))
+  );
+
+  return uniq.join(", ");
   });
+
 
   const albums = albumMatches.map(m => {
     const match = m.match(/<a[^>]*>(.*?)<\/a>/);
