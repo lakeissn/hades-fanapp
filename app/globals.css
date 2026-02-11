@@ -2113,3 +2113,52 @@ main {
 .platform-name {
   white-space: nowrap;
 }
+/* ===============================
+   LIVE TAGS FIX (override)
+   globals.css 맨 아래에 추가
+================================ */
+
+/* 1) live-cover 중복 선언으로 aspect-ratio가 깨지는 걸 강제로 복구 */
+.live-card .live-cover {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  flex: 0 0 auto !important;   /* 커버가 body를 눌러서 태그를 밀어내는 걸 방지 */
+  min-height: 0;
+}
+
+/* 2) live-body가 충분히 늘어나 태그가 보이도록 */
+.live-card .live-body {
+  flex: 0 0 auto !important;   /* body가 커버 때문에 눌리지 않게 */
+  min-height: 96px;            /* 태그 1~2줄 들어갈 공간 확보 */
+  padding-bottom: 18px;
+}
+
+/* 3) 태그 영역이 혹시 다른 스타일에 의해 사라지는 경우를 막기 */
+.live-card .tag-row {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* 4) 태그가 너무 길어서 레이아웃을 깨는 걸 방지 */
+.live-card .tag-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 5) (선택) 태그가 2줄 이상 과하게 늘어나는 게 싫으면 2줄까지만 보이게 */
+.live-card .tag-row {
+  max-height: 52px;            /* 대략 2줄 높이 */
+}
+
+/* 6) flex로 바꾼 뒤 avatar에 남아있는 grid-row 잔재 영향 제거(안전) */
+.live-card .avatar {
+  grid-row: auto;
+  flex: 0 0 auto;
+}
