@@ -2068,4 +2068,8 @@ main {
 /* 값 쪽도 확실히 center */
 .panel-info .panel-value,
 .date-text-fit,
-.n
+.note-text-fit{
+  display: flex;
+  align-items: center;
+  line-height: 1.35;
+}
