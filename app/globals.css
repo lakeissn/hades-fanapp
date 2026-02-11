@@ -398,7 +398,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  grid-row: 1 / span 3; /* ✅ 아바타와 동일하게 3개 행을 차지하도록 수정 */
+  grid-row: 1 / span 2; /* ✅ 아바타와 동일하게 3개 행을 차지하도록 수정 */
 }
 
 .live-title {
@@ -416,9 +416,12 @@ main {
 .tag-row {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap; /* ✅ nowrap에서 wrap으로 변경하여 가독성 확보 */
+  flex-wrap: wrap;
   overflow: hidden;
-  margin-top: 8px; /* ✅ 너무 넓었던 12px에서 조정 */
+  margin-top: 8px;
+  /* ✅ 추가: grid 배치만 지정 */
+  grid-column: 2 / -1;  /* 아바타 옆(텍스트 영역) */
+  grid-row: 3;          /* 3번째 줄 */
 }
 
 .tag-pill {
