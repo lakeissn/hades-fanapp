@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 const links = [
   { href: "/", label: "홈" },
   { href: "/votes", label: "투표" },
+  { href: "/chart", label: "차트" },
   { href: "/guides", label: "가이드" },
 ];
 
@@ -16,51 +17,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [noticeState, setNoticeState] = useState<"hidden" | "default" | "denied">("hidden");
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      return;
-    }
-
+    if (typeof window === "undefined" || !("Notification" in window)) return;
     const dismissed = window.localStorage.getItem("hades_notice_dismissed") === "1";
     const permission = Notification.permission;
-
-    if (permission === "granted") {
-      setNoticeState("hidden");
-      return;
-    }
-
-    if (permission === "denied") {
-      setNoticeState(dismissed ? "hidden" : "denied");
-      return;
-    }
-
+    if (permission === "granted") { setNoticeState("hidden"); return; }
+    if (permission === "denied") { setNoticeState(dismissed ? "hidden" : "denied"); return; }
     setNoticeState(dismissed ? "hidden" : "default");
   }, []);
 
   const hideNotice = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("hades_notice_dismissed", "1");
-    }
+    if (typeof window !== "undefined") window.localStorage.setItem("hades_notice_dismissed", "1");
     setNoticeState("hidden");
   };
 
   const requestNoticePermission = async () => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      return;
-    }
-
+    if (typeof window === "undefined" || !("Notification" in window)) return;
     const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      window.localStorage.removeItem("hades_notice_dismissed");
-      setNoticeState("hidden");
-      return;
-    }
-
-    if (permission === "denied") {
-      setNoticeState("denied");
-      return;
-    }
-
+    if (permission === "granted") { window.localStorage.removeItem("hades_notice_dismissed"); setNoticeState("hidden"); return; }
+    if (permission === "denied") { setNoticeState("denied"); return; }
     setNoticeState("default");
+  };
+
+  // 현재 경로가 해당 링크의 시작 경로인지 체크 (가이드 하위 페이지 등)
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
   };
 
   return (
@@ -74,7 +55,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {links.map((link) => (
               <a
                 key={link.href}
-                className={`nav-link ${pathname === link.href ? "active" : ""}`}
+                className={`nav-link ${isActive(link.href) ? "active" : ""}`}
                 href={link.href}
               >
                 {link.label}
@@ -97,7 +78,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               {links.map((link) => (
                 <a
                   key={link.href}
-                  className={`menu-link ${pathname === link.href ? "active" : ""}`}
+                  className={`menu-link ${isActive(link.href) ? "active" : ""}`}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
                 >
