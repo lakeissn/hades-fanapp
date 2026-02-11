@@ -1989,3 +1989,23 @@ main {
 .one-click-btn svg{
   margin-left: auto !important;
 }
+/* --- 펼쳤을 때(패널) 기간/리워드 값 한 줄 유지 + JS 축소용 --- */
+.panel-info {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.panel-value.date-text-fit,
+.panel-value.note-text-fit {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap; /* 무조건 한 줄 */
+}
+
+.panel-value.date-text-fit > span,
+.panel-value.note-text-fit > span {
+  display: inline-block;
+  white-space: nowrap;
+}
