@@ -313,23 +313,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Melon One-Click Section */}
-      <MelonPlaylist />
-
-      <section className="section-block">
-        <div className="section-head">
-          <div>
-            <p className="section-tag">OFFLINE</p>
-            <h2>잠시 쉬는 중</h2>
-          </div>
-        </div>
-        <div className="chip-grid">
-          {offlineMembers.map((member) => (
-            <MemberChip key={member.id} name={member.name} avatarUrl={member.avatarUrl} />
-          ))}
-        </div>
-      </section>
-
       <Card>
         <div className="section-head">
           <h2>투표 목록</h2>
@@ -366,6 +349,23 @@ export default function HomePage() {
         </div>
       </Card>
 
+       {/* Melon One-Click Section */}
+      <MelonPlaylist />
+
+      <section className="section-block">
+        <div className="section-head">
+          <div>
+            <p className="section-tag">OFFLINE</p>
+            <h2>잠시 쉬는 중</h2>
+          </div>
+        </div>
+        <div className="chip-grid">
+          {offlineMembers.map((member) => (
+            <MemberChip key={member.id} name={member.name} avatarUrl={member.avatarUrl} />
+          ))}
+        </div>
+      </section>
+      
       <Card>
         <div className="section-head">
           <h2>가이드 카테고리</h2>
