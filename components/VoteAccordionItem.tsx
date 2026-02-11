@@ -290,12 +290,12 @@ export default function VoteAccordionItem({
           <div className="panel-footer">
             <div className="panel-info">
               <span className="panel-label">기간</span>
-              <span className="panel-value date-text-fit">   <span>{periodText}</span> </span>
+              <span className="panel-value date-text-fit">   <span className="fit-text">{periodText}</span> </span>
             </div>
             {vote.note && (
               <div className="panel-info note">
                 <span className="panel-label text-accent">리워드</span>
-                <span className="panel-value note-text-fit">   <span>{vote.note}</span> </span>
+               <span className="panel-value note-text-fit">   <span className="fit-text">{vote.note}</span> </span>
               </div>
             )}
           </div>
