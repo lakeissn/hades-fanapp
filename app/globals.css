@@ -671,6 +671,7 @@ main {
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .vote-title::-webkit-scrollbar {
@@ -678,11 +679,18 @@ main {
 }
 
 .vote-title-text {
-  font-size: clamp(13px, 3.8vw, 16px);
+  font-size: clamp(12px, 3.8vw, 16px); /* 최소 크기를 13px -> 12px로 하향 */
   font-weight: 600;
   white-space: nowrap;
   line-height: 1.2;
   flex: 0 0 auto;
+}
+
+/* 🚨 초소형 화면(iPhone SE 등) 대응 브레이크포인트 */
+@media (max-width: 360px) {
+  .vote-title-text {
+    font-size: 11px; /* 아주 작은 화면에서는 11px로 더 강하게 축소 */
+  }
 }
 
 .vote-status {
