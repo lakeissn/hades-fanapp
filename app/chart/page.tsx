@@ -34,7 +34,7 @@ export default function ChartPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/chart?type=${chartType}&artist=하데스`);
+        const response = await fetch(`/api/chart?type=${chartType}&artist=하데스(HADES)`);
         if (!response.ok) throw new Error("차트 데이터를 불러오지 못했습니다.");
         const data = await response.json();
         if (isMounted) {
