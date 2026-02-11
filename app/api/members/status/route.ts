@@ -139,53 +139,26 @@ function parseTagsFromHtml(html: string) {
 
 async function fetchLiveMeta(liveUrl: string) {
   try {
-    const response = await fetch(liveUrl, { 
-      cache: "no-store",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      }
-    });
-    
-    if (!response.ok) return { title: null, thumbUrl: null, tags: [] };
+    const response = await fetch(liveUrl, { cache: "no-store", headers: { "User-Agent": "..." } });
+    if (!response.ok) return { title: null, thumbUrl: null, tags: [], category: null };
     
     const html = await response.text();
     const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
     const thumbUrl = extractMetaContent(html, "og:image");
+    
+    // 카테고리(szBroadCategory) 추출 추가
+    const categoryMatch = html.match(/szBroadCategory\s*=\s*['"]([^'"]+)['"]/i);
+    const category = categoryMatch?.[1] ?? null;
+
     const tags = parseTagsFromHtml(html);
-    return { title, thumbUrl, tags };
+    return { title, thumbUrl, tags, category };
   } catch (e) {
-    return { title: null, thumbUrl: null, tags: [] };
+    return { title: null, thumbUrl: null, tags: [], category: null };
   }
 }
 
-async function fetchStatus(bjid: string) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const body = new URLSearchParams({
-      bid: bjid,
-      bno: "null",
-      type: "live",
-      pwd: "",
-      player_type: "html5",
-      stream_type: "common",
-      quality: "HD",
-      mode: "landing",
-      from_api: "0",
-      is_revive: "false",
-    });
-
-    const response = await fetch("https://live.sooplive.co.kr/afreeca/player_live_api.php", {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-      body: body.toString(),
-      signal: controller.signal,
-      cache: "no-store",
-    });
-
+try {
+    // ... (player_live_api.php 호출부)
     const data = (await response.json()) as LiveApiResponse;
     const bnoValue = Number(data.CHANNEL?.BNO ?? 0);
     
@@ -194,26 +167,34 @@ async function fetchStatus(bjid: string) {
       const apiTitle = pickFirstString(data.CHANNEL?.TITLE, data.title);
       const apiThumb = pickFirstString(data.CHANNEL?.THUMBNAIL, data.CHANNEL?.THUMB, data.CHANNEL?.THUMB_URL);
 
-      // HTML 페이지에서 상세 정보(태그 등) 가져오기
+      // HTML에서 메타 데이터(태그/카테고리) 가져오기
       const meta = await fetchLiveMeta(liveUrl);
       
-      // API에서 준 태그와 HTML에서 찾은 태그 합치기
+      // API 기본 태그 파싱
       const apiTags = data.CHANNEL?.TAG ? data.CHANNEL.TAG.split(',').filter(Boolean) : [];
-      const finalTags = Array.from(new Set([...meta.tags, ...apiTags])).map(t => t.trim());
+      
+      // ✅ 개선: 카테고리 정보가 있다면 태그 목록 맨 앞에 추가
+      const finalTags = new Set<string>();
+      
+      // 1. 카테고리 (예: "토크/캠방")
+      if (meta.category) finalTags.add(meta.category); 
+      
+      // 2. HTML에서 찾은 태그들
+      meta.tags.forEach(t => finalTags.add(t));
+      
+      // 3. API 응답 태그들
+      apiTags.forEach(t => finalTags.add(t));
 
       return {
         isLive: true,
         liveUrl,
         title: apiTitle ?? meta.title,
         thumbUrl: apiThumb ?? meta.thumbUrl,
-        tags: finalTags,
+        tags: Array.from(finalTags).map(t => t.trim()).filter(Boolean), // 공백 제거
       };
     }
+   } catch {
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
-  } catch {
-    return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
