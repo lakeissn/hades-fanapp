@@ -307,10 +307,10 @@ main {
   inset: 0;
   background-size: cover;
   background-position: center;
-  filter: blur(14px) saturate(0.85);
+  filter: blur(10px) saturate(0.85); /* ✅ 14px -> 10px */
   transform: scale(1.12);
-  opacity: 0.5;
-}
+  opacity: 0.35;                     /* ✅*
+
 
 .live-cover-img {
   position: absolute;
