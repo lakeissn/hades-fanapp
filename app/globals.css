@@ -398,6 +398,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  grid-row: 1 / span 3; /* ✅ 아바타와 동일하게 3개 행을 차지하도록 수정 */
 }
 
 .live-title {
@@ -415,11 +416,9 @@ main {
 .tag-row {
   display: flex;
   gap: 6px;
-  margin-top: 0;
-  flex-wrap: nowrap;
+  flex-wrap: wrap; /* ✅ nowrap에서 wrap으로 변경하여 가독성 확보 */
   overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 12px;
+  margin-top: 8px; /* ✅ 너무 넓었던 12px에서 조정 */
 }
 
 .tag-pill {
