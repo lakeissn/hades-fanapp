@@ -303,9 +303,10 @@ main {
   transition: all 0.3s ease;
 }
 
+/* 커버 */
 .live-cover {
   /* ✅ 수정: 높이 비율을 16:9로 고정하여 여백을 없앱니다 */
-  aspect-ratio: 16 / 9; 
+  aspect-ratio: 16 / 9;
   width: 100%;
   position: relative;
   padding: 16px;
@@ -316,6 +317,11 @@ main {
   overflow: hidden;
 }
 
+/* (중복 선언 제거 or 유지 중 택1) 
+   아래 블록은 위와 동일한 live-cover 선언이라,
+   실제로는 마지막 선언이 우선 적용됩니다.
+   필요한 값만 남기고 정리하는 걸 추천하지만,
+   지금은 동작 우선으로 동일하게 합쳐서 유지합니다. */
 .live-cover {
   flex: 7;
   position: relative;
@@ -342,7 +348,7 @@ main {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover; 
+  object-fit: cover;
   object-position: center;
   z-index: 0;
 }
@@ -350,14 +356,22 @@ main {
 .live-cover-fallback {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(68, 47, 120, 0.6), rgba(28, 52, 95, 0.55));
+  background: linear-gradient(
+    135deg,
+    rgba(68, 47, 120, 0.6),
+    rgba(28, 52, 95, 0.55)
+  );
 }
 
 .live-cover::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.9) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 45%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
 }
 
 .live-badge {
@@ -384,23 +398,25 @@ main {
   animation: pulse 1.6s infinite;
 }
 
+/* ✅ 여기부터 핵심 수정: live-body를 grid → flex로 */
 .live-body {
   flex: 3;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 14px;
-  row-gap: 8px;
+  display: flex;                 /* ✅ grid 제거 */
+  gap: 14px;                     /* column-gap 역할 */
   padding: 16px 16px 18px;
+  align-items: flex-start;
 }
 
+/* live-text는 아바타 옆에서 세로로 쌓임 */
 .live-text {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  grid-row: 1 / span 2; /* ✅ 아바타와 동일하게 3개 행을 차지하도록 수정 */
+  flex: 1 1 auto;                /* ✅ 남는 공간 채우기 */
 }
 
+/* 제목 */
 .live-title {
   font-size: 14px;
   font-weight: 700;
@@ -413,15 +429,13 @@ main {
   overflow-wrap: anywhere;
 }
 
+/* ✅ 태그: 기존 flex wrap 유지 + 잘림 방지 */
 .tag-row {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  overflow: hidden;
   margin-top: 8px;
-  /* ✅ 추가: grid 배치만 지정 */
-  grid-column: 2 / -1;  /* 아바타 옆(텍스트 영역) */
-  grid-row: 3;          /* 3번째 줄 */
+  overflow: visible;             /* ✅ hidden이면 잘려서 안 보일 수 있음 */
 }
 
 .tag-pill {
@@ -434,6 +448,7 @@ main {
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
+
 
 @keyframes pulse {
   0% {
