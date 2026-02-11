@@ -2009,3 +2009,17 @@ main {
   display: inline-block;
   white-space: nowrap;
 }
+/* === 기간/리워드: 자동 축소(fit)용 === */
+.date-text-fit,
+.note-text-fit {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.fit-text {
+  display: inline-block;
+  white-space: nowrap;
+  line-height: 1.45;
+}
