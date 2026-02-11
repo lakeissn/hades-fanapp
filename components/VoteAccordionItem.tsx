@@ -13,7 +13,7 @@ const PLATFORM_LABELS: Record<string, string> = {
   podoal: "포도알",
   whosfan: "후즈팬",
   duckad: "덕애드",
-  "10asia": "10아시아",
+  "10asia": "텐아시아",
   muniverse: "뮤니버스",
   my1pick: "마이원픽",
   mnetplus: "엠넷플러스",
