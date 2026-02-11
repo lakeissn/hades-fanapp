@@ -2051,3 +2051,21 @@ main {
 .fit-text {
   line-height: 1.35;
 }
+/* ✅ 라벨이 위로 떠 보이는 문제 해결: 라벨도 flex-center + line-height 통일 */
+
+.panel-info{
+  align-items: center;
+}
+
+/* 라벨(기간/리워드)도 값과 동일한 라인박스로 만들기 */
+.panel-info .panel-label{
+  display: flex;
+  align-items: center;
+  line-height: 1.35;   /* 값이랑 동일하게 */
+  padding-top: 1px;    /* 시각적으로 1px 내려줘서 딱 맞춤(핵심) */
+}
+
+/* 값 쪽도 확실히 center */
+.panel-info .panel-value,
+.date-text-fit,
+.n
