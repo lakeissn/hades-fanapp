@@ -116,7 +116,7 @@ const tabs: { id: DeviceType; label: string }[] = [
               {/* 링크 버튼들 */}
               <div className="link-button-grid">
                 {melonLinks[device].map((link, index) => (
-                  <a key={index} href={link} className="one-click-btn" target="_blank" rel="noopener noreferrer">
+                  <a key={index} href={link} className="one-click-btn">
                     <div className="btn-label">
                       <span className="btn-number">{index + 1}</span>
                       <span>원클릭 리스트 {index + 1}</span>
