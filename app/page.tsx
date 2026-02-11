@@ -128,14 +128,8 @@ function resolveStatus(opensAt?: string, closesAt?: string) {
   const openTime = parseKstDate(opensAt)?.getTime() ?? null;
   const closeTime = parseKstDate(closesAt)?.getTime() ?? null;
 
-  if (openTime && openTime > now) {
-    return "upcoming";
-  }
-
-  if (closeTime && closeTime <= now) {
-    return "closed";
-  }
-
+  if (openTime && openTime > now) return "upcoming";
+  if (closeTime && closeTime <= now) return "closed";
   return "open";
 }
 
@@ -144,20 +138,14 @@ function isVisibleVote(vote: VoteItem) {
 }
 
 function formatDeadline(closesAt?: string) {
-  if (!closesAt) {
-    return "상시 진행";
-  }
+  if (!closesAt) return "상시 진행";
   const closeDate = parseKstDate(closesAt);
-  if (!closeDate) {
-    return "마감 정보 없음";
-  }
+  if (!closeDate) return "마감 정보 없음";
 
   const remainingMs = closeDate.getTime() - Date.now();
   if (remainingMs > 0) {
     const hours = Math.floor(remainingMs / (1000 * 60 * 60));
-    if (hours < 24) {
-      return `${Math.max(hours, 1)}시간 후 마감`;
-    }
+    if (hours < 24) return `${Math.max(hours, 1)}시간 후 마감`;
     return `${Math.floor(hours / 24)}일 후 마감`;
   }
 
@@ -175,11 +163,7 @@ function VotePreviewPlatforms({ vote }: { vote: VoteItem }) {
   const platforms = (
     vote.platforms?.length
       ? vote.platforms
-      : (vote.platform || "")
-          .replace(/[|,/]/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .split(" ")
+      : (vote.platform || "").replace(/[|,/]/g, " ").replace(/\s+/g, " ").trim().split(" ")
   )
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean)
@@ -220,17 +204,11 @@ export default function HomePage() {
       try {
         const response = await fetch("/api/members/status");
         const data = (await response.json()) as MemberStatus[];
-        if (isMounted) {
-          setMembers(data);
-        }
+        if (isMounted) setMembers(data);
       } catch {
-        if (isMounted) {
-          setMembers([]);
-        }
+        if (isMounted) setMembers([]);
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -249,22 +227,15 @@ export default function HomePage() {
       try {
         const response = await fetch("/api/votes");
         const data = (await response.json()) as VoteItem[];
-        if (isMounted) {
-          setVotes(data);
-        }
+        if (isMounted) setVotes(data);
       } catch {
-        if (isMounted) {
-          setVotes([]);
-        }
+        if (isMounted) setVotes([]);
       } finally {
-        if (isMounted) {
-          setIsVotesLoading(false);
-        }
+        if (isMounted) setIsVotesLoading(false);
       }
     };
 
     fetchVotes();
-
     return () => {
       isMounted = false;
     };
@@ -313,6 +284,20 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="section-block">
+        <div className="section-head">
+          <div>
+            <p className="section-tag">OFFLINE</p>
+            <h2>잠시 쉬는 중</h2>
+          </div>
+        </div>
+        <div className="chip-grid">
+          {offlineMembers.map((member) => (
+            <MemberChip key={member.id} name={member.name} avatarUrl={member.avatarUrl} />
+          ))}
+        </div>
+      </section>
+
       <Card>
         <div className="section-head">
           <h2>투표 목록</h2>
@@ -349,27 +334,12 @@ export default function HomePage() {
         </div>
       </Card>
 
-       {/* Melon One-Click Section */}
+      {/* ✅ Melon One-Click Section (투표 목록 아래로 이동) */}
       <MelonPlaylist />
 
-      <section className="section-block">
-        <div className="section-head">
-          <div>
-            <p className="section-tag">OFFLINE</p>
-            <h2>잠시 쉬는 중</h2>
-          </div>
-        </div>
-        <div className="chip-grid">
-          {offlineMembers.map((member) => (
-            <MemberChip key={member.id} name={member.name} avatarUrl={member.avatarUrl} />
-          ))}
-        </div>
-      </section>
-      
       <Card>
         <div className="section-head">
           <h2>가이드 카테고리</h2>
-          
         </div>
         <div className="card-body">
           <div className="chip-row">
