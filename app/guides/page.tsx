@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Card from "@/components/Card";
 
-// 가이드 카테고리 데이터
 const guideCategories = [
   {
     id: "streaming",
@@ -25,6 +23,13 @@ const guideCategories = [
     description: "방송 클립, 고화질 자료를 소장하는 방법",
     icon: "💾",
     items: 3,
+  },
+  {
+    id: "vote",
+    title: "투표 가이드",
+    description: "각 투표 플랫폼별 투표 방법과 팁을 알아보세요",
+    icon: "🗳️",
+    items: 4,
   },
 ];
 
