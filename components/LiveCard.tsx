@@ -24,6 +24,9 @@ export default function LiveCard({
   const [avatarError, setAvatarError] = useState(false);
   const initials = name.slice(0, 2);
 
+  // 최소 4개, 최대 7개 태그 노출
+  const visibleTags = (tags ?? []).slice(0, 7);
+
   return (
     <a className="live-card" href={soopUrl} target="_blank" rel="noreferrer">
       <div className="live-cover" style={thumbUrl ? undefined : coverStyle}>
@@ -46,10 +49,9 @@ export default function LiveCard({
         <div className="live-text">
           <p className="live-name">{name}</p>
           <p className="live-title">{title ?? "방송 준비 중"}</p>
-          {/* ✅ 태그 영역 복구 및 1줄 보장 구조 */}
-          {tags && tags.length > 0 && (
+          {visibleTags.length > 0 && (
             <div className="tag-row">
-              {tags.map((tag) => (
+              {visibleTags.map((tag) => (
                 <span key={tag} className="tag-pill">{tag}</span>
               ))}
             </div>
