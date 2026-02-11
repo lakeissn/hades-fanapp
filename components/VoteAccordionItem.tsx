@@ -1,14 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { VoteItem } from "./VotesAccordion";
-
-const statusLabels: Record<string, string> = {
-  open: "진행중",
-  upcoming: "오픈 예정",
-  closed: "마감됨",
-};
 
 function parseKstDate(value?: string) {
   if (!value) return null;
@@ -82,9 +76,39 @@ export default function VoteAccordionItem({
   onToggle: () => void;
 }) {
   const [missingIcons, setMissingIcons] = useState<Record<string, boolean>>({});
-  const status = resolveStatus(vote.opensAt, vote.closesAt);
-  const label = statusLabels[status];
   const hasUrl = Boolean(vote.url);
+
+  // --- 동적 폰트 축소 로직 ---
+  const [fontSize, setFontSize] = useState(16);
+  const titleRef = useRef<HTMLSpanElement>(null);
+  const containerRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const fitText = () => {
+      if (containerRef.current && titleRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        // 너비 측정을 위해 폰트 크기 초기화
+        titleRef.current.style.fontSize = '16px';
+        const textWidth = titleRef.current.scrollWidth;
+
+        if (textWidth > containerWidth && containerWidth > 0) {
+          const ratio = containerWidth / textWidth;
+          // 최소 10px까지만 줄어들도록 설정
+          const newSize = Math.max(10, Math.floor(16 * ratio * 10) / 10);
+          setFontSize(newSize);
+        } else {
+          setFontSize(16);
+        }
+      }
+    };
+
+    fitText();
+    const observer = new ResizeObserver(fitText);
+    if (containerRef.current) observer.observe(containerRef.current);
+    
+    return () => observer.disconnect();
+  }, [vote.title]);
+  // -------------------------
 
   const platforms = useMemo(() => {
     const rawPlatforms = (vote as VoteItem & { platforms?: string[] }).platforms;
@@ -100,18 +124,9 @@ export default function VoteAccordionItem({
     return Array.from(new Set(values)).slice(0, 20);
   }, [vote.platform, vote]);
 
-  const platformLabels = useMemo(() => {
-    const rawLabels = (vote as VoteItem & { platformLabels?: string[] }).platformLabels;
-    if (rawLabels?.length) {
-      return rawLabels;
-    }
-    const first = vote.platformLabel || "기타";
-    return platforms.map((_, index) => (index === 0 ? first : "기타"));
-  }, [platforms, vote.platformLabel, vote]);
-
+  const closeDateLong = formatLongDate(vote.closesAt);
   const openDate = formatShortDate(vote.opensAt);
   const closeDate = formatShortDate(vote.closesAt);
-  const closeDateLong = formatLongDate(vote.closesAt);
   const isOpenKeyword = isInProgressKeyword(vote.opensAt);
 
   const periodText = isOpenKeyword
@@ -138,7 +153,6 @@ export default function VoteAccordionItem({
 
   return (
     <div className={`vote-item ${isOpen ? "is-open" : ""}`}>
-      {/* 닫혀있을 때 보이는 헤더 */}
       <div
         className="vote-row"
         role="button"
@@ -174,12 +188,19 @@ export default function VoteAccordionItem({
           })}
           {platforms.length > 3 && <span className="vote-more">+{platforms.length - 3}</span>}
         </span>
-        <span className="vote-title">
-          <span className="vote-title-text">{vote.title}</span>
-          <span className="vote-status" data-status={status}>
-            {label}
+        
+        {/* 측정용 컨테이너 추가 */}
+        <span className="vote-title" ref={containerRef}>
+          <span 
+            className="vote-title-text" 
+            ref={titleRef}
+            style={{ fontSize: `${fontSize}px` }}
+          >
+            {vote.title}
           </span>
+          {/* 진행중 상태 표시 뱃지 렌더링 제거 완료 */}
         </span>
+
         {!isOpen && (
           <a
             className={`vote-link ${hasUrl ? "" : "is-disabled"}`}
@@ -205,10 +226,8 @@ export default function VoteAccordionItem({
         </span>
       </div>
 
-      {/* 확장 패널 (글자 크기 확대 적용) */}
       {isOpen && (
         <div className="vote-panel compact-panel">
-          {/* 상단 액션 영역 */}
           <div className="panel-actions">
             <div className="panel-platforms">
               <span className="panel-label">투표처</span>
@@ -254,7 +273,6 @@ export default function VoteAccordionItem({
             </a>
           </div>
 
-          {/* 하단 정보 영역 (폰트 크기 확대) */}
           <div className="panel-footer">
             <div className="panel-info">
               <span className="panel-label">기간</span>
