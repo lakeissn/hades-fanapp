@@ -30,7 +30,7 @@ function getKnownVoteIds(): Set<string> {
 
 function setKnownVoteIds(ids: Set<string>) {
   try {
-    localStorage.setItem("hades_known_vote_ids", JSON.stringify([...ids]));
+    localStorage.setItem("hades_known_vote_ids", JSON.stringify(Array.from(ids)));
   } catch {}
 }
 
@@ -46,7 +46,7 @@ function getKnownYoutubeIds(): Set<string> {
 
 function setKnownYoutubeIds(ids: Set<string>) {
   try {
-    localStorage.setItem("hades_known_yt_ids", JSON.stringify([...ids]));
+    localStorage.setItem("hades_known_yt_ids", JSON.stringify(Array.from(ids)));
   } catch {}
 }
 
