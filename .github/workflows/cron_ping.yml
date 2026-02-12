@@ -11,5 +11,5 @@ jobs:
     steps:
       - name: Call Vercel ping API
         run: |
-          curl -sS -X GET "${{ secrets.VERCEL_PING_URL }}" \
+          curl -sS -X GET "${{ secrets.VERCEL_CHECK_URL }}" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
