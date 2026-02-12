@@ -25,7 +25,7 @@ export default async function Icon() {
           background: "#000000",
         }}
       >
-        <img src={src} width={420} height={420} alt="Hades helper" />
+        <img src={src} width={470} height={470} alt="Hades helper" />
       </div>
     ),
     size
