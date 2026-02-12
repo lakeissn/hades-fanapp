@@ -6,7 +6,6 @@ import { useEffect, useState, useCallback } from "react";
 import BottomNav from "./BottomNav";
 import InstallPrompt from "./InstallPrompt";
 
-// 상단 네비게이션 링크 (설정 제외)
 const headerLinks = [
   { href: "/", label: "홈" },
   { href: "/votes", label: "투표" },
@@ -19,14 +18,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [noticeState, setNoticeState] = useState<"hidden" | "default" | "denied">("hidden");
 
-  // 테마 초기화
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = localStorage.getItem("hades_theme") ?? "dark";
     document.documentElement.setAttribute("data-theme", saved);
   }, []);
 
-  // 알림 권한
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     const dismissed = localStorage.getItem("hades_notice_dismissed") === "1";
@@ -47,7 +44,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (permission === "granted") {
       localStorage.removeItem("hades_notice_dismissed");
       setNoticeState("hidden");
-      // 서비스 워커 등록 시도
       if ("serviceWorker" in navigator) {
         try { await navigator.serviceWorker.register("/sw.js"); } catch {}
       }
@@ -61,16 +57,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return pathname.startsWith(href);
   };
 
-  // 메뉴 열린 상태에서 라우트 변경 시 닫기
   useEffect(() => setMenuOpen(false), [pathname]);
 
   return (
     <div className="app-shell">
       <div className="header-wrap">
         <header className="header">
-          <Link className="logo" href="/" aria-label="HADES FANAPP 홈으로 이동">
-            HADES
+          {/* (4)(5) 로고 이미지 + HADES INFO 타이틀 */}
+          <Link className="logo" href="/" aria-label="HADES INFO 홈으로 이동">
+            <img
+              className="logo-icon"
+              src="/icons/hades_helper.png"
+              alt=""
+              width={28}
+              height={28}
+            />
+            HADES INFO
           </Link>
+
+          {/* (4) PC에서 중앙 정렬되는 네비게이션 */}
           <nav className="header-nav" aria-label="주요 메뉴">
             {headerLinks.map((link) => (
               <Link
@@ -82,6 +87,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </nav>
+
           <button
             className="hamburger"
             type="button"
@@ -110,7 +116,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </header>
       </div>
 
-      {/* 알림 허용 배너 */}
       {noticeState !== "hidden" && (
         <div className="notice-banner" role="status" aria-live="polite">
           <p>
@@ -131,12 +136,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* PWA 설치 유도 */}
       <InstallPrompt />
-
       <div className="container">{children}</div>
-
-      {/* 하단 네비게이션 */}
       <BottomNav />
     </div>
   );
