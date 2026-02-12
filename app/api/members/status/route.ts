@@ -9,7 +9,7 @@ const members = [
   },
   {
     id: "singgyul",
-    name: "씽귤",
+    name: "띵귤",
     soopUrl: "https://play.sooplive.co.kr/singgyul",
     avatarUrl: "https://stimg.sooplive.co.kr/LOGO/si/singgyul/singgyul.jpg",
   },
