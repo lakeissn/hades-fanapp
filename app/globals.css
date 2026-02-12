@@ -102,22 +102,29 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .container { width: 100%; max-width: 640px; margin: 0 auto; padding: 68px 16px 90px; }
 
 /* ===== HEADER ===== */
+/* (FIX #7) iPhone safe area - 헤더가 최상단에 고정되도록 */
 .header-wrap { position: relative; z-index: 40; }
 .header {
   position: fixed; top: 0; left: 0; right: 0;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px; height: 52px;
+  padding: 0 20px; height: calc(52px + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   background: var(--nav-bg); border-bottom: 1px solid var(--nav-border);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 40;
 }
 .header .logo {
-  font-weight: 800; letter-spacing: 0.04em; font-size: 14px;
+  font-weight: 800; letter-spacing: 0.04em; font-size: 15px;
   text-transform: uppercase; color: var(--text);
   display: inline-flex; align-items: center; gap: 8px;
   flex-shrink: 0;
+  /* (FIX #1) 타이틀 선명하게 */
+  opacity: 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+/* (FIX #1) 로고 아이콘 크기 키움 */
 .logo-icon {
-  width: 28px; height: 28px; border-radius: 7px; object-fit: cover;
+  width: 34px; height: 34px; border-radius: 7px; object-fit: cover;
 }
 .header-nav { display: flex; gap: 4px; align-items: center; }
 .nav-link {
@@ -134,7 +141,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 }
 .hamburger span { width: 16px; height: 1.5px; background: var(--text); border-radius: 999px; }
 .menu-panel {
-  position: absolute; top: 52px; right: 16px;
+  position: absolute; top: calc(52px + env(safe-area-inset-top, 0px)); right: 16px;
   background: var(--bg-elevated); border: 1px solid var(--border-strong);
   border-radius: 14px; padding: 6px; display: flex; flex-direction: column; gap: 2px;
   min-width: 140px; box-shadow: var(--shadow-lg);
@@ -166,6 +173,11 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .bottom-nav-item svg { width: 22px; height: 22px; }
 .bottom-nav-label { font-size: 10px; font-weight: 600; line-height: 1; }
 
+/* (FIX #3) PC에서 하단 네비게이션 바 숨김 */
+@media (min-width: 768px) {
+  .bottom-nav { display: none; }
+}
+
 /* ===== COMMON ===== */
 .glass { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
 .section-block { display: flex; flex-direction: column; gap: 14px; }
@@ -184,7 +196,9 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .button:hover { background: var(--bg-hover); }
 
 /* ===== LIVE CARD ===== */
-.live-grid { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+/* (FIX #4) 라이브 카드 - 모바일/PC 동일 크기 + PC 스크롤 버튼 지원 */
+.live-grid-wrapper { position: relative; }
+.live-grid { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 .live-grid::-webkit-scrollbar { height: 0; display: none; }
 .live-card {
   display: flex; flex-direction: column; border-radius: 14px; overflow: hidden;
@@ -198,7 +212,6 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .live-cover-fallback { position: absolute; inset: 0; background: linear-gradient(135deg, #1a1a1a, #2a2a2a); }
 .live-cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.85) 100%); }
 
-/* (7) LIVE 배지 - 크기 줄임 + 라이트 모드 흰색 글자 */
 .live-badge {
   position: absolute; z-index: 1; display: inline-flex; align-items: center; gap: 4px;
   padding: 3px 8px; background: rgba(0,0,0,0.6); border-radius: 6px;
@@ -215,6 +228,21 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .tag-row { display: flex; flex-wrap: nowrap; gap: 4px; margin-top: 6px; overflow: hidden; }
 .tag-pill { flex-shrink: 0; font-size: 11px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--tag-border); background: var(--tag-bg); color: var(--tag-text); white-space: nowrap; }
 @keyframes pulse { 0% { transform: scale(0.9); opacity: 0.6; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.9); opacity: 0.6; } }
+
+/* (FIX #4) PC 전용 좌우 스크롤 버튼 */
+.live-scroll-btn {
+  display: none; /* 모바일에서는 숨김 */
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg-elevated); border: 1px solid var(--border-strong);
+  color: var(--text); cursor: pointer; z-index: 5;
+  align-items: center; justify-content: center;
+  box-shadow: var(--shadow-lg); transition: all 0.2s ease;
+}
+.live-scroll-btn:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
+.live-scroll-btn.left { left: -12px; }
+.live-scroll-btn.right { right: -12px; }
+.live-scroll-btn svg { width: 18px; height: 18px; }
 
 /* ===== AVATAR / CHIP ===== */
 .avatar { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: var(--accent-subtle); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
@@ -259,13 +287,9 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .vote-icon-fallback { font-size: 10px; font-weight: 700; color: var(--muted); }
 .vote-title { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .vote-title::-webkit-scrollbar { display: none; }
-
-/* (3) 투표 타이틀 글씨 줄임 */
 .vote-title-text { font-size: clamp(11px, 3.2vw, 14px); font-weight: 600; white-space: nowrap; line-height: 1.2; flex: 0 0 auto; }
 @media (max-width: 360px) { .vote-title-text { font-size: 11px; } }
 .vote-status { display: none !important; }
-
-/* (12) 바로가기 버튼 수직 중앙 정렬 */
 .vote-link {
   min-height: 32px; padding: 0 12px; border-radius: 8px;
   border: 1px solid var(--border-strong); background: var(--bg-elevated);
@@ -366,7 +390,6 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .guide-image-placeholder p { margin-top: 6px; font-size: 13px; }
 
 /* ===== MODAL ===== */
-/* (15) 모달 크기 키움 */
 .modal-overlay { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 99999 !important; background: var(--modal-overlay); backdrop-filter: blur(8px); display: flex !important; align-items: center !important; justify-content: center !important; padding: 16px; box-sizing: border-box; }
 .modal-content { width: 100%; max-width: 580px; background: var(--modal-bg); border: 1px solid var(--border-strong); border-radius: 20px; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; animation: modalSlideUp 0.3s cubic-bezier(0.16,1,0.3,1) forwards; display: flex; flex-direction: column; max-height: 90vh; margin: auto; }
 .modal-header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--border); z-index: 50; }
@@ -407,8 +430,6 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .chart-platform-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 8px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); font-size: 12px; font-weight: 700; color: var(--chart-green); }
 .chart-updated { font-size: 11px; color: var(--muted); }
 .chart-tabs-wrap { display: flex; flex-direction: column; gap: 6px; }
-
-/* (10) 차트 탭 - 가로 스크롤, 줄바꿈 안 됨 */
 .chart-type-tabs {
   display: flex; gap: 4px;
   overflow-x: auto; flex-wrap: nowrap;
@@ -490,8 +511,6 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .theme-option.active { background: var(--tab-active-bg); color: var(--tab-active-text); }
 .notification-sub-settings { overflow: hidden; transition: max-height 0.3s ease; }
 .notification-sub-settings .settings-item { padding-left: 20px; }
-
-/* (17) 개인정보처리방침 링크 */
 .settings-privacy-link {
   display: block; text-align: center; padding: 8px 0;
   font-size: 12px; color: var(--muted); text-decoration: underline;
@@ -521,12 +540,12 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .vote-chevron { margin-left: auto; }
 }
 
-/* (1)(8) PC 반응형 - 라이브 카드 & 전체 UI 가독성 향상 */
+/* ===== PC 반응형 ===== */
 @media (min-width: 768px) {
   .hamburger { display: none; }
   .header-nav { display: flex; }
 
-  /* (4) PC 헤더 - 네비게이션을 중앙으로 */
+  /* (FIX #1) PC 헤더 - 로고 왼쪽, 네비게이션을 가운데로 */
   .header {
     justify-content: center;
   }
@@ -534,18 +553,17 @@ main { display: flex; flex-direction: column; gap: 28px; }
     position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
   }
 
-  /* (8) PC 컨테이너/폰트 확대 */
-  .container { max-width: 740px; padding: 76px 28px 100px; }
+  .container { max-width: 740px; padding: 76px 28px 60px; }
   .section-head h2 { font-size: 20px; }
   .section-tag { font-size: 12px; }
 
-  /* (1) PC 라이브 카드 - 정보 잘림 방지 */
+  /* (FIX #4) PC 라이브 카드 - 모바일과 동일 크기 (가로 스크롤) + 버튼 표시 */
   .live-grid {
-    display: grid; overflow: visible;
-    grid-template-columns: repeat(2, minmax(0,1fr));
-    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
   }
-  .live-card { flex: none; min-width: 0; }
+  .live-card { flex: 0 0 85%; min-width: 280px; }
+  .live-scroll-btn { display: flex; }
   .live-body { padding: 14px 16px; }
   .live-name { font-size: 15px; }
   .live-title { font-size: 14px; -webkit-line-clamp: 3; }
@@ -562,10 +580,13 @@ main { display: flex; flex-direction: column; gap: 28px; }
 
   /* PC 모달 확대 */
   .modal-content { max-width: 620px; }
+
+  /* (FIX #3) PC에서 하단 패딩 줄임 (bottom nav 없으므로) */
+  .notice-banner { bottom: 20px; }
+  .install-prompt { bottom: 20px; }
 }
 
 @media (min-width: 1024px) {
-  .live-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .container { max-width: 800px; }
 }
 
