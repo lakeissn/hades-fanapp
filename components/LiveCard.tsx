@@ -24,9 +24,10 @@ export default function LiveCard({
   const [avatarError, setAvatarError] = useState(false);
   const initials = name.slice(0, 2);
 
-  // 맨 앞 태그(카테고리) 제외, 뒤에서 4개만 표시
-  const allTags = tags ?? [];
-  const visibleTags = allTags.length > 1 ? allTags.slice(1, 5) : allTags.slice(0, 4);
+  // (11) 태그 필터링: '한국어' 제외 → 첫 번째 = 카테고리, 나머지 = 태그
+  // 카테고리 1개 + 모든 태그 순서로 표시 (최대 5개)
+  const allTags = (tags ?? []).filter(t => t !== "한국어");
+  const visibleTags = allTags.slice(0, 5);
 
   return (
     <a className="live-card" href={soopUrl} target="_blank" rel="noreferrer">
