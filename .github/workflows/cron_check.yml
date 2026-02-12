@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}     # 수동 실행 버튼도 추가
 
 jobs:
-  ping:
+  check:
     runs-on: ubuntu-latest
     steps:
       - name: Call Vercel ping API
