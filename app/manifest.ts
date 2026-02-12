@@ -10,9 +10,31 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#0a0a0a",
     theme_color: "#0a0a0a",
     icons: [
-      { src: "/icons/hades_helper.png", sizes: "192x192", type: "image/png" },
-      { src: "/icons/hades_helper.png", sizes: "512x512", type: "image/png" },
-      { src: "/icons/hades_helper.png", sizes: "180x180", type: "image/png" },
+      {
+        src: "/icons/hades_helper.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icons/hades_helper.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icons/hades_helper.png",
+        sizes: "180x180",
+        type: "image/png",
+        purpose: "any",
+      },
+      /* (FIX #5) maskable 아이콘 별도 제공 → Android에서 적응형 아이콘으로 표시 */
+      {
+        src: "/icons/hades_helper.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
     ],
   };
 }
