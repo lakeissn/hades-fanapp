@@ -1,29 +1,23 @@
 import { NextResponse } from "next/server";
 
 /**
- * 멜론 차트 스크래핑 API
- * 
- * 멜론 차트 데이터를 가져오는 방법:
- * 1. 멜론은 공식 API를 제공하지 않음 → HTML 스크래핑 필요
- * 2. https://www.melon.com/chart/index.htm (실시간 TOP 100)
- * 3. User-Agent 헤더 필수 (없으면 403 차단)
- * 4. HTML에서 rank01 (곡명), rank02 (아티스트), rank03 (앨범) 클래스로 파싱
- * 5. 앨범아트: <img> src 속성에서 추출
- * 
- * plavestream 등 팬사이트들도 동일한 방식으로 스크래핑:
- * - 서버사이드에서 멜론 페이지 fetch → HTML 파싱 → JSON 반환
- * - 주기적 크롤링 + 캐싱 (보통 1시간 간격)
+ * 멜론 차트 스크래핑 API - 6개 차트 지원
+ * REALTIME, HOT100_30(30일), HOT100_100(100일), DAILY, WEEKLY, MONTHLY
  */
 
 const MELON_URLS: Record<string, string> = {
-  TOP100: "https://www.melon.com/chart/index.htm",
-  HOT100: "https://www.melon.com/chart/hot100/index.htm",
   REALTIME: "https://www.melon.com/chart/index.htm",
+  HOT100_30: "https://www.melon.com/chart/hot100/index.htm?chartType=D30",
+  HOT100_100: "https://www.melon.com/chart/hot100/index.htm",
+  DAILY: "https://www.melon.com/chart/day/index.htm",
+  WEEKLY: "https://www.melon.com/chart/week/index.htm",
+  MONTHLY: "https://www.melon.com/chart/month/index.htm",
 };
 
 const COMMON_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "Accept-Language": "ko-KR,ko;q=0.9",
 };
 
@@ -37,52 +31,63 @@ type ChartEntry = {
   changeAmount: number;
 };
 
-let cached: { data: ChartEntry[]; type: string; expiresAt: number } | null = null;
+const cacheMap = new Map<string, { data: ChartEntry[]; expiresAt: number }>();
 
 function parseChartHtml(html: string): ChartEntry[] {
   const entries: ChartEntry[] = [];
 
-  // 곡 제목
-  const titleMatches = html.match(/<div class="ellipsis rank01">[\s\S]*?<a[^>]*>(.*?)<\/a>/g) ?? [];
-  // 아티스트
-  const artistMatches = html.match(/<div class="ellipsis rank02">[\s\S]*?<\/div>/g) ?? [];
-  // 앨범
-  const albumMatches = html.match(/<div class="ellipsis rank03">[\s\S]*?<a[^>]*>(.*?)<\/a>/g) ?? [];
-  // 앨범아트 이미지
-  const imgMatches = html.match(/<img[^>]+src="(https:\/\/cdnimg\.melon\.co\.kr\/cm2\/album\/images\/[^"]+)"/g) ?? [];
-  // 순위 변동
-  const rankChangeMatches = html.match(/<span class="(up|down|none)"[^>]*>.*?<\/span>/g) ?? [];
+  const titleMatches =
+    html.match(/<div class="ellipsis rank01">[\s\S]*?<a[^>]*>(.*?)<\/a>/g) ?? [];
+  const artistMatches =
+    html.match(/<div class="ellipsis rank02">[\s\S]*?<\/div>/g) ?? [];
+  const albumMatches =
+    html.match(/<div class="ellipsis rank03">[\s\S]*?<a[^>]*>(.*?)<\/a>/g) ?? [];
+  const imgMatches =
+    html.match(
+      /<img[^>]+src="(https:\/\/cdnimg\.melon\.co\.kr\/cm2\/album\/images\/[^"]+)"/g
+    ) ?? [];
 
-  const titles = titleMatches.map(m => {
+  const titles = titleMatches.map((m) => {
     const match = m.match(/<a[^>]*>(.*?)<\/a>/);
     return match?.[1]?.trim() ?? "";
   });
 
   const artists = artistMatches.map((block) => {
-  const raw = [...block.matchAll(/<a[^>]*>(.*?)<\/a>/g)]
-    .map((m) => (m[1] ?? "").trim())
-    .filter(Boolean);
-
-  // ✅ 중복 제거 (표기 흔들림 대비로 공백 정규화)
-  const uniq = Array.from(
-    new Set(raw.map((s) => s.replace(/\s+/g, " ")))
-  );
-
-  return uniq.join(", ");
+    const raw = [...block.matchAll(/<a[^>]*>(.*?)<\/a>/g)]
+      .map((m) => (m[1] ?? "").trim())
+      .filter(Boolean);
+    const uniq = Array.from(new Set(raw.map((s) => s.replace(/\s+/g, " "))));
+    return uniq.join(", ");
   });
 
-
-  const albums = albumMatches.map(m => {
+  const albums = albumMatches.map((m) => {
     const match = m.match(/<a[^>]*>(.*?)<\/a>/);
     return match?.[1]?.trim() ?? "";
   });
 
-  const albumArts = imgMatches.map(m => {
+  const albumArts = imgMatches.map((m) => {
     const match = m.match(/src="([^"]+)"/);
     return match?.[1] ?? "";
   });
 
-  const count = Math.min(titles.length, artists.length, albums.length, 100);
+  // 순위 변동 파싱
+  const rankChanges: { type: "up" | "down" | "same" | "new"; amount: number }[] = [];
+  const rankBlocks = html.match(/<span class="rank_wrap">[\s\S]*?<\/span>\s*<\/span>/g) ?? [];
+  for (const block of rankBlocks) {
+    if (block.includes("icon_new")) {
+      rankChanges.push({ type: "new", amount: 0 });
+    } else if (block.includes("icon_up")) {
+      const numMatch = block.match(/<span class="no">(\d+)<\/span>/);
+      rankChanges.push({ type: "up", amount: numMatch ? parseInt(numMatch[1]) : 0 });
+    } else if (block.includes("icon_down")) {
+      const numMatch = block.match(/<span class="no">(\d+)<\/span>/);
+      rankChanges.push({ type: "down", amount: numMatch ? parseInt(numMatch[1]) : 0 });
+    } else {
+      rankChanges.push({ type: "same", amount: 0 });
+    }
+  }
+
+  const count = Math.min(titles.length, artists.length, 100);
 
   for (let i = 0; i < count; i++) {
     entries.push({
@@ -91,8 +96,8 @@ function parseChartHtml(html: string): ChartEntry[] {
       artist: artists[i] ?? "",
       albumArt: albumArts[i] ?? "",
       albumName: albums[i] ?? "",
-      rankChange: "same",
-      changeAmount: 0,
+      rankChange: rankChanges[i]?.type ?? "same",
+      changeAmount: rankChanges[i]?.amount ?? 0,
     });
   }
 
@@ -101,11 +106,12 @@ function parseChartHtml(html: string): ChartEntry[] {
 
 async function fetchMelonChart(chartType: string): Promise<ChartEntry[]> {
   const now = Date.now();
-  if (cached && cached.type === chartType && cached.expiresAt > now) {
+  const cached = cacheMap.get(chartType);
+  if (cached && cached.expiresAt > now) {
     return cached.data;
   }
 
-  const url = MELON_URLS[chartType] ?? MELON_URLS.TOP100;
+  const url = MELON_URLS[chartType] ?? MELON_URLS.REALTIME;
 
   const response = await fetch(url, {
     headers: COMMON_HEADERS,
@@ -119,28 +125,27 @@ async function fetchMelonChart(chartType: string): Promise<ChartEntry[]> {
   const html = await response.text();
   const entries = parseChartHtml(html);
 
-  cached = {
+  cacheMap.set(chartType, {
     data: entries,
-    type: chartType,
-    expiresAt: now + 30 * 60 * 1000, // 30분 캐시
-  };
+    expiresAt: now + 30 * 60 * 1000,
+  });
 
   return entries;
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const chartType = searchParams.get("type") ?? "TOP100";
+  const chartType = searchParams.get("type") ?? "REALTIME";
   const artistFilter = searchParams.get("artist") ?? "";
 
   try {
     const allEntries = await fetchMelonChart(chartType);
 
-    // 아티스트 필터링 (하데스 곡만 추출)
     const filtered = artistFilter
-      ? allEntries.filter((entry) =>
-          entry.artist.toLowerCase().includes(artistFilter.toLowerCase()) ||
-          entry.title.toLowerCase().includes(artistFilter.toLowerCase())
+      ? allEntries.filter(
+          (entry) =>
+            entry.artist.toLowerCase().includes(artistFilter.toLowerCase()) ||
+            entry.title.toLowerCase().includes(artistFilter.toLowerCase())
         )
       : allEntries;
 
@@ -151,8 +156,7 @@ export async function GET(request: Request) {
       artist: artistFilter || null,
       updatedAt: new Date().toISOString(),
     });
-  } catch (error) {
-    // 네트워크 실패 시 빈 결과 반환
+  } catch {
     return NextResponse.json({
       entries: [],
       totalEntries: 0,
