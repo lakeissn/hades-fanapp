@@ -1,157 +1,256 @@
 "use client";
 
-import { useState } from "react";
-import type { KeyboardEvent, SyntheticEvent } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
 import { VoteItem } from "./VotesAccordion";
 
-const statusLabels: Record<string, string> = {
-  open: "진행중",
-  upcoming: "오픈 예정",
-  closed: "마감됨",
+const PLATFORM_LABELS: Record<string, string> = {
+  idolchamp: "아이돌챔프",
+  mubeat: "뮤빗",
+  upick: "유픽",
+  fancast: "팬캐스트",
+  fanplus: "팬플러스",
+  podoal: "포도알",
+  whosfan: "후즈팬",
+  duckad: "덕애드",
+  "10asia": "텐아시아",
+  muniverse: "뮤니버스",
+  my1pick: "마이원픽",
+  mnetplus: "엠넷플러스",
+  fannstar: "팬앤스타",
+  higher: "하이어",
 };
 
-function formatDate(value?: string) {
+function parseKstDate(value?: string) {
   if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
+  const raw = value.trim();
+  if (!raw) return null;
+  const direct = new Date(raw);
+  if (!Number.isNaN(direct.getTime())) return direct;
+  const normalized = raw.replace(/\./g, "-").replace(/\//g, "-").replace(/\s+/g, " ").trim();
+  const withSeconds = /\d{2}:\d{2}:\d{2}$/.test(normalized)
+    ? normalized
+    : /\d{2}:\d{2}$/.test(normalized)
+      ? `${normalized}:00`
+      : `${normalized} 00:00:00`;
+  const parsed = new Date(`${withSeconds.replace(" ", "T")}+09:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isInProgressKeyword(value?: string) {
+  return Boolean(value && value.replace(/\s+/g, "") === "진행중");
+}
+
+function formatShortDate(value?: string) {
+  const date = parseKstDate(value);
+  if (!date) return null;
   return new Intl.DateTimeFormat("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
+    month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+    hour12: false, timeZone: "Asia/Seoul",
   }).format(date);
 }
 
-function resolveStatus(opensAt?: string, closesAt?: string) {
-  const now = new Date();
-  const openDate = opensAt ? new Date(opensAt) : null;
-  const closeDate = closesAt ? new Date(closesAt) : null;
+function formatLongDate(value?: string) {
+  const date = parseKstDate(value);
+  if (!date) return null;
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric", month: "numeric", day: "numeric", weekday: "short",
+    hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true,
+    timeZone: "Asia/Seoul",
+  }).format(date);
+}
 
-  if (openDate && now < openDate) return "upcoming";
-  if (closeDate && now > closeDate) return "closed";
-  return "open";
+function useFitText(basePx: number = 14, minPx: number = 10) {
+  const [fontSize, setFontSize] = useState(basePx);
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const fit = () => {
+      const c = containerRef.current;
+      const t = textRef.current;
+      if (!c || !t) return;
+      const containerWidth = c.offsetWidth;
+      if (!containerWidth) return;
+      const prev = t.style.fontSize;
+      t.style.fontSize = `${basePx}px`;
+      const textWidth = t.scrollWidth;
+      t.style.fontSize = prev;
+      if (textWidth > containerWidth) {
+        const ratio = containerWidth / textWidth;
+        const next = Math.max(minPx, Math.floor(basePx * ratio * 10) / 10);
+        setFontSize(next);
+      } else {
+        setFontSize(basePx);
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [basePx, minPx]);
+
+  return { fontSize, containerRef, textRef };
 }
 
 export default function VoteAccordionItem({
-  vote,
-  isOpen,
-  onToggle,
-}: {
-  vote: VoteItem;
-  isOpen: boolean;
-  onToggle: () => void;
-}) {
-  const [isIconMissing, setIsIconMissing] = useState(false);
-  const status = resolveStatus(vote.opensAt, vote.closesAt);
-  const label = statusLabels[status];
-  const openDate = formatDate(vote.opensAt);
-  const closeDate = formatDate(vote.closesAt);
+  vote, isOpen, onToggle,
+}: { vote: VoteItem; isOpen: boolean; onToggle: () => void; }) {
+  const [missingIcons, setMissingIcons] = useState<Record<string, boolean>>({});
+  const hasUrl = Boolean(vote.url);
 
-  const periodText = openDate || closeDate
-    ? [openDate ? `오픈 ${openDate}` : null, closeDate ? `마감 ${closeDate}` : null]
-        .filter(Boolean)
-        .join(" · ")
-    : "기간 정보 없음";
+  const periodFit = useFitText(14, 10);
+
+  const [fontSize, setFontSize] = useState(16);
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const fitText = () => {
+      if (containerRef.current && textRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        const textElement = textRef.current;
+        const originalStyle = textElement.style.fontSize;
+        textElement.style.fontSize = "16px";
+        const textWidth = textElement.scrollWidth;
+        textElement.style.fontSize = originalStyle;
+        if (textWidth > containerWidth && containerWidth > 0) {
+          const ratio = containerWidth / textWidth;
+          const newSize = Math.max(10, Math.floor(16 * ratio * 10) / 10);
+          setFontSize(newSize);
+        } else {
+          setFontSize(16);
+        }
+      }
+    };
+    fitText();
+    const observer = new ResizeObserver(fitText);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [vote.title]);
+
+  const platforms = useMemo(() => {
+    const rawPlatforms = (vote as VoteItem & { platforms?: string[] }).platforms;
+    const values = (rawPlatforms?.length
+      ? rawPlatforms
+      : (vote.platform || "").replace(/[|,/]/g, " ").replace(/\s+/g, " ").trim().split(" "))
+      .map((item) => item.trim().toLowerCase()).filter(Boolean);
+    return Array.from(new Set(values)).slice(0, 20);
+  }, [vote.platform, vote]);
+
+  const openDate = formatShortDate(vote.opensAt);
+  const closeDate = formatShortDate(vote.closesAt);
+  const closeDateLong = formatLongDate(vote.closesAt);
+  const isOpenKeyword = isInProgressKeyword(vote.opensAt);
+
+  const periodText = isOpenKeyword
+    ? `진행 중 ~ ${closeDateLong ?? "마감 정보 없음"}`
+    : openDate || closeDate
+      ? [openDate ? `오픈 ${openDate}` : null, closeDate ? `마감 ${closeDate}` : null].filter(Boolean).join(" · ")
+      : "기간 정보 없음";
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onToggle();
-    }
+    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onToggle(); }
   };
 
-  const stopRowToggle = (event: SyntheticEvent) => {
+  const stopRowToggle = (event: MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
+    if (!hasUrl) event.preventDefault();
   };
 
   return (
     <div className={`vote-item ${isOpen ? "is-open" : ""}`}>
-      <div
-        className="vote-row"
-        role="button"
-        tabIndex={0}
-        aria-expanded={isOpen}
-        onClick={onToggle}
-        onKeyDown={handleKeyDown}
-      >
-        <span className="vote-icon" aria-hidden>
-          {!isIconMissing && (
-            <img
-              src={`/icons/${vote.platform}.png`}
-              alt=""
-              onError={() => setIsIconMissing(true)}
-            />
-          )}
-          {isIconMissing && <span className="vote-icon-fallback">V</span>}
+      <div className="vote-row" role="button" tabIndex={0} aria-expanded={isOpen} onClick={onToggle} onKeyDown={handleKeyDown}>
+        <span className="vote-icons" aria-hidden>
+          {platforms.slice(0, 3).map((platform) => {
+            const missing = missingIcons[platform];
+            return (
+              <span key={platform} className="vote-icon">
+                {!missing && (
+                  <img src={`/icons/${platform}.png`} alt=""
+                    onError={() => setMissingIcons((prev) => ({ ...prev, [platform]: true }))} />
+                )}
+                {missing && (
+                  <span className="vote-icon-fallback vote-icon-neutral" aria-hidden><span /></span>
+                )}
+              </span>
+            );
+          })}
+          {platforms.length > 3 && <span className="vote-more">+{platforms.length - 3}</span>}
         </span>
-        <span className="vote-title">
-          <span className="vote-title-text">{vote.title}</span>
-          <span className="vote-status" data-status={status}>
-            {label}
+
+        <span className="vote-title" ref={containerRef}>
+          <span className="vote-title-text" ref={textRef} style={{ fontSize: `${fontSize}px` }}>
+            {vote.title}
           </span>
         </span>
+
         {!isOpen && (
-          <a
-            className="vote-link"
-            href={vote.url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={stopRowToggle}
-          >
-            바로 가기
+          <a className={`vote-link ${hasUrl ? "" : "is-disabled"}`} href={vote.url ?? "#"} target="_blank" rel="noreferrer" onClick={stopRowToggle}>
+            바로가기
           </a>
         )}
         <span className="vote-chevron" aria-hidden>
-          <svg viewBox="0 0 24 24">
-            <path
-              d="M6 9l6 6 6-6"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </span>
       </div>
+
       {isOpen && (
-        <div className="vote-panel">
-          <div className="vote-panel-top">
-            <span className="vote-platform-label">{vote.platformLabel}</span>
-            <span className="vote-status" data-status={status}>
-              {label}
-            </span>
+        <div className="vote-panel compact-panel">
+          <div className="panel-actions">
+            <div className="panel-platforms">
+              <span className="panel-label">투표처</span>
+              <div className="platform-grid-compact">
+                {platforms.map((platform) => {
+                  const missing = missingIcons[platform];
+                  const label = PLATFORM_LABELS?.[platform] ?? platform;
+                  return (
+                    <span key={`${vote.id}-${platform}`} className="platform-pill" title={label}>
+                      <span className="compact-icon" aria-hidden>
+                        {!missing && (
+                          <img src={`/icons/${platform}.png`} alt=""
+                            onError={() => setMissingIcons((prev) => ({ ...prev, [platform]: true }))} />
+                        )}
+                        {missing && (
+                          <span className="vote-icon-fallback vote-icon-neutral" aria-hidden><span /></span>
+                        )}
+                      </span>
+                      <span className="platform-name">{label}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            <a className={`vote-action-btn ${hasUrl ? "" : "is-disabled"}`} href={vote.url ?? "#"} target="_blank" rel="noreferrer" onClick={stopRowToggle}>
+              투표하러 가기
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
           </div>
 
-          <p className="vote-dates">{periodText}</p>
-
-          {vote.note && (
-            <div className="vote-note-box">
-              <div className="vote-note-head">
-                <span className="vote-note-icon" aria-hidden>
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 3l2.2 4.5 5 .7-3.6 3.5.8 5-4.4-2.3-4.4 2.3.8-5L4.8 8.2l5-.7L12 3z"
-                      fill="currentColor"
-                    />
-                  </svg>
+          <div className="panel-footer">
+            <div className="panel-info">
+              <span className="panel-label">기간</span>
+              <span className="panel-value date-text-fit" ref={periodFit.containerRef}>
+                <span className="fit-text" ref={periodFit.textRef} style={{ fontSize: `${periodFit.fontSize}px` }}>
+                  {periodText}
                 </span>
-                <span>리워드</span>
-              </div>
-              <p className="vote-note-text">{vote.note}</p>
+              </span>
             </div>
-          )}
 
-          <a
-            className="vote-link-detail"
-            href={vote.url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={stopRowToggle}
-          >
-            바로 가기
-          </a>
+            {vote.note && (
+              <div className="panel-info note">
+                <span className="panel-label text-accent">리워드</span>
+                <span className="panel-value note-text-fit">
+                  <span className="fit-text" style={{ fontSize: "14px" }}>
+                    {vote.note}
+                  </span>
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

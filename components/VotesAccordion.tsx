@@ -8,7 +8,7 @@ export type VoteItem = {
   title: string;
   platform: string;
   platformLabel: string;
-  url: string;
+  url: string | null;
   opensAt?: string;
   closesAt?: string;
   note?: string;

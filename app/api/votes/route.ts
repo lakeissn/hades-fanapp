@@ -8,7 +8,7 @@ type VotePlatform =
   | "fanplus"
   | "podoal"
   | "whosfan"
-  | "duakad"
+  | "duckad"
   | "10asia"
   | "muniverse"
   | "my1pick"
@@ -31,6 +31,8 @@ type VoteItem = {
   title: string;
   platform: string;
   platformLabel: string;
+  platforms: string[];
+  platformLabels: string[];
   url: string;
   opensAt?: string;
   closesAt?: string;
@@ -48,7 +50,7 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
   fanplus: "팬플러스",
   podoal: "포도알",
   whosfan: "후즈팬",
-  duakad: "덕애드",
+  duckad: "덕애드",
   "10asia": "텐아시아",
   muniverse: "뮤니버스",
   my1pick: "마이원픽",
@@ -58,6 +60,7 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
 };
 
 const CACHE_TTL_MS = 60_000;
+const KST_SUFFIX = "+09:00";
 
 let memoryCache:
   | {
@@ -75,20 +78,69 @@ function normalizePlatform(platform: string) {
   return platform.trim().toLowerCase();
 }
 
+function parsePlatforms(platformsRaw: string) {
+  const normalized = platformsRaw
+    .replace(/[|,/]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const unique = new Set<string>();
+  normalized
+    .split(" ")
+    .map((value) => normalizePlatform(value))
+    .filter(Boolean)
+    .forEach((platform) => unique.add(platform));
+
+  if (unique.size === 0) {
+    return ["etc"];
+  }
+
+  return Array.from(unique);
+}
+
 function labelForPlatform(platform: string) {
   const key = normalizePlatform(platform) as VotePlatform;
   return PLATFORM_LABELS[key] ?? "기타";
 }
 
-function parseDate(value: string) {
-  if (!value.trim()) return null;
-  const date = new Date(value.trim());
-  if (Number.isNaN(date.getTime())) return null;
-  return date;
+function isInProgressKeyword(value: string) {
+  const normalized = value.replace(/\s+/g, "").toLowerCase();
+  return normalized === "진행중";
+}
+
+function parseDateKst(rawValue: string | undefined) {
+  if (!rawValue) return null;
+  const value = rawValue.trim();
+  if (!value || isInProgressKeyword(value)) return null;
+
+  const direct = new Date(value);
+  if (!Number.isNaN(direct.getTime())) {
+    return direct;
+  }
+
+  const normalized = value
+    .replace(/\./g, "-")
+    .replace(/\//g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const withSeconds = /\d{2}:\d{2}:\d{2}$/.test(normalized)
+    ? normalized
+    : /\d{2}:\d{2}$/.test(normalized)
+      ? `${normalized}:00`
+      : `${normalized} 00:00:00`;
+
+  const isoLike = withSeconds.replace(" ", "T");
+  const kstDate = new Date(`${isoLike}${KST_SUFFIX}`);
+  if (!Number.isNaN(kstDate.getTime())) {
+    return kstDate;
+  }
+
+  return null;
 }
 
 function isExpired(closesAt: string) {
-  const date = parseDate(closesAt);
+  const date = parseDateKst(closesAt);
   if (!date) return false;
   return date.getTime() <= Date.now();
 }
@@ -183,16 +235,25 @@ async function loadVotesFromSheet() {
   const filteredVotes = parsedRows
     .filter((row) => normalizeBoolean(row.enabled ?? ""))
     .filter((row) => !isExpired(row.closesAt ?? ""))
-    .map((row) => ({
-      id: createStableId(row),
-      title: row.title?.trim() ?? "",
-      platform: normalizePlatform(row.platform ?? ""),
-      platformLabel: labelForPlatform(row.platform ?? ""),
-      url: row.url?.trim() ?? "",
-      opensAt: row.opensAt?.trim() || undefined,
-      closesAt: row.closesAt?.trim() || undefined,
-      note: row.note?.trim() || undefined,
-    }))
+    .map((row) => {
+      const platforms = parsePlatforms(row.platform ?? "");
+      const rawOpensAt = row.opensAt?.trim() ?? "";
+      const openDate = parseDateKst(rawOpensAt);
+      const closeDate = parseDateKst(row.closesAt ?? "");
+
+      return {
+        id: createStableId(row),
+        title: row.title?.trim() ?? "",
+        platform: platforms[0],
+        platformLabel: labelForPlatform(platforms[0]),
+        platforms,
+        platformLabels: platforms.map(labelForPlatform),
+        url: row.url?.trim() ?? "",
+        opensAt: isInProgressKeyword(rawOpensAt) ? "진행중" : openDate ? openDate.toISOString() : undefined,
+        closesAt: closeDate ? closeDate.toISOString() : undefined,
+        note: row.note?.trim() || undefined,
+      } as VoteItem;
+    })
     .filter((vote) => vote.title && vote.url);
 
   memoryCache = {
