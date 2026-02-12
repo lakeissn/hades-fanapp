@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 
 type DeviceType = "mobile" | "ipad" | "pc" | "mac";
 
-// 링크 데이터는 그대로 유지
 const melonLinks = {
   mobile: [
     "melonapp://play?menuid=0&ctype=1&cid=600855294,600779781,600740747,600406668,600406667,600406669",
@@ -37,27 +36,24 @@ export default function MelonPlaylist() {
   useEffect(() => {
     setMounted(true);
     if (isOpen) {
-      document.body.style.overflow = "hidden"; 
+      document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
- // 탭 목록 정의 부분 수정
-// 탭 목록 순서 재배치
-const tabs: { id: DeviceType; label: string }[] = [
-  { id: "mobile", label: "모바일" },
-  { id: "pc", label: "PC" },
-  { id: "mac", label: "MAC" },
-  { id: "ipad", label: "아이패드" }, // 아이패드를 마지막으로
-];
+  const tabs: { id: DeviceType; label: string }[] = [
+    { id: "mobile", label: "모바일" },
+    { id: "pc", label: "PC" },
+    { id: "mac", label: "MAC" },
+    { id: "ipad", label: "아이패드" },
+  ];
 
   return (
     <>
-      {/* 🟢 홈 화면 트리거 (절대 건드리지 않음) */}
-      <section 
-        className="melon-trigger-card" 
+      <section
+        className="melon-trigger-card"
         onClick={() => setIsOpen(true)}
         role="button"
         tabIndex={0}
@@ -75,32 +71,26 @@ const tabs: { id: DeviceType; label: string }[] = [
         </div>
         <div className="melon-trigger-action">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-             <path d="M5 12h14M12 5l7 7-7 7"/>
+            <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </div>
       </section>
 
-      {/* 🔒 팝업 모달 (디자인 복구 + 스크롤 고정) */}
       {mounted && isOpen && createPortal(
         <div className="modal-overlay" onClick={() => setIsOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            
-            {/* 1. 고정 헤더 (스크롤 안 됨, 항상 위에 고정) */}
             <div className="modal-header">
               <span className="modal-title">
-                <span style={{ color: '#00cd3c' }}>●</span> 원클릭 플레이리스트
+                <span style={{ color: 'var(--chart-green)' }}>●</span> 원클릭 플레이리스트
               </span>
               <button className="modal-close" onClick={() => setIsOpen(false)}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             </div>
 
-            {/* 2. 내부 스크롤 영역 (여기만 스크롤 됨) */}
             <div className="modal-scroll-area">
-              
-              {/* 기기 탭 */}
               <div className="device-tabs-scroll">
                 {tabs.map((tab) => (
                   <button
@@ -112,8 +102,7 @@ const tabs: { id: DeviceType; label: string }[] = [
                   </button>
                 ))}
               </div>
-              
-              {/* 링크 버튼들 */}
+
               <div className="link-button-grid">
                 {melonLinks[device].map((link, index) => (
                   <a key={index} href={link} className="one-click-btn">
@@ -121,7 +110,7 @@ const tabs: { id: DeviceType; label: string }[] = [
                       <span className="btn-number">{index + 1}</span>
                       <span>원클릭 리스트 {index + 1}</span>
                     </div>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                       <polyline points="15 3 21 3 21 9" />
                       <line x1="10" y1="14" x2="21" y2="3" />
@@ -130,17 +119,10 @@ const tabs: { id: DeviceType; label: string }[] = [
                 ))}
               </div>
 
-              {/* 하단 이미지 (파일명 꼭 확인하세요!) */}
               <div className="playlist-image-area">
-                <img 
-                  src="/icons/planetb_playlist_b.png" 
-                  alt="플레이리스트 구성" 
-                />
+                <img src="/icons/planetb_playlist_b.png" alt="플레이리스트 구성" />
               </div>
-
             </div>
-            {/* 스크롤 영역 끝 */}
-
           </div>
         </div>,
         document.body
