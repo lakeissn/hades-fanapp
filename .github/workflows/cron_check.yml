@@ -9,7 +9,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Vercel ping API
+      - name: Call Vercel check API
         run: |
           curl -sS -X GET "${{ secrets.VERCEL_CHECK_URL }}" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
