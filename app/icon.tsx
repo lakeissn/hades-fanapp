@@ -22,10 +22,12 @@ export default async function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#000000",
+          background: "#0a0a0a",
+          borderRadius: "90px",
         }}
       >
-        <img src={src} width={470} height={470} alt="Hades helper" />
+        {/* (FIX #5) 로고 크기 키움: 470→400 (여백 확보하여 모든 디바이스에서 예쁘게) */}
+        <img src={src} width={400} height={400} alt="Hades helper" />
       </div>
     ),
     size
