@@ -1,4 +1,4 @@
-name: cron ping
+name: cron check
 
 on:
   schedule:
