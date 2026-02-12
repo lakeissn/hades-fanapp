@@ -44,8 +44,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (permission === "granted") {
       localStorage.removeItem("hades_notice_dismissed");
       setNoticeState("hidden");
+      // firebase-messaging-sw.js로 통합 등록
       if ("serviceWorker" in navigator) {
-        try { await navigator.serviceWorker.register("/sw.js"); } catch {}
+        try { await navigator.serviceWorker.register("/firebase-messaging-sw.js"); } catch {}
       }
       return;
     }
@@ -63,7 +64,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <div className="header-wrap">
         <header className="header">
-          {/* (4)(5) 로고 이미지 + HADES INFO 타이틀 */}
           <Link className="logo" href="/" aria-label="HADES INFO 홈으로 이동">
             <img
               className="logo-icon"
@@ -75,7 +75,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             HADES INFO
           </Link>
 
-          {/* (4) PC에서 중앙 정렬되는 네비게이션 */}
           <nav className="header-nav" aria-label="주요 메뉴">
             {headerLinks.map((link) => (
               <Link
