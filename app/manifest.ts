@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "HADES FANAPP",
-    short_name: "HADES",
+    name: "HADES INFO",
+    short_name: "HADES INFO",
     description: "하데스 팬앱",
     start_url: "/",
     display: "standalone",
