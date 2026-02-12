@@ -12,6 +12,12 @@ export const metadata = {
     icon: "/icons/hades_helper.png",
     apple: "/icons/hades_helper.png",
   },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    viewportFit: "cover",
+  },
 };
 
 export default function RootLayout({
@@ -23,8 +29,11 @@ export default function RootLayout({
     <html lang="ko" data-theme="dark" suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        {/* (FIX #7) black-translucent → 콘텐츠가 상단바 뒤까지 확장, safe-area-inset으로 제어 */}
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
+        {/* (FIX #7) viewport-fit=cover로 iPhone 노치/다이나믹 아일랜드 대응 */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
       </head>
       <body>
         <AppShell>{children}</AppShell>
