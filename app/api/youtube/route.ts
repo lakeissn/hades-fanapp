@@ -1,12 +1,5 @@
 import { NextResponse } from "next/server";
 
-/**
- * YouTube 최신 영상 스크래핑 API
- * - /videos 페이지에서 최신 일반 영상 1개
- * - /shorts 페이지에서 최신 쇼츠 1개
- * 30분 캐시
- */
-
 type YouTubeVideo = {
   id: string;
   title: string;
@@ -34,25 +27,64 @@ function extractShortsId(text: string): string | null {
   return match?.[1] ?? null;
 }
 
-function extractTitle(html: string, videoId: string): string {
-  // ytInitialData에서 제목 추출 시도
-  const titlePattern = new RegExp(`"videoId":"${videoId}"[^}]*?"title":\\{"runs":\\[\\{"text":"([^"]+)"`, "s");
-  const match = html.match(titlePattern);
-  if (match?.[1]) return decodeUnicode(match[1]);
-
-  // 대안: accessibilityData에서 추출
-  const altPattern = new RegExp(`${videoId}[^}]*?"title":\\{"simpleText":"([^"]+)"`, "s");
-  const altMatch = html.match(altPattern);
-  if (altMatch?.[1]) return decodeUnicode(altMatch[1]);
-
-  return "새 영상";
-}
-
 function decodeUnicode(str: string): string {
   return str
     .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/\\"/g, '"')
     .replace(/\\n/g, " ");
+}
+
+/**
+ * (2) 개선된 제목 추출 - 여러 패턴을 시도하여 실제 영상 제목을 확실히 가져옴
+ */
+function extractTitle(html: string, videoId: string): string {
+  // 1) videoId 위치를 찾고 주변 500자에서 title 추출
+  const idx = html.indexOf(`"videoId":"${videoId}"`);
+  if (idx !== -1) {
+    const chunk = html.substring(idx, Math.min(idx + 800, html.length));
+
+    // runs 형식: "title":{"runs":[{"text":"..."}]}
+    const runsMatch = chunk.match(/"title"\s*:\s*\{\s*"runs"\s*:\s*\[\s*\{\s*"text"\s*:\s*"([^"]+)"/);
+    if (runsMatch?.[1]) return decodeUnicode(runsMatch[1]);
+
+    // simpleText 형식: "title":{"simpleText":"..."}
+    const simpleMatch = chunk.match(/"title"\s*:\s*\{\s*"simpleText"\s*:\s*"([^"]+)"/);
+    if (simpleMatch?.[1]) return decodeUnicode(simpleMatch[1]);
+  }
+
+  // 2) videoId 앞쪽에서도 탐색 (제목이 videoId보다 먼저 올 수 있음)
+  if (idx !== -1 && idx > 200) {
+    const beforeChunk = html.substring(Math.max(0, idx - 400), idx + 100);
+    const beforeRuns = beforeChunk.match(/"title"\s*:\s*\{\s*"runs"\s*:\s*\[\s*\{\s*"text"\s*:\s*"([^"]+)"/);
+    if (beforeRuns?.[1]) return decodeUnicode(beforeRuns[1]);
+  }
+
+  // 3) accessibilityData에서 label 추출
+  const accessPattern = new RegExp(`"videoId"\\s*:\\s*"${videoId}"[\\s\\S]*?"accessibilityData"\\s*:\\s*\\{\\s*"label"\\s*:\\s*"([^"]+)"`, "m");
+  const accessMatch = html.match(accessPattern);
+  if (accessMatch?.[1]) {
+    // label은 보통 "제목 by 채널 N views N ago" 형태 → 맨 앞 부분 사용
+    const label = decodeUnicode(accessMatch[1]);
+    const byIndex = label.lastIndexOf(" by ");
+    if (byIndex > 0) return label.substring(0, byIndex).trim();
+    return label;
+  }
+
+  // 4) og:title 메타 태그
+  const ogTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+  if (ogTitle?.[1]) {
+    const t = decodeUnicode(ogTitle[1]).trim();
+    if (t && !t.includes("YouTube") && !t.includes("@")) return t;
+  }
+
+  // 5) <title> 태그
+  const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  if (titleTag?.[1]) {
+    const t = titleTag[1].replace(/\s*-\s*YouTube\s*$/i, "").trim();
+    if (t && t.length > 2 && !t.includes("@")) return t;
+  }
+
+  return "";
 }
 
 async function fetchLatestVideo(): Promise<YouTubeVideo | null> {
@@ -70,7 +102,7 @@ async function fetchLatestVideo(): Promise<YouTubeVideo | null> {
 
     return {
       id: videoId,
-      title,
+      title: title || "HADES 영상",
       thumbnail,
       url: `https://www.youtube.com/watch?v=${videoId}`,
       type: "video",
@@ -96,7 +128,7 @@ async function fetchLatestShort(): Promise<YouTubeVideo | null> {
 
     return {
       id: shortsId,
-      title,
+      title: title || "HADES Shorts",
       thumbnail,
       url: `https://www.youtube.com/shorts/${shortsId}`,
       type: "shorts",
@@ -123,7 +155,7 @@ export async function GET() {
 
     cached = {
       data: results,
-      expiresAt: now + 30 * 60 * 1000, // 30분
+      expiresAt: now + 30 * 60 * 1000,
     };
 
     return NextResponse.json(results);
