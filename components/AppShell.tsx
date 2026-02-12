@@ -44,7 +44,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (permission === "granted") {
       localStorage.removeItem("hades_notice_dismissed");
       setNoticeState("hidden");
-      // firebase-messaging-sw.js로 통합 등록
       if ("serviceWorker" in navigator) {
         try { await navigator.serviceWorker.register("/firebase-messaging-sw.js"); } catch {}
       }
@@ -65,12 +64,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="header-wrap">
         <header className="header">
           <Link className="logo" href="/" aria-label="HADES INFO 홈으로 이동">
+            {/* (FIX #1) 로고 아이콘 크기 키움: 28→36 */}
             <img
               className="logo-icon"
               src="/icons/hades_helper.png"
               alt=""
-              width={28}
-              height={28}
+              width={36}
+              height={36}
             />
             HADES INFO
           </Link>
