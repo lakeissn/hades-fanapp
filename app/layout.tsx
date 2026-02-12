@@ -3,7 +3,7 @@ import AppShell from "../components/AppShell";
 import NotificationPoller from "../components/NotificationPoller";
 
 export const metadata = {
-  title: "HADES FANAPP",
+  title: "HADES INFO",
   description: "하데스 팬앱",
   themeColor: "#0a0a0a",
   manifest: "/manifest.webmanifest",
