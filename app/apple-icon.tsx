@@ -22,10 +22,11 @@ export default async function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#000000",
+          background: "#0a0a0a",
         }}
       >
-        <img src={src} width={148} height={148} alt="Hades helper" />
+        {/* (FIX #5) 로고 크기 키움: 148→140 (180px 안에서 적절한 여백) */}
+        <img src={src} width={140} height={140} alt="Hades helper" />
       </div>
     ),
     size
