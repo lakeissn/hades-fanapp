@@ -168,6 +168,161 @@ function extractTitle(html: string, videoId: string): string {
   return "";
 }
 
+/**
+ * Shorts 전용 제목 추출 - 채널 shorts 탭 HTML에서 reelItemRenderer 기반으로 추출
+ * 일반 extractTitle과 달리 Shorts 특유의 JSON 구조(headline, overlayMetadata 등)를 우선 탐색
+ */
+function extractShortsTitle(html: string, shortsId: string): string {
+  const candidates: string[] = [];
+
+  // shortsId가 HTML에서 등장하는 모든 위치를 탐색
+  // YouTube Shorts 채널 탭에서는 "videoId":"ID" 외에도 "/shorts/ID" 형태로 등장
+  const searchPatterns = [
+    `"${shortsId}"`,
+    `\\/shorts\\/${shortsId}`,
+  ];
+
+  for (const searchStr of searchPatterns) {
+    let searchIdx = 0;
+    const plainStr = searchStr.replace(/\\\\/g, "/");
+
+    while (true) {
+      const idIdx = html.indexOf(
+        plainStr.includes("/shorts/") ? `/shorts/${shortsId}` : `"${shortsId}"`,
+        searchIdx
+      );
+      if (idIdx === -1) break;
+      searchIdx = idIdx + 1;
+
+      // ID 주변 앞뒤 2500자 범위에서 탐색
+      const start = Math.max(0, idIdx - 1500);
+      const end = Math.min(html.length, idIdx + 2500);
+      const chunk = html.substring(start, end);
+
+      // headline.simpleText 패턴 (reelItemRenderer에서 가장 흔함)
+      const headlineSimple = chunk.match(/"headline"\s*:\s*\{\s*"simpleText"\s*:\s*"([^"]+)"/);
+      if (headlineSimple?.[1]) {
+        const t = decodeUnicode(headlineSimple[1]);
+        if (isValidTitle(t)) candidates.push(t);
+      }
+
+      // headline.runs 패턴
+      const headlineRuns = chunk.match(/"headline"\s*:\s*\{\s*"runs"\s*:\s*\[\s*\{\s*"text"\s*:\s*"([^"]+)"/);
+      if (headlineRuns?.[1]) {
+        const t = decodeUnicode(headlineRuns[1]);
+        if (isValidTitle(t)) candidates.push(t);
+      }
+
+      // overlayMetadata.primaryText.content 패턴
+      const overlayPrimary = chunk.match(/"primaryText"\s*:\s*\{\s*"content"\s*:\s*"([^"]+)"/);
+      if (overlayPrimary?.[1]) {
+        const t = decodeUnicode(overlayPrimary[1]);
+        if (isValidTitle(t)) candidates.push(t);
+      }
+
+      // title.runs 패턴
+      const titleRuns = chunk.match(/"title"\s*:\s*\{\s*"runs"\s*:\s*\[\s*\{\s*"text"\s*:\s*"([^"]+)"/);
+      if (titleRuns?.[1]) {
+        const t = decodeUnicode(titleRuns[1]);
+        if (isValidTitle(t)) candidates.push(t);
+      }
+
+      // title.simpleText 패턴
+      const titleSimple = chunk.match(/"title"\s*:\s*\{\s*"simpleText"\s*:\s*"([^"]+)"/);
+      if (titleSimple?.[1]) {
+        const t = decodeUnicode(titleSimple[1]);
+        if (isValidTitle(t)) candidates.push(t);
+      }
+
+      if (candidates.length > 0) return candidates[0];
+    }
+  }
+
+  if (candidates.length > 0) return candidates[0];
+
+  // accessibilityData.label에서 추출
+  const accessPatterns = [
+    new RegExp(`"${shortsId}"[\\s\\S]{0,3000}?"accessibilityData"\\s*:\\s*\\{\\s*"label"\\s*:\\s*"([^"]+)"`, "m"),
+    new RegExp(`"accessibilityData"\\s*:\\s*\\{\\s*"label"\\s*:\\s*"([^"]*${shortsId}[^"]*)"`, "m"),
+  ];
+  for (const pattern of accessPatterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      const label = decodeUnicode(match[1]);
+      let title = label;
+      // " - " 이후 제거 (조회수 등)
+      const dashIdx = title.indexOf(" - ");
+      if (dashIdx > 0) title = title.substring(0, dashIdx).trim();
+      // 마지막 ", N views" 패턴 제거
+      title = title.replace(/,\s*\d[\d,.]*\s*(views?|조회|회).*$/i, "").trim();
+      if (isValidTitle(title)) return title;
+    }
+  }
+
+  // 일반 extractTitle로 폴백
+  return extractTitle(html, shortsId);
+}
+
+/**
+ * 개별 Shorts 페이지에서 제목 직접 가져오기 (채널 페이지에서 실패 시 폴백)
+ */
+async function fetchShortsTitleDirect(shortsId: string): Promise<string> {
+  try {
+    const res = await fetch(`https://www.youtube.com/shorts/${shortsId}`, {
+      headers: COMMON_HEADERS,
+      cache: "no-store",
+    });
+    const html = await res.text();
+
+    // 1) og:title (가장 신뢰도 높음)
+    const ogTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+      ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+    if (ogTitle?.[1]) {
+      const t = decodeUnicode(ogTitle[1]).trim();
+      if (isValidTitle(t) && !t.includes("YouTube") && !t.includes("@")) return t;
+    }
+
+    // 2) <title> 태그
+    const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (titleTag?.[1]) {
+      const t = titleTag[1].replace(/\s*-\s*YouTube\s*$/i, "").trim();
+      if (isValidTitle(t) && !t.includes("@")) return t;
+    }
+
+    // 3) JSON 내 title.runs
+    const jsonTitle = html.match(/"title"\s*:\s*\{\s*"runs"\s*:\s*\[\s*\{\s*"text"\s*:\s*"([^"]+)"/);
+    if (jsonTitle?.[1]) {
+      const t = decodeUnicode(jsonTitle[1]);
+      if (isValidTitle(t)) return t;
+    }
+
+    // 4) JSON 내 title.simpleText
+    const jsonSimple = html.match(/"title"\s*:\s*\{\s*"simpleText"\s*:\s*"([^"]+)"/);
+    if (jsonSimple?.[1]) {
+      const t = decodeUnicode(jsonSimple[1]);
+      if (isValidTitle(t)) return t;
+    }
+
+    // 5) headline (Shorts 개별 페이지에서도 등장 가능)
+    const headline = html.match(/"headline"\s*:\s*\{\s*"simpleText"\s*:\s*"([^"]+)"/);
+    if (headline?.[1]) {
+      const t = decodeUnicode(headline[1]);
+      if (isValidTitle(t)) return t;
+    }
+
+    // 6) engagementPanels 내 제목 (Shorts 페이지 특유)
+    const engagementTitle = html.match(/"headerTitle"\s*:\s*"([^"]+)"/);
+    if (engagementTitle?.[1]) {
+      const t = decodeUnicode(engagementTitle[1]);
+      if (isValidTitle(t)) return t;
+    }
+
+    return "";
+  } catch {
+    return "";
+  }
+}
+
 async function fetchLatestVideo(): Promise<YouTubeVideo | null> {
   try {
     const res = await fetch(`${CHANNEL_URL}/videos`, {
@@ -204,7 +359,14 @@ async function fetchLatestShort(): Promise<YouTubeVideo | null> {
     const shortsId = extractShortsId(html);
     if (!shortsId) return null;
 
-    const title = extractTitle(html, shortsId);
+    // 1차: 채널 shorts 탭 HTML에서 Shorts 전용 추출
+    let title = extractShortsTitle(html, shortsId);
+
+    // 2차: 실패 시 개별 Shorts 페이지에서 직접 가져오기
+    if (!title) {
+      title = await fetchShortsTitleDirect(shortsId);
+    }
+
     const thumbnail = `https://i.ytimg.com/vi/${shortsId}/hqdefault.jpg`;
 
     return {
