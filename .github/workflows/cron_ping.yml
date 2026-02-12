@@ -1,0 +1,15 @@
+name: cron ping
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # 10분마다
+  workflow_dispatch: {}     # 수동 실행 버튼도 추가
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Vercel ping API
+        run: |
+          curl -sS -X GET "${{ secrets.VERCEL_PING_URL }}" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
