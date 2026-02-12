@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 
 type Theme = "dark" | "light";
 
@@ -54,12 +55,10 @@ export default function SettingsPage() {
 
   const toggleMaster = useCallback(async () => {
     if (!notif.master) {
-      // 켜기 시도
       if ("Notification" in window) {
         const perm = await Notification.requestPermission();
         setPermissionState(perm);
         if (perm !== "granted") return;
-        // 서비스 워커 등록
         if ("serviceWorker" in navigator) {
           try { await navigator.serviceWorker.register("/sw.js"); } catch {}
         }
@@ -125,7 +124,6 @@ export default function SettingsPage() {
       <div className="settings-group">
         <span className="settings-group-title">알림 설정</span>
         <div className="settings-card">
-          {/* 마스터 토글 */}
           <div className="settings-item">
             <div className="settings-item-left">
               <div className="settings-item-icon">🔔</div>
@@ -148,7 +146,6 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* 하위 알림 설정 - 마스터가 켜진 경우만 표시 */}
           {notif.master && (
             <div className="notification-sub-settings">
               <div className="settings-item">
@@ -161,9 +158,7 @@ export default function SettingsPage() {
                 </div>
                 <div
                   className={`toggle ${notif.liveBroadcast ? "active" : ""}`}
-                  role="switch"
-                  aria-checked={notif.liveBroadcast}
-                  tabIndex={0}
+                  role="switch" aria-checked={notif.liveBroadcast} tabIndex={0}
                   onClick={() => toggleSub("liveBroadcast")}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSub("liveBroadcast"); } }}
                 />
@@ -179,9 +174,7 @@ export default function SettingsPage() {
                 </div>
                 <div
                   className={`toggle ${notif.newVote ? "active" : ""}`}
-                  role="switch"
-                  aria-checked={notif.newVote}
-                  tabIndex={0}
+                  role="switch" aria-checked={notif.newVote} tabIndex={0}
                   onClick={() => toggleSub("newVote")}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSub("newVote"); } }}
                 />
@@ -197,9 +190,7 @@ export default function SettingsPage() {
                 </div>
                 <div
                   className={`toggle ${notif.newYoutube ? "active" : ""}`}
-                  role="switch"
-                  aria-checked={notif.newYoutube}
-                  tabIndex={0}
+                  role="switch" aria-checked={notif.newYoutube} tabIndex={0}
                   onClick={() => toggleSub("newYoutube")}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSub("newYoutube"); } }}
                 />
@@ -209,7 +200,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 앱 정보 */}
+      {/* 앱 정보 - (9) 문의하기 삭제 */}
       <div className="settings-group">
         <span className="settings-group-title">앱 정보</span>
         <div className="settings-card">
@@ -222,22 +213,13 @@ export default function SettingsPage() {
             </div>
             <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>1.0.0</span>
           </div>
-          <div className="settings-item">
-            <div className="settings-item-left">
-              <div className="settings-item-icon">💬</div>
-              <div className="settings-item-text">
-                <span className="settings-item-label">문의하기</span>
-                <span className="settings-item-desc">버그 신고 및 건의사항</span>
-              </div>
-            </div>
-            <span style={{ color: "var(--muted)", fontSize: 14 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          </div>
         </div>
       </div>
+
+      {/* (17) 개인정보처리방침 링크 */}
+      <Link href="/privacy" className="settings-privacy-link">
+        개인정보처리방침
+      </Link>
     </main>
   );
 }
