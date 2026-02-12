@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import LiveCard from "../components/LiveCard";
@@ -90,6 +90,59 @@ function VotePreviewPlatforms({ vote }: { vote: VoteItem }) {
   );
 }
 
+/* (FIX #4) PC 전용 라이브 그리드 스크롤 버튼 래퍼 */
+function LiveGridWrapper({ children }: { children: React.ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowLeft(el.scrollLeft > 10);
+    setShowRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", checkScroll); ro.disconnect(); };
+  }, [checkScroll]);
+
+  const scroll = useCallback((dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const amount = el.clientWidth * 0.8;
+    el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  }, []);
+
+  return (
+    <div className="live-grid-wrapper">
+      {showLeft && (
+        <button className="live-scroll-btn left" onClick={() => scroll("left")} aria-label="이전">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+        </button>
+      )}
+      <div className="live-grid" ref={scrollRef}>
+        {children}
+      </div>
+      {showRight && (
+        <button className="live-scroll-btn right" onClick={() => scroll("right")} aria-label="다음">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function YouTubeSection() {
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,14 +229,15 @@ export default function HomePage() {
         <div className="section-head page-header">
           <div><p className="section-tag">LIVE NOW</p><h2>지금 방송 중인 멤버</h2></div>
         </div>
-        <div className="live-grid">
+        {/* (FIX #4) PC 스크롤 버튼이 있는 래퍼 */}
+        <LiveGridWrapper>
           {isLoading && <div className="empty-state"><p>라이브 상태를 불러오는 중...</p></div>}
           {!isLoading && liveMembers.length === 0 && <div className="empty-state"><p>현재 방송 중인 멤버가 없습니다.</p></div>}
           {liveMembers.map(m => (
             <LiveCard key={m.id} name={m.name} soopUrl={m.liveUrl ?? m.soopUrl} avatarUrl={m.avatarUrl}
               coverStyle={coverStyles[m.id] ?? { background: "#1f1f1f" }} title={m.title} thumbUrl={m.thumbUrl} tags={m.tags} />
           ))}
-        </div>
+        </LiveGridWrapper>
       </section>
 
       {/* OFFLINE */}
@@ -194,7 +248,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* YOUTUBE - 오프라인과 투표 사이 */}
+      {/* YOUTUBE */}
       <YouTubeSection />
 
       {/* VOTES */}
