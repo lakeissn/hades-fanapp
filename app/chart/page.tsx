@@ -3,56 +3,50 @@
 import { useEffect, useState } from "react";
 
 type ChartEntry = {
-  rank: number;
-  title: string;
-  artist: string;
-  albumArt: string;
-  albumName: string;
-  rankChange: "up" | "down" | "same" | "new";
-  changeAmount: number;
+  rank: number; title: string; artist: string;
+  albumArt: string; albumName: string;
+  rankChange: "up" | "down" | "same" | "new"; changeAmount: number;
 };
 
-type ChartType = "TOP100" | "HOT100" | "REALTIME";
+type ChartType = "REALTIME" | "HOT100_30" | "HOT100_100" | "DAILY" | "WEEKLY" | "MONTHLY";
 
-const CHART_LABELS: Record<ChartType, string> = {
-  TOP100: "TOP 100",
-  HOT100: "HOT 100",
-  REALTIME: "실시간",
-};
+const CHART_TABS: { id: ChartType; label: string }[] = [
+  { id: "REALTIME", label: "실시간" },
+  { id: "HOT100_30", label: "HOT100(30일)" },
+  { id: "HOT100_100", label: "HOT100(100일)" },
+  { id: "DAILY", label: "일간" },
+  { id: "WEEKLY", label: "주간" },
+  { id: "MONTHLY", label: "월간" },
+];
 
 export default function ChartPage() {
   const [chartData, setChartData] = useState<ChartEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chartType, setChartType] = useState<ChartType>("TOP100");
+  const [chartType, setChartType] = useState<ChartType>("REALTIME");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
-
+    let mounted = true;
     const fetchChart = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/chart?type=${chartType}&artist=HADES`);
-        if (!response.ok) throw new Error("차트 데이터를 불러오지 못했습니다.");
-        const data = await response.json();
-        if (isMounted) {
+        const res = await fetch(`/api/chart?type=${chartType}&artist=HADES`);
+        if (!res.ok) throw new Error("fail");
+        const data = await res.json();
+        if (mounted) {
           setChartData(data.entries ?? []);
           setUpdatedAt(data.updatedAt ?? null);
         }
-      } catch (err) {
-        if (isMounted) {
-          setError("차트 데이터를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
-          setChartData([]);
-        }
+      } catch {
+        if (mounted) { setError("차트 데이터를 불러오는 데 실패했습니다."); setChartData([]); }
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
-
     fetchChart();
-    return () => { isMounted = false; };
+    return () => { mounted = false; };
   }, [chartType]);
 
   return (
@@ -61,69 +55,59 @@ export default function ChartPage() {
         <div className="section-head page-header">
           <div>
             <p className="section-tag">CHART</p>
-            <h2>멜론 차트 순위</h2>
+            <h2>멜론 차트</h2>
             <div className="chart-header-info">
               <span className="chart-platform-badge">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9 18V5l12 7-12 6z" />
-                </svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 18V5l12 7-12 6z"/></svg>
                 Melon
               </span>
               {updatedAt && (
                 <span className="chart-updated">
-                  업데이트: {new Date(updatedAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                  {new Date(updatedAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
                 </span>
               )}
             </div>
           </div>
         </div>
 
+        {/* 차트 타입 탭 */}
         <div className="chart-type-tabs">
-          {(Object.keys(CHART_LABELS) as ChartType[]).map((type) => (
+          {CHART_TABS.map(tab => (
             <button
-              key={type}
-              className={`chart-type-tab ${chartType === type ? "active" : ""}`}
-              onClick={() => setChartType(type)}
+              key={tab.id}
+              className={`chart-type-tab ${chartType === tab.id ? "active" : ""}`}
+              onClick={() => setChartType(tab.id)}
             >
-              {CHART_LABELS[type]}
+              {tab.label}
             </button>
           ))}
         </div>
 
+        {/* 콘텐츠 */}
         {isLoading ? (
-          <div className="empty-state">
-            <p>차트 데이터를 불러오는 중...</p>
-          </div>
+          <div className="empty-state"><p>차트 데이터를 불러오는 중...</p></div>
         ) : error ? (
           <div className="chart-empty">
-            <div style={{ fontSize: "36px", marginBottom: "8px" }}>📊</div>
+            <div style={{ fontSize: 32, marginBottom: 6 }}>📊</div>
             <p>{error}</p>
-            <p style={{ fontSize: "13px", marginTop: "8px", color: "var(--muted)" }}>
-              차트 API가 설정되지 않았거나, 서버에서 멜론 차트를 가져올 수 없습니다.
+            <p style={{ fontSize: 12, marginTop: 6, color: "var(--muted)" }}>
+              서버에서 멜론 차트를 가져올 수 없습니다.
             </p>
           </div>
         ) : chartData.length === 0 ? (
           <div className="chart-empty">
-            <div style={{ fontSize: "36px", marginBottom: "8px" }}>🔍</div>
+            <div style={{ fontSize: 32, marginBottom: 6 }}>🔍</div>
             <p>현재 차트에서 하데스의 곡을 찾을 수 없습니다.</p>
-            <p style={{ fontSize: "13px", marginTop: "8px", color: "var(--muted)" }}>
-              차트 진입 시 자동으로 표시됩니다.
-            </p>
+            <p style={{ fontSize: 12, marginTop: 6, color: "var(--muted)" }}>차트 진입 시 자동으로 표시됩니다.</p>
           </div>
         ) : (
           <div className="chart-list">
-            {chartData.map((entry) => (
+            {chartData.map(entry => (
               <article key={`${entry.rank}-${entry.title}`} className="chart-entry">
-                <span className={`chart-rank ${entry.rank <= 3 ? "top3" : ""}`}>
-                  {entry.rank}
-                </span>
+                <span className={`chart-rank ${entry.rank <= 3 ? "top3" : ""}`}>{entry.rank}</span>
                 <div className="chart-album-art">
-                  {entry.albumArt ? (
-                    <img src={entry.albumArt} alt="" />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
-                      🎵
-                    </div>
+                  {entry.albumArt ? <img src={entry.albumArt} alt="" /> : (
+                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🎵</div>
                   )}
                 </div>
                 <div className="chart-song-info">
