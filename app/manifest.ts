@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "",
     short_name: "HADES INFO",
-    description: "하데스에 대한 정보를 빠르게 받아보세요",
+    description: "하데스 팬앱",
     start_url: "/",
     display: "standalone",
     background_color: "#000000",
@@ -16,19 +16,19 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/icons/splash_logo.png",
         sizes: "512x512",
         type: "image/png",
-        purpose: "any maskable",
+        purpose: "any",
       },
       {
         src: `/icon-512?v=${androidIconVersion}`,
         sizes: "512x512",
         type: "image/png",
-        purpose: "any maskable",
+        purpose: "maskable",
       },
       {
         src: "/apple-icon.png",
         sizes: "180x180",
         type: "image/png",
-        purpose: "any maskable",
+        purpose: "any",
       },
     ],
   };
