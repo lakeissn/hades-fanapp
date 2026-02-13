@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
-  const androidIconVersion = "android-v5";
+  const androidIconVersion = "android-v6";
 
   return {
     name: "HADES INFO",
