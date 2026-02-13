@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   activatePush,
   deactivatePush,
@@ -24,6 +24,19 @@ const DEFAULT_NOTIF: NotificationSettings = {
   newYoutube: true,
 };
 
+function loadTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  try {
+    const saved = localStorage.getItem("hades_theme");
+    if (saved === "dark" || saved === "light") return saved;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  } catch {
+    return "light";
+  }
+}
+
 function loadNotifSettings(): NotificationSettings {
   if (typeof window === "undefined") return DEFAULT_NOTIF;
   try {
@@ -38,33 +51,87 @@ function saveNotifSettings(settings: NotificationSettings) {
   localStorage.setItem("hades_notif_settings", JSON.stringify(settings));
 }
 
+const Toggle = memo(function Toggle({
+  active,
+  onToggle,
+  disabled = false,
+  canAnimate,
+}: {
+  active: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+  canAnimate: boolean;
+}) {
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (disabled) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onToggle();
+      }
+    },
+    [disabled, onToggle]
+  );
+
+  return (
+    <div
+      className={`toggle ${active ? "active" : ""} ${canAnimate ? "" : "no-animate"}`}
+      role="switch"
+      aria-checked={active}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
+      onClick={disabled ? undefined : onToggle}
+      onKeyDown={onKeyDown}
+    />
+  );
+});
+
 export default function SettingsPage() {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [canAnimate, setCanAnimate] = useState(false);
+  const [theme, setTheme] = useState<Theme>("light");
   const [notif, setNotif] = useState<NotificationSettings>(DEFAULT_NOTIF);
   const [permissionState, setPermissionState] = useState<string>("default");
   const [isActivating, setIsActivating] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("hades_theme") as Theme | null;
-    setTheme(saved ?? "dark");
-    setNotif(loadNotifSettings());
+    const loadedTheme = loadTheme();
+    const loadedNotif = loadNotifSettings();
+
+    setTheme(loadedTheme);
+    setNotif(loadedNotif);
     if ("Notification" in window) {
       setPermissionState(Notification.permission);
     }
+    setIsHydrated(true);
+
+    const raf = window.requestAnimationFrame(() => setCanAnimate(true));
+    return () => window.cancelAnimationFrame(raf);
   }, []);
 
   const changeTheme = useCallback((t: Theme) => {
     setTheme(t);
     localStorage.setItem("hades_theme", t);
     document.documentElement.setAttribute("data-theme", t);
+    document.documentElement.style.backgroundColor = t === "dark" ? "#0a0a0a" : "#f5f5f5";
   }, []);
 
-  // ─── 마스터 토글: FCM 토큰 발급/등록 or 비활성화 ───
+  const pushDescription = useMemo(() => {
+    if (permissionState === "denied") {
+      return "브라우저에서 알림이 차단되어 있습니다";
+    }
+    if (isActivating) {
+      return "알림을 설정하는 중...";
+    }
+    return notif.master
+      ? "알림이 활성화되어 있습니다"
+      : "알림을 켜면 새 소식을 받을 수 있어요";
+  }, [isActivating, notif.master, permissionState]);
+
   const toggleMaster = useCallback(async () => {
     if (isActivating) return;
 
     if (!notif.master) {
-      // ON → 권한 요청 + FCM 토큰 발급 + 서버 등록
       setIsActivating(true);
       try {
         const success = await activatePush();
@@ -73,31 +140,26 @@ export default function SettingsPage() {
           setNotif(next);
           saveNotifSettings(next);
           setPermissionState("granted");
-        } else {
-          // 권한 거부 또는 토큰 실패
-          if ("Notification" in window) {
-            setPermissionState(Notification.permission);
-          }
+        } else if ("Notification" in window) {
+          setPermissionState(Notification.permission);
         }
       } finally {
         setIsActivating(false);
       }
-    } else {
-      // OFF → 서버 토큰 비활성화
-      const next = { ...notif, master: false };
-      setNotif(next);
-      saveNotifSettings(next);
-      await deactivatePush();
+      return;
     }
+
+    const next = { ...notif, master: false };
+    setNotif(next);
+    saveNotifSettings(next);
+    await deactivatePush();
   }, [notif, isActivating]);
 
-  // ─── 개별 알림 토글: localStorage 저장 + 서버 prefs 동기화 ───
   const toggleSub = useCallback(
     async (key: keyof Omit<NotificationSettings, "master">) => {
       const next = { ...notif, [key]: !notif[key] };
       setNotif(next);
       saveNotifSettings(next);
-      // 서버에 prefs 업데이트
       await syncPrefsToServer();
     },
     [notif]
@@ -114,7 +176,6 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 테마 설정 */}
       <div className="settings-group">
         <span className="settings-group-title">화면 설정</span>
         <div className="settings-card">
@@ -130,30 +191,32 @@ export default function SettingsPage() {
               <div className="settings-item-icon">🎨</div>
               <div className="settings-item-text">
                 <span className="settings-item-label">화면 모드</span>
-                <span className="settings-item-desc">
-                  앱의 전체 색상을 변경합니다
-                </span>
+                <span className="settings-item-desc">앱의 전체 색상을 변경합니다</span>
               </div>
             </div>
-            <div className="theme-selector">
-              <button
-                className={`theme-option ${theme === "dark" ? "active" : ""}`}
-                onClick={() => changeTheme("dark")}
-              >
-                🌙 다크
-              </button>
-              <button
-                className={`theme-option ${theme === "light" ? "active" : ""}`}
-                onClick={() => changeTheme("light")}
-              >
-                ☀️ 라이트
-              </button>
-            </div>
+
+            {isHydrated ? (
+              <div className={`theme-selector ${canAnimate ? "" : "no-animate"}`}>
+                <button
+                  className={`theme-option ${theme === "dark" ? "active" : ""}`}
+                  onClick={() => changeTheme("dark")}
+                >
+                  🌙 다크
+                </button>
+                <button
+                  className={`theme-option ${theme === "light" ? "active" : ""}`}
+                  onClick={() => changeTheme("light")}
+                >
+                  ☀️ 라이트
+                </button>
+              </div>
+            ) : (
+              <div className="settings-placeholder" aria-hidden="true" />
+            )}
           </div>
         </div>
       </div>
 
-      {/* 알림 설정 */}
       <div className="settings-group">
         <span className="settings-group-title">알림 설정</span>
         <div className="settings-card">
@@ -162,58 +225,35 @@ export default function SettingsPage() {
               <div className="settings-item-icon">🔔</div>
               <div className="settings-item-text">
                 <span className="settings-item-label">푸시 알림</span>
-                <span className="settings-item-desc">
-                  {permissionState === "denied"
-                    ? "브라우저에서 알림이 차단되어 있습니다"
-                    : isActivating
-                      ? "알림을 설정하는 중..."
-                      : notif.master
-                        ? "알림이 활성화되어 있습니다"
-                        : "알림을 켜면 새 소식을 받을 수 있어요"}
-                </span>
+                <span className="settings-item-desc">{isHydrated ? pushDescription : "설정을 불러오는 중..."}</span>
               </div>
             </div>
-            <div
-              className={`toggle ${notif.master ? "active" : ""}`}
-              role="switch"
-              aria-checked={notif.master}
-              tabIndex={0}
-              onClick={toggleMaster}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  toggleMaster();
-                }
-              }}
-            />
+            {isHydrated ? (
+              <Toggle
+                active={notif.master}
+                onToggle={toggleMaster}
+                disabled={isActivating}
+                canAnimate={canAnimate}
+              />
+            ) : (
+              <div className="toggle-placeholder" aria-hidden="true" />
+            )}
           </div>
 
-          {notif.master && (
+          {isHydrated && notif.master && (
             <div className="notification-sub-settings">
               <div className="settings-item">
                 <div className="settings-item-left">
                   <div className="settings-item-icon">📡</div>
                   <div className="settings-item-text">
-                    <span className="settings-item-label">
-                      라이브 방송 알림
-                    </span>
-                    <span className="settings-item-desc">
-                      멤버가 방송을 시작하면 알림
-                    </span>
+                    <span className="settings-item-label">라이브 방송 알림</span>
+                    <span className="settings-item-desc">멤버가 방송을 시작하면 알림</span>
                   </div>
                 </div>
-                <div
-                  className={`toggle ${notif.liveBroadcast ? "active" : ""}`}
-                  role="switch"
-                  aria-checked={notif.liveBroadcast}
-                  tabIndex={0}
-                  onClick={() => toggleSub("liveBroadcast")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      toggleSub("liveBroadcast");
-                    }
-                  }}
+                <Toggle
+                  active={notif.liveBroadcast}
+                  onToggle={() => void toggleSub("liveBroadcast")}
+                  canAnimate={canAnimate}
                 />
               </div>
 
@@ -222,23 +262,13 @@ export default function SettingsPage() {
                   <div className="settings-item-icon">🗳️</div>
                   <div className="settings-item-text">
                     <span className="settings-item-label">새 투표 알림</span>
-                    <span className="settings-item-desc">
-                      새로운 투표가 등록되면 알림
-                    </span>
+                    <span className="settings-item-desc">새로운 투표가 등록되면 알림</span>
                   </div>
                 </div>
-                <div
-                  className={`toggle ${notif.newVote ? "active" : ""}`}
-                  role="switch"
-                  aria-checked={notif.newVote}
-                  tabIndex={0}
-                  onClick={() => toggleSub("newVote")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      toggleSub("newVote");
-                    }
-                  }}
+                <Toggle
+                  active={notif.newVote}
+                  onToggle={() => void toggleSub("newVote")}
+                  canAnimate={canAnimate}
                 />
               </div>
 
@@ -246,26 +276,14 @@ export default function SettingsPage() {
                 <div className="settings-item-left">
                   <div className="settings-item-icon">▶️</div>
                   <div className="settings-item-text">
-                    <span className="settings-item-label">
-                      유튜브 업로드 알림
-                    </span>
-                    <span className="settings-item-desc">
-                      새 영상이 업로드되면 알림
-                    </span>
+                    <span className="settings-item-label">유튜브 업로드 알림</span>
+                    <span className="settings-item-desc">새 영상이 업로드되면 알림</span>
                   </div>
                 </div>
-                <div
-                  className={`toggle ${notif.newYoutube ? "active" : ""}`}
-                  role="switch"
-                  aria-checked={notif.newYoutube}
-                  tabIndex={0}
-                  onClick={() => toggleSub("newYoutube")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      toggleSub("newYoutube");
-                    }
-                  }}
+                <Toggle
+                  active={notif.newYoutube}
+                  onToggle={() => void toggleSub("newYoutube")}
+                  canAnimate={canAnimate}
                 />
               </div>
             </div>
@@ -273,7 +291,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 앱 정보 */}
       <div className="settings-group">
         <span className="settings-group-title">앱 정보</span>
         <div className="settings-card">
@@ -297,7 +314,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 개인정보처리방침 */}
       <Link href="/privacy" className="settings-privacy-link">
         개인정보처리방침
       </Link>
