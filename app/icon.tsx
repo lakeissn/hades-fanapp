@@ -1,4 +1,3 @@
-import { join } from "node:path";
  export const size = {
    width: 512,
    height: 512,
