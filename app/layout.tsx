@@ -34,8 +34,6 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         {/* (FIX #7) viewport-fit=cover로 iPhone 노치/다이나믹 아일랜드 대응 */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-          }}
-        />
       </head>
       <body>
         <AppShell>{children}</AppShell>
