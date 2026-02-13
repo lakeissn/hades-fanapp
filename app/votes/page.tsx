@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Card from "@/components/Card";
 import VotesAccordion, { VoteItem } from "@/components/VotesAccordion";
 
@@ -18,6 +19,9 @@ function isActiveVote(vote: Vote) {
 }
 
 export default function VotesPage() {
+  const searchParams = useSearchParams();
+  const requestedOpenVoteId = searchParams.get("open");
+
   const [votes, setVotes] = useState<Vote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -70,7 +74,7 @@ export default function VotesPage() {
               <p>현재 진행 중인 투표가 없습니다.</p>
             </div>
           ) : (
-            <VotesAccordion votes={visibleVotes} />
+            <VotesAccordion votes={visibleVotes} openVoteId={requestedOpenVoteId} />
           )}
         </Card>
       </section>
