@@ -57,6 +57,11 @@ type NotifyResult = {
   invalidTokens: string[];
 };
 
+type PushTarget = {
+  token: string;
+  platform: "ios" | "android" | "web" | string;
+};
+
 // ─── app_state 헬퍼 ───
 async function loadAppState(key: string): Promise<AppStateValue> {
   const { data } = await supabaseAdmin
@@ -81,11 +86,11 @@ async function updateAppState(key: string, value: AppStateValue) {
 // ─── 대상 토큰 조회 (이중 방어: DB 필터 + 서버측 prefs 재검증) ───
 async function getTargetTokens(
   prefKey: "liveEnabled" | "voteEnabled" | "youtubeEnabled"
-): Promise<string[]> {
+): Promise<PushTarget[]> {
   // 1단계: DB에서 enabled=true AND prefs 조건으로 필터
   const { data, error } = await supabaseAdmin
     .from("push_tokens")
-    .select("token, prefs")
+    .select("token, platform, prefs")
     .eq("enabled", true);
 
   if (error) {
@@ -96,7 +101,7 @@ async function getTargetTokens(
   if (!data || data.length === 0) return [];
 
   // 2단계: 서버측 안전망 - prefs를 다시 한번 명시적으로 검증
-  const validTokens = data
+  const validTargets = data
     .filter((row: any) => {
       const prefs = row.prefs;
       if (!prefs) return false;
@@ -114,14 +119,24 @@ async function getTargetTokens(
         (typeValue === true || typeValue === "true")
       );
     })
-    .map((row: any) => row.token as string);
+    .map((row: any) => ({
+      token: row.token as string,
+      platform: (row.platform as string) || "web",
+    }));
 
-  return validTokens;
+  // Android 먼저 발송해서 체감 지연을 줄임
+  validTargets.sort((a, b) => {
+    const aRank = a.platform === "android" ? 0 : 1;
+    const bRank = b.platform === "android" ? 0 : 1;
+    return aRank - bRank;
+  });
+
+  return validTargets;
 }
 
 // ─── FCM 발송 (500개 배치, 플랫폼별 우선순위 보강) ───
 async function sendFCMMessages(
-  tokens: string[],
+  targets: PushTarget[],
   payload: { title: string; body: string; url: string; tag: string }
 ): Promise<NotifyResult> {
   const result: NotifyResult = {
@@ -131,14 +146,18 @@ async function sendFCMMessages(
     invalidTokens: [],
   };
 
-  if (tokens.length === 0) return result;
+  if (targets.length === 0) return result;
 
   const sentAt = new Date().toISOString();
-  const TTL_SECONDS = 600; // 10분 TTL
+  const TTL_SECONDS = 180; // 3분 TTL (더 빠른 전달 우선)
 
-  // data-only 메시지 → SW의 push 이벤트에서 showNotification 호출
-  // + 플랫폼별 우선순위/TTL/collapse 보강
+  // data-only + notification 동시 사용
+  // Android WebView/Chrome 환경에서 즉시 표시를 돕기 위해 notification 필드도 포함
   const message = {
+    notification: {
+      title: payload.title,
+      body: payload.body,
+    },
     data: {
       title: payload.title,
       body: payload.body,
@@ -150,14 +169,28 @@ async function sendFCMMessages(
     // Android: 즉시 배달을 위한 high priority + TTL + collapse
     android: {
       priority: "high" as const,
-      ttl: TTL_SECONDS * 1000, // ms 단위
+      ttl: TTL_SECONDS * 1000,
       collapseKey: payload.tag,
+      notification: {
+        channelId: "default",
+        tag: payload.tag,
+        defaultSound: true,
+      },
     },
-    // Web Push (PWA/Chrome 등): urgency high + TTL
+    // Web Push (PWA/Chrome 등): urgency high + TTL + notification payload
     webpush: {
       headers: {
         Urgency: "high",
         TTL: String(TTL_SECONDS),
+      },
+      notification: {
+        title: payload.title,
+        body: payload.body,
+        icon: "/icons/hades_helper.png",
+        badge: "/icons/hades_helper.png",
+        tag: payload.tag,
+        requireInteraction: false,
+        data: { url: payload.url },
       },
       fcmOptions: {
         link: payload.url,
@@ -175,16 +208,23 @@ async function sendFCMMessages(
       payload: {
         aps: {
           "content-available": 1,
+          sound: "default",
         },
       },
     },
   };
 
-  // 500개씩 배치 전송
+  // 500개씩 배치 전송 + 병렬 처리 (대기시간 단축)
   const BATCH_SIZE = 500;
-  for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
-    const batch = tokens.slice(i, i + BATCH_SIZE);
+  const CONCURRENCY = 3;
+  const batches: string[][] = [];
+  const tokens = targets.map((t) => t.token);
 
+  for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
+    batches.push(tokens.slice(i, i + BATCH_SIZE));
+  }
+
+  async function sendBatch(batch: string[]) {
     try {
       const response = await messaging.sendEachForMulticast({
         tokens: batch,
@@ -194,7 +234,6 @@ async function sendFCMMessages(
       result.sent += response.successCount;
       result.failed += response.failureCount;
 
-      // Invalid/Expired 토큰 수집
       response.responses.forEach((resp, idx) => {
         if (resp.error) {
           const code = resp.error.code;
@@ -213,106 +252,121 @@ async function sendFCMMessages(
     }
   }
 
+  for (let i = 0; i < batches.length; i += CONCURRENCY) {
+    const chunk = batches.slice(i, i + CONCURRENCY);
+    await Promise.all(chunk.map((batch) => sendBatch(batch)));
+  }
+
   // Invalid 토큰 DB 정리
   if (result.invalidTokens.length > 0) {
-    await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from("push_tokens")
       .update({ enabled: false, updated_at: new Date().toISOString() })
       .in("token", result.invalidTokens);
-    console.log(
-      `[cron] ${result.invalidTokens.length}개 Invalid 토큰 비활성화`
-    );
+
+    if (error) {
+      console.error("[cron] invalid token 정리 실패:", error);
+    }
   }
 
   return result;
 }
 
-// ─── 데이터 Fetch 함수들 ───
-async function fetchLiveData(
-  baseUrl: string
-): Promise<MemberStatus[] | null> {
+// ─── 외부 API fetch helpers ───
+function internalBaseUrl(req: Request) {
+  const host = req.headers.get("host") || "localhost:3000";
+  const proto = host.includes("localhost") ? "http" : "https";
+  return `${proto}://${host}`;
+}
+
+async function fetchLive(base: string): Promise<MemberStatus[] | null> {
   try {
-    const res = await fetch(`${baseUrl}/api/members/status`, {
+    const res = await fetch(`${base}/api/members/status`, {
       cache: "no-store",
+      next: { revalidate: 0 },
+      headers: {
+        "x-internal-cron": "1",
+      },
     });
     if (!res.ok) return null;
-    const data = await res.json();
-    if (!Array.isArray(data)) return null;
-    return data;
-  } catch (err) {
-    console.error("[cron] Live fetch 실패:", err);
+    const data = (await res.json()) as MemberStatus[];
+    return Array.isArray(data) ? data : null;
+  } catch {
     return null;
   }
 }
 
-async function fetchVoteData(baseUrl: string): Promise<VoteItem[] | null> {
+async function fetchVote(base: string): Promise<VoteItem[] | null> {
   try {
-    const res = await fetch(`${baseUrl}/api/votes`, { cache: "no-store" });
+    const res = await fetch(`${base}/api/votes`, {
+      cache: "no-store",
+      next: { revalidate: 0 },
+      headers: {
+        "x-internal-cron": "1",
+      },
+    });
     if (!res.ok) return null;
-    const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) return null; // 빈 데이터 = skip
-    return data;
-  } catch (err) {
-    console.error("[cron] Vote fetch 실패:", err);
+    const data = (await res.json()) as VoteItem[];
+    return Array.isArray(data) ? data : null;
+  } catch {
     return null;
   }
 }
 
-async function fetchYoutubeData(
-  baseUrl: string
-): Promise<YouTubeVideo[] | null> {
+async function fetchYoutube(base: string): Promise<YouTubeVideo[] | null> {
   try {
-    const res = await fetch(`${baseUrl}/api/youtube`, { cache: "no-store" });
+    const res = await fetch(`${base}/api/youtube`, {
+      cache: "no-store",
+      next: { revalidate: 0 },
+      headers: {
+        "x-internal-cron": "1",
+      },
+    });
     if (!res.ok) return null;
-    const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) return null; // 빈 데이터 = skip
-    return data;
-  } catch (err) {
-    console.error("[cron] YouTube fetch 실패:", err);
+    const data = (await res.json()) as YouTubeVideo[];
+    return Array.isArray(data) ? data : null;
+  } catch {
     return null;
   }
 }
 
-// ─── Bootstrap Seed 판정 헬퍼 ───
-function isBootstrap(
-  stateField: string | undefined | null
-): boolean {
-  return !stateField || stateField.trim() === "";
+function isBootstrap(value?: string) {
+  return !value || value.trim() === "";
 }
 
-// ─── 메인 핸들러 ───
 export async function GET(req: Request) {
-  // 1) 보안 체크
-  const secret = process.env.CRON_SECRET || "";
-  const auth = req.headers.get("authorization") || "";
-  if (!auth.startsWith("Bearer ") || auth.slice(7) !== secret) {
-    return NextResponse.json(
-      { ok: false, error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
-
-  const results: NotifyResult[] = [];
   const log: string[] = [];
+  const results: NotifyResult[] = [];
 
   try {
-    // 2) baseUrl 구성 (자기 자신의 API 호출용)
-    const host = req.headers.get("host") || "localhost:3000";
-    const proto = host.includes("localhost") ? "http" : "https";
-    const baseUrl = `${proto}://${host}`;
+    // 1) 보안 검증
+    const secret = req.headers.get("authorization") || "";
+    const expected = `Bearer ${process.env.CRON_SECRET}`;
 
-    // 3) app_state 로드
+    if (!process.env.CRON_SECRET) {
+      return NextResponse.json(
+        { ok: false, error: "CRON_SECRET not set" },
+        { status: 500 }
+      );
+    }
+
+    if (secret !== expected) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 2) 상태 로드
     const [liveState, voteState, youtubeState] = await Promise.all([
       loadAppState("live"),
       loadAppState("vote"),
       loadAppState("youtube"),
     ]);
 
-    // 4) 외부 데이터 병렬 Fetch
+    // 3) 데이터 fetch
+    const base = internalBaseUrl(req);
     const [liveData, voteData, youtubeData] = await Promise.all([
-      fetchLiveData(baseUrl),
-      fetchVoteData(baseUrl),
-      fetchYoutubeData(baseUrl),
+      fetchLive(base),
+      fetchVote(base),
+      fetchYoutube(base),
     ]);
 
     // ════════════════════════════════════════
@@ -351,13 +405,14 @@ export async function GET(req: Request) {
 
         if (newLive.length > 0) {
           const target = newLive[0];
-          const tokens = await getTargetTokens("liveEnabled");
+          const targets = await getTargetTokens("liveEnabled");
+          const androidCount = targets.filter((t) => t.platform === "android").length;
           log.push(
-            `live: 신규 ${newLive.length}명 (prefs 검증 후 대상: ${tokens.length}명) → ${target.name} [priority=high, urgency=high]`
+            `live: 신규 ${newLive.length}명 (대상 ${targets.length}명 / android ${androidCount} 우선 발송) [priority=high, urgency=high]`
           );
 
-          if (tokens.length > 0) {
-            const res = await sendFCMMessages(tokens, {
+          if (targets.length > 0) {
+            const res = await sendFCMMessages(targets, {
               title: `${target.name} 방송 시작! 🔴`,
               body: target.title || "지금 라이브 중이에요",
               url: target.liveUrl || "/",
@@ -398,13 +453,14 @@ export async function GET(req: Request) {
       } else if (latestVote.id === prevVoteId) {
         log.push(`vote: 변경 없음 (id=${prevVoteId})`);
       } else {
-        const tokens = await getTargetTokens("voteEnabled");
+        const targets = await getTargetTokens("voteEnabled");
+        const androidCount = targets.filter((t) => t.platform === "android").length;
         log.push(
-          `vote: 신규 (${latestVote.id}) prefs 검증 후 대상: ${tokens.length}명 [priority=high, urgency=high]`
+          `vote: 신규 (${latestVote.id}) 대상: ${targets.length}명 / android ${androidCount} 우선 발송 [priority=high, urgency=high]`
         );
 
-        if (tokens.length > 0) {
-          const res = await sendFCMMessages(tokens, {
+        if (targets.length > 0) {
+          const res = await sendFCMMessages(targets, {
             title: "새 투표가 등록되었어요! 🗳️",
             body: latestVote.title,
             url: latestVote.url || "/votes",
@@ -441,13 +497,14 @@ export async function GET(req: Request) {
       } else if (latestVideo.id === prevYoutubeId) {
         log.push(`youtube: 변경 없음 (id=${prevYoutubeId})`);
       } else {
-        const tokens = await getTargetTokens("youtubeEnabled");
+        const targets = await getTargetTokens("youtubeEnabled");
+        const androidCount = targets.filter((t) => t.platform === "android").length;
         log.push(
-          `youtube: 신규 (${latestVideo.id}) prefs 검증 후 대상: ${tokens.length}명 [priority=high, urgency=high]`
+          `youtube: 신규 (${latestVideo.id}) 대상: ${targets.length}명 / android ${androidCount} 우선 발송 [priority=high, urgency=high]`
         );
 
-        if (tokens.length > 0) {
-          const res = await sendFCMMessages(tokens, {
+        if (targets.length > 0) {
+          const res = await sendFCMMessages(targets, {
             title: `새 ${latestVideo.type === "shorts" ? "Shorts" : "영상"}이 올라왔어요! ▶️`,
             body: latestVideo.title,
             url: latestVideo.url || "/",
