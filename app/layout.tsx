@@ -55,3 +55,13 @@ export default function RootLayout({
           }}
         />
       </head>
+      <body>
+        <AppShell>{children}</AppShell>
+        {/* FCM 기반 백그라운드 푸시 (서버 발송) */}
+        <NotificationManager />
+        {/* 기존 폴링 기반 포그라운드 알림 (클라이언트 폴링) - 호환성 유지 */}
+        <NotificationPoller />
+      </body>
+    </html>
+  );
+}
