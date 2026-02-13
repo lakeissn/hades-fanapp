@@ -99,7 +99,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--focus); outline
 button { font: inherit; border: none; background: none; cursor: pointer; color: inherit; }
 main { display: flex; flex-direction: column; gap: 28px; }
 .app-shell { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
-.container { width: 100%; max-width: 640px; margin: 0 auto; padding: 68px 16px 90px; }
+.container { width: 100%; max-width: 640px; margin: 0 auto; padding: calc(68px + env(safe-area-inset-top, 0px)) 16px calc(90px + env(safe-area-inset-bottom, 0px)); }
 
 /* ===== HEADER ===== */
 /* (FIX #7) iPhone safe area - 헤더가 최상단에 고정되도록 */
@@ -117,12 +117,10 @@ main { display: flex; flex-direction: column; gap: 28px; }
   text-transform: uppercase; color: var(--text);
   display: inline-flex; align-items: center; gap: 8px;
   flex-shrink: 0;
-  /* (FIX #1) 타이틀 선명하게 */
   opacity: 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-/* (FIX #1) 로고 아이콘 크기 키움 */
 .logo-icon {
   width: 34px; height: 34px; border-radius: 7px; object-fit: cover;
 }
@@ -173,7 +171,6 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .bottom-nav-item svg { width: 22px; height: 22px; }
 .bottom-nav-label { font-size: 10px; font-weight: 600; line-height: 1; }
 
-/* (FIX #3) PC에서 하단 네비게이션 바 숨김 */
 @media (min-width: 768px) {
   .bottom-nav { display: none; }
 }
@@ -196,7 +193,6 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .button:hover { background: var(--bg-hover); }
 
 /* ===== LIVE CARD ===== */
-/* (FIX #4) 라이브 카드 - 모바일/PC 동일 크기 + PC 스크롤 버튼 지원 */
 .live-grid-wrapper { position: relative; }
 .live-grid { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 .live-grid::-webkit-scrollbar { height: 0; display: none; }
@@ -228,6 +224,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .tag-row { display: flex; flex-wrap: nowrap; gap: 4px; margin-top: 6px; overflow: hidden; }
 .tag-pill { flex-shrink: 0; font-size: 11px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--tag-border); background: var(--tag-bg); color: var(--tag-text); white-space: nowrap; }
 @keyframes pulse { 0% { transform: scale(0.9); opacity: 0.6; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.9); opacity: 0.6; } }
+
 
 /* (FIX #4) PC 전용 좌우 스크롤 버튼 */
 .live-scroll-btn {
