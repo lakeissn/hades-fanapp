@@ -1,5 +1,5 @@
 import { createUnifiedIconImage } from "../_iconTemplate";
 
 export async function GET() {
-  return createUnifiedIconImage(224, 224);
+  return createUnifiedIconImage(236, 236);
 }
