@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
-  const androidIconVersion = "android-v9";
+  const androidIconVersion = "android-v10";
 
   return {
     name: "",
-    short_name: "HADES INFO",
+    short_name: "",
     description: "하데스 팬앱",
     start_url: "/",
     display: "standalone",
