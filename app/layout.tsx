@@ -1,8 +1,3 @@
-diff --git a/app/layout.tsx b/app/layout.tsx
-index 915db9381001d5e2d59feb3499f488f0f4f5c292..634d840951ee6be6a3c99fd6a7a434db487c087e 100644
---- a/app/layout.tsx
-+++ b/app/layout.tsx
-@@ -1,47 +1,46 @@
  import "./globals.css";
  import AppShell from "../components/AppShell";
  import NotificationPoller from "../components/NotificationPoller";
