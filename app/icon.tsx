@@ -8,5 +8,5 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function Icon() {
-  return createUnifiedIconImage(512, 620);
+  return createUnifiedIconImage(550, 550);
 }
