@@ -2,11 +2,10 @@ import "./globals.css";
 import AppShell from "../components/AppShell";
 import NotificationPoller from "../components/NotificationPoller";
 import NotificationManager from "../components/NotificationManager";
-import StartupSplash from "../components/StartupSplash";
 
 export const metadata = {
   title: "HADES INFO",
-  description: "데스 팬앱",
+  description: "하데스 팬앱",
   themeColor: "#0a0a0a",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -37,7 +36,6 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
       </head>
       <body>
-        <StartupSplash />
         <AppShell>{children}</AppShell>
         {/* FCM 기반 백그라운드 푸시 (서버 발송) */}
         <NotificationManager />
