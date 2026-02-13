@@ -1,9 +1,4 @@
-diff --git a/app/manifest.ts b/app/manifest.ts
-index 03dd6e04b623923cc60e25083c62e7bbd7dbdb84..d6bb8d8e653128802f84cbd93ac74ede54990fa2 100644
---- a/app/manifest.ts
-+++ b/app/manifest.ts
-@@ -1,40 +1,40 @@
- import type { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
  
  export default function manifest(): MetadataRoute.Manifest {
    return {
