@@ -463,7 +463,7 @@ export async function GET(req: Request) {
           const res = await sendFCMMessages(targets, {
             title: "새 투표가 등록되었어요! 🗳️",
             body: latestVote.title,
-            url: latestVote.url || "/votes",
+            url: `/votes?open=${latestVote.id}`,
             tag: `vote-${latestVote.id}`,
           });
           results.push(res);
