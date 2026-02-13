@@ -2,7 +2,6 @@ import "./globals.css";
 import AppShell from "../components/AppShell";
 import NotificationPoller from "../components/NotificationPoller";
 import NotificationManager from "../components/NotificationManager";
-import StartupOverlay from "../components/StartupOverlay";
 
 export const metadata = {
   title: "HADES INFO",
