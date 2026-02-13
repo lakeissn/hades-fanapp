@@ -10,10 +10,17 @@ export default function Loading() {
       }}
     >
       <img
-        src="/icons/hades_helper.png"
-        alt="HADES INFO"
-        width={180}
-        height={180}
+        src="/icons/splash_logo.png"
+        alt=""
+        aria-hidden="true"
+        style={{
+          width: "70vw",
+          maxWidth: 320,
+          maxHeight: "40vh",
+          height: "auto",
+          objectFit: "contain",
+          display: "block",
+        }}
       />
     </main>
   );
