@@ -1,10 +1,4 @@
-diff --git a/app/apple-icon.tsx b/app/apple-icon.tsx
-index 796f06cf4da58cd07481d54142b8eb633bc6fd42..f15e3e4810bcee67ed42533c9841115f21654d90 100644
---- a/app/apple-icon.tsx
-+++ b/app/apple-icon.tsx
-@@ -4,31 +4,31 @@ import { join } from "node:path";
- 
- export const size = {
+export const size = {
    width: 180,
    height: 180,
  };
