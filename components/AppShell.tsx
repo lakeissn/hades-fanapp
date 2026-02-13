@@ -32,6 +32,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [noticeState, setNoticeState] = useState<"hidden" | "default" | "denied">("hidden");
+  const [isNoticeRequesting, setIsNoticeRequesting] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -60,7 +61,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const requestNoticePermission = useCallback(async () => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || isNoticeRequesting) return;
+
+    setIsNoticeRequesting(true);
+    setNoticeState("hidden");
 
     const activated = await activatePush();
     if (activated) {
@@ -80,13 +84,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       window.dispatchEvent(new Event("hades_prefs_changed"));
 
       localStorage.removeItem("hades_notice_dismissed");
-      setNoticeState("hidden");
+      setIsNoticeRequesting(false);
       return;
     }
 
-    if (!("Notification" in window)) return;
-    setNoticeState(Notification.permission === "denied" ? "denied" : "default");
-  }, []);
+    if ("Notification" in window) {
+      setNoticeState(Notification.permission === "denied" ? "denied" : "default");
+    }
+    setIsNoticeRequesting(false);
+  }, [isNoticeRequesting]);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -96,9 +102,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => setMenuOpen(false), [pathname]);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" style={{ height: "100dvh", overflow: "hidden" }}>
       <div className="header-wrap">
-        <header className="header">
+        <header className="header" style={{ borderTop: "none", boxShadow: "none" }}>
           <Link className="logo" href="/" aria-label="HADES INFO 홈으로 이동">
             <img className="logo-icon" src="/icons/hades_helper.png" alt="" width={36} height={36} />
             HADES INFO
@@ -145,7 +151,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {noticeState !== "hidden" && (
-        <div className="notice-banner" role="status" aria-live="polite" style={{ top: "calc(64px + env(safe-area-inset-top, 0px) + 8px)", bottom: "auto", paddingBottom: 12 }}>
+        <div
+          className="notice-banner"
+          role="status"
+          aria-live="polite"
+          style={{ top: "calc(64px + env(safe-area-inset-top, 0px) + 8px)", bottom: "auto", paddingBottom: 12 }}
+        >
           <p>
             {noticeState === "denied"
               ? "알림이 차단되어 있어요. 브라우저 설정에서 허용해 주세요."
@@ -153,11 +164,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </p>
           <div className="notice-actions">
             {noticeState === "default" && (
-              <button type="button" className="notice-allow" onClick={requestNoticePermission}>
+              <button type="button" className="notice-allow" onClick={requestNoticePermission} disabled={isNoticeRequesting}>
                 허용
               </button>
             )}
-            <button type="button" className="notice-later" onClick={hideNotice}>
+            <button type="button" className="notice-later" onClick={hideNotice} disabled={isNoticeRequesting}>
               {noticeState === "denied" ? "닫기" : "나중에"}
             </button>
           </div>
@@ -165,7 +176,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <InstallPrompt />
-      <div className="container">{children}</div>
+      <div
+        className="container"
+        style={{
+          marginTop: "calc(52px + env(safe-area-inset-top, 0px))",
+          height: "calc(100dvh - (52px + env(safe-area-inset-top, 0px)) - (52px + env(safe-area-inset-bottom, 0px)))",
+          overflowY: "auto",
+          overflowX: "hidden",
+          overscrollBehavior: "contain",
+          scrollbarWidth: "thin",
+          paddingTop: 14,
+          paddingBottom: 20,
+        }}
+      >
+        {children}
+      </div>
       <BottomNav />
     </div>
   );
