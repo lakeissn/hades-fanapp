@@ -35,12 +35,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isNoticeRequesting, setIsNoticeRequesting] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("hades_theme") ?? "dark";
-    document.documentElement.setAttribute("data-theme", saved);
-  }, []);
-
-  useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     const dismissed = localStorage.getItem("hades_notice_dismissed") === "1";
     const permission = Notification.permission;
