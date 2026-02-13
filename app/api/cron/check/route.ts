@@ -27,6 +27,7 @@ type AppStateValue = {
   lastNotifiedVoteId?: string;
   lastNotifiedYoutubeId?: string;
   lastNotifiedAt?: string;
+  lastLiveNotifyByMember?: Record<string, string>;
 };
 
 type MemberStatus = {
@@ -61,6 +62,29 @@ type PushTarget = {
   token: string;
   platform: "ios" | "android" | "web" | string;
 };
+
+const LIVE_DUPLICATE_GUARD_MINUTES = Number(
+  process.env.LIVE_DUPLICATE_GUARD_MINUTES ?? "90"
+);
+const LIVE_DUPLICATE_GUARD_MS = LIVE_DUPLICATE_GUARD_MINUTES * 60 * 1000;
+
+function isRecentlyNotified(memberId: string, map: Record<string, string> | undefined) {
+  if (!map?.[memberId]) return false;
+  const prev = new Date(map[memberId]).getTime();
+  if (Number.isNaN(prev)) return false;
+  return Date.now() - prev < LIVE_DUPLICATE_GUARD_MS;
+}
+
+function withLiveNotifyStamp(
+  previous: AppStateValue,
+  memberId: string,
+  stampedAt: string
+): Record<string, string> {
+  return {
+    ...(previous.lastLiveNotifyByMember ?? {}),
+    [memberId]: stampedAt,
+  };
+}
 
 // ─── app_state 헬퍼 ───
 async function loadAppState(key: string): Promise<AppStateValue> {
@@ -391,6 +415,7 @@ export async function GET(req: Request) {
           `live: BOOTSTRAP SEED (상태 초기화, 알림 SKIP) → id=${currentLiveId || "(없음)"}`
         );
         await updateAppState("live", {
+          ...liveState,
           lastNotifiedLiveId: currentLiveId,
           lastNotifiedAt: new Date().toISOString(),
         });
@@ -404,21 +429,37 @@ export async function GET(req: Request) {
         const newLive = liveMembers.filter((m) => !prevSet.has(m.id));
 
         if (newLive.length > 0) {
-          const target = newLive[0];
-          const targets = await getTargetTokens("liveEnabled");
-          const androidCount = targets.filter((t) => t.platform === "android").length;
-          log.push(
-            `live: 신규 ${newLive.length}명 (대상 ${targets.length}명 / android ${androidCount} 우선 발송) [priority=high, urgency=high]`
+          const guardFiltered = newLive.filter(
+            (member) => !isRecentlyNotified(member.id, liveState.lastLiveNotifyByMember)
           );
 
-          if (targets.length > 0) {
-            const res = await sendFCMMessages(targets, {
-              title: `${target.name} 방송 시작! 🔴`,
-              body: target.title || "지금 라이브 중이에요",
-              url: target.liveUrl || "/",
-              tag: `live-${target.id}`,
-            });
-            results.push(res);
+          if (guardFiltered.length === 0) {
+            log.push(
+              `live: 중복 보호로 알림 SKIP (최근 ${LIVE_DUPLICATE_GUARD_MINUTES}분 내 동일 멤버 알림)`
+            );
+          } else {
+            const target = guardFiltered[0];
+            const targets = await getTargetTokens("liveEnabled");
+            const androidCount = targets.filter((t) => t.platform === "android").length;
+            log.push(
+              `live: 신규 ${guardFiltered.length}명 (대상 ${targets.length}명 / android ${androidCount} 우선 발송) [priority=high, urgency=high]`
+            );
+
+            if (targets.length > 0) {
+              const res = await sendFCMMessages(targets, {
+                title: `${target.name} 방송 시작! 🔴`,
+                body: target.title || "지금 라이브 중이에요",
+                url: target.liveUrl || "/",
+                tag: `live-${target.id}`,
+              });
+              results.push(res);
+
+              liveState.lastLiveNotifyByMember = withLiveNotifyStamp(
+                liveState,
+                target.id,
+                new Date().toISOString()
+              );
+            }
           }
         } else {
           log.push("live: 멤버 조합 변경 (새 라이브 없음)");
@@ -426,6 +467,7 @@ export async function GET(req: Request) {
 
         // 성공 시 상태 업데이트
         await updateAppState("live", {
+          ...liveState,
           lastNotifiedLiveId: currentLiveId,
           lastNotifiedAt: new Date().toISOString(),
         });
