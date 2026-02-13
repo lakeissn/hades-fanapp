@@ -34,15 +34,10 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         {/* (FIX #7) viewport-fit=cover로 iPhone 노치/다이나믹 아일랜드 대응 */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{var t=localStorage.getItem('hades_theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
           }}
         />
       </head>
       <body>
-        <StartupOverlay />
         <AppShell>{children}</AppShell>
         {/* FCM 기반 백그라운드 푸시 (서버 발송) */}
         <NotificationManager />
