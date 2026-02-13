@@ -1,48 +1,5 @@
 /* ===== THEME SYSTEM ===== */
-:root, [data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #0a0a0a;
-  --bg-elevated: #141414;
-  --bg-card: #161616;
-  --bg-glass: rgba(20,20,20,0.85);
-  --bg-hover: #1c1c1c;
-  --bg-input: #1a1a1a;
-  --text: #e8e8e8;
-  --text-secondary: #999;
-  --muted: #666;
-  --border: rgba(255,255,255,0.08);
-  --border-strong: rgba(255,255,255,0.14);
-  --primary: #e0e0e0;
-  --accent: #fff;
-  --accent-subtle: rgba(255,255,255,0.06);
-  --accent-badge: #3b82f6;
-  --shadow: 0 1px 3px rgba(0,0,0,0.4);
-  --shadow-lg: 0 4px 20px rgba(0,0,0,0.5);
-  --focus: rgba(255,255,255,0.3);
-  --live-dot: #ef4444;
-  --live-border: rgba(239,68,68,0.6);
-  --live-badge-text: #fff;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --tab-active-bg: #fff;
-  --tab-active-text: #000;
-  --nav-bg: rgba(10,10,10,0.92);
-  --nav-border: rgba(255,255,255,0.06);
-  --bottomnav-bg: rgba(10,10,10,0.95);
-  --modal-bg: #111;
-  --modal-overlay: rgba(0,0,0,0.8);
-  --tag-bg: rgba(255,255,255,0.06);
-  --tag-border: rgba(255,255,255,0.10);
-  --tag-text: #aaa;
-  --chart-green: #22c55e;
-  --install-bg: #181818;
-  --toggle-bg: #333;
-  --toggle-active: #fff;
-  --toggle-dot: #0a0a0a;
-  --toggle-dot-off: #666;
-}
-[data-theme="light"] {
+:root, [data-theme="light"] {
   color-scheme: light;
   --bg: #f5f5f5;
   --bg-elevated: #fff;
@@ -84,6 +41,49 @@
   --toggle-active: #111;
   --toggle-dot: #fff;
   --toggle-dot-off: #999;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0a0a;
+  --bg-elevated: #141414;
+  --bg-card: #161616;
+  --bg-glass: rgba(20,20,20,0.85);
+  --bg-hover: #1c1c1c;
+  --bg-input: #1a1a1a;
+  --text: #e8e8e8;
+  --text-secondary: #999;
+  --muted: #666;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.14);
+  --primary: #e0e0e0;
+  --accent: #fff;
+  --accent-subtle: rgba(255,255,255,0.06);
+  --accent-badge: #3b82f6;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.5);
+  --focus: rgba(255,255,255,0.3);
+  --live-dot: #ef4444;
+  --live-border: rgba(239,68,68,0.6);
+  --live-badge-text: #fff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --tab-active-bg: #fff;
+  --tab-active-text: #000;
+  --nav-bg: rgba(10,10,10,0.92);
+  --nav-border: rgba(255,255,255,0.06);
+  --bottomnav-bg: rgba(10,10,10,0.95);
+  --modal-bg: #111;
+  --modal-overlay: rgba(0,0,0,0.8);
+  --tag-bg: rgba(255,255,255,0.06);
+  --tag-border: rgba(255,255,255,0.10);
+  --tag-text: #aaa;
+  --chart-green: #22c55e;
+  --install-bg: #181818;
+  --toggle-bg: #333;
+  --toggle-active: #fff;
+  --toggle-dot: #0a0a0a;
+  --toggle-dot-off: #666;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
