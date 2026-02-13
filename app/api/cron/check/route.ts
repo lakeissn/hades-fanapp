@@ -358,6 +358,24 @@ function isBootstrap(value?: string) {
   return !value || value.trim() === "";
 }
 
+function buildYoutubeStateId(videos: YouTubeVideo[]): string {
+  return videos
+    .map((video) => video.id)
+    .filter(Boolean)
+    .sort()
+    .join(",");
+}
+
+function parseYoutubeStateIds(value?: string): Set<string> {
+  if (!value) return new Set();
+  return new Set(
+    value
+      .split(/[|,]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+}
+
 export async function GET(req: Request) {
   const log: string[] = [];
   const results: NotifyResult[] = [];
@@ -477,7 +495,7 @@ export async function GET(req: Request) {
     // ════════════════════════════════════════
     // 5-B) VOTE 체크
     // ════════════════════════════════════════
-    if (voteData === null) {
+    if (voteData === null || voteData.length === 0) {
       log.push("vote: SKIP (fetch 실패/빈 데이터)");
     } else {
       const latestVote = voteData[0]; // 최신 1건
@@ -521,42 +539,51 @@ export async function GET(req: Request) {
     // ════════════════════════════════════════
     // 5-C) YOUTUBE 체크
     // ════════════════════════════════════════
-    if (youtubeData === null) {
+    if (youtubeData === null || youtubeData.length === 0) {
       log.push("youtube: SKIP (fetch 실패/빈 데이터)");
     } else {
-      const latestVideo = youtubeData[0]; // 최신 1건
-      const prevYoutubeId = youtubeState.lastNotifiedYoutubeId;
+      const prevYoutubeStateId = youtubeState.lastNotifiedYoutubeId;
+      const currentYoutubeStateId = buildYoutubeStateId(youtubeData);
+      const prevYoutubeIds = parseYoutubeStateIds(prevYoutubeStateId);
 
       // Bootstrap seed 체크
-      if (isBootstrap(prevYoutubeId)) {
+      if (isBootstrap(prevYoutubeStateId)) {
         log.push(
-          `youtube: BOOTSTRAP SEED (상태 초기화, 알림 SKIP) → id=${latestVideo.id}`
+          `youtube: BOOTSTRAP SEED (상태 초기화, 알림 SKIP) → id=${currentYoutubeStateId}`
         );
         await updateAppState("youtube", {
-          lastNotifiedYoutubeId: latestVideo.id,
+          lastNotifiedYoutubeId: currentYoutubeStateId,
           lastNotifiedAt: new Date().toISOString(),
         });
-      } else if (latestVideo.id === prevYoutubeId) {
-        log.push(`youtube: 변경 없음 (id=${prevYoutubeId})`);
       } else {
-        const targets = await getTargetTokens("youtubeEnabled");
-        const androidCount = targets.filter((t) => t.platform === "android").length;
-        log.push(
-          `youtube: 신규 (${latestVideo.id}) 대상: ${targets.length}명 / android ${androidCount} 우선 발송 [priority=high, urgency=high]`
-        );
+        const changedVideos = youtubeData.filter((video) => !prevYoutubeIds.has(video.id));
 
-        if (targets.length > 0) {
-          const res = await sendFCMMessages(targets, {
-            title: `새 ${latestVideo.type === "shorts" ? "Shorts" : "영상"}이 올라왔어요! ▶️`,
-            body: latestVideo.title,
-            url: latestVideo.url || "/",
-            tag: `yt-${latestVideo.id}`,
-          });
-          results.push(res);
+        if (changedVideos.length === 0) {
+          log.push(`youtube: 변경 없음 (id=${prevYoutubeStateId})`);
+        } else {
+          const targets = await getTargetTokens("youtubeEnabled");
+          const androidCount = targets.filter((t) => t.platform === "android").length;
+          log.push(
+            `youtube: 신규 ${changedVideos.length}건 (${changedVideos
+              .map((video) => `${video.type}:${video.id}`)
+              .join(", ")}) 대상: ${targets.length}명 / android ${androidCount} 우선 발송 [priority=high, urgency=high]`
+          );
+
+          if (targets.length > 0) {
+            for (const video of changedVideos) {
+              const res = await sendFCMMessages(targets, {
+                title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}이 올라왔어요! ▶️`,
+                body: video.title,
+                url: video.url || "/",
+                tag: `yt-${video.id}`,
+              });
+              results.push(res);
+            }
+          }
         }
 
         await updateAppState("youtube", {
-          lastNotifiedYoutubeId: latestVideo.id,
+          lastNotifiedYoutubeId: currentYoutubeStateId,
           lastNotifiedAt: new Date().toISOString(),
         });
       }
