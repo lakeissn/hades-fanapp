@@ -5,6 +5,21 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import BottomNav from "./BottomNav";
 import InstallPrompt from "./InstallPrompt";
+import { activatePush } from "./NotificationManager";
+
+type NotificationSettings = {
+  master: boolean;
+  liveBroadcast: boolean;
+  newVote: boolean;
+  newYoutube: boolean;
+};
+
+const DEFAULT_NOTIF_SETTINGS: NotificationSettings = {
+  master: false,
+  liveBroadcast: true,
+  newVote: true,
+  newYoutube: true,
+};
 
 const headerLinks = [
   { href: "/", label: "홈" },
@@ -28,8 +43,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     const dismissed = localStorage.getItem("hades_notice_dismissed") === "1";
     const permission = Notification.permission;
-    if (permission === "granted") { setNoticeState("hidden"); return; }
-    if (permission === "denied") { setNoticeState(dismissed ? "hidden" : "denied"); return; }
+    if (permission === "granted") {
+      setNoticeState("hidden");
+      return;
+    }
+    if (permission === "denied") {
+      setNoticeState(dismissed ? "hidden" : "denied");
+      return;
+    }
     setNoticeState(dismissed ? "hidden" : "default");
   }, []);
 
@@ -39,17 +60,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const requestNoticePermission = useCallback(async () => {
-    if (!("Notification" in window)) return;
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") {
+    if (typeof window === "undefined") return;
+
+    const activated = await activatePush();
+    if (activated) {
+      const raw = localStorage.getItem("hades_notif_settings");
+      let current: NotificationSettings = DEFAULT_NOTIF_SETTINGS;
+
+      if (raw) {
+        try {
+          current = { ...DEFAULT_NOTIF_SETTINGS, ...JSON.parse(raw) } as NotificationSettings;
+        } catch {
+          current = DEFAULT_NOTIF_SETTINGS;
+        }
+      }
+
+      const next = { ...current, master: true };
+      localStorage.setItem("hades_notif_settings", JSON.stringify(next));
+      window.dispatchEvent(new Event("hades_prefs_changed"));
+
       localStorage.removeItem("hades_notice_dismissed");
       setNoticeState("hidden");
-      if ("serviceWorker" in navigator) {
-        try { await navigator.serviceWorker.register("/firebase-messaging-sw.js"); } catch {}
-      }
       return;
     }
-    setNoticeState(permission === "denied" ? "denied" : "default");
+
+    if (!("Notification" in window)) return;
+    setNoticeState(Notification.permission === "denied" ? "denied" : "default");
   }, []);
 
   const isActive = (href: string) => {
@@ -64,14 +100,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="header-wrap">
         <header className="header">
           <Link className="logo" href="/" aria-label="HADES INFO 홈으로 이동">
-            {/* (FIX #1) 로고 아이콘 크기 키움: 28→36 */}
-            <img
-              className="logo-icon"
-              src="/icons/hades_helper.png"
-              alt=""
-              width={36}
-              height={36}
-            />
+            <img className="logo-icon" src="/icons/hades_helper.png" alt="" width={36} height={36} />
             HADES INFO
           </Link>
 
@@ -116,7 +145,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {noticeState !== "hidden" && (
-        <div className="notice-banner" role="status" aria-live="polite">
+        <div className="notice-banner" role="status" aria-live="polite" style={{ top: "calc(64px + env(safe-area-inset-top, 0px) + 8px)", bottom: "auto", paddingBottom: 12 }}>
           <p>
             {noticeState === "denied"
               ? "알림이 차단되어 있어요. 브라우저 설정에서 허용해 주세요."
