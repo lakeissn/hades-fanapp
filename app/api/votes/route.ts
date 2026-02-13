@@ -59,7 +59,8 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
   higher: "하이어",
 };
 
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 5 * 60_000;
+const REQUEST_TIMEOUT_MS = 4_500;
 const KST_SUFFIX = "+09:00";
 
 let memoryCache:
@@ -68,6 +69,8 @@ let memoryCache:
       data: VoteItem[];
     }
   | null = null;
+
+let inFlightRequest: Promise<VoteItem[]> | null = null;
 
 function normalizeBoolean(value: string) {
   const normalized = value.trim().toLowerCase();
@@ -211,63 +214,97 @@ function parseCsv(content: string) {
   });
 }
 
+async function fetchVotesCsv(csvUrl: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(csvUrl, {
+      next: { revalidate: 60 },
+      headers: {
+        Accept: "text/csv,*/*;q=0.9",
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch votes csv: ${response.status}`);
+    }
+
+    return response.text();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function loadVotesFromSheet() {
   const now = Date.now();
+
   if (memoryCache && memoryCache.expiresAt > now) {
     return memoryCache.data;
   }
 
-  const csvUrl = process.env.VOTES_SHEET_CSV_URL ?? FALLBACK_CSV_URL;
-  const response = await fetch(csvUrl, {
-    next: { revalidate: 60 },
-    headers: {
-      Accept: "text/csv,*/*;q=0.9",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch votes csv: ${response.status}`);
+  if (inFlightRequest) {
+    return inFlightRequest;
   }
 
-  const csv = await response.text();
-  const parsedRows = parseCsv(csv);
+  inFlightRequest = (async () => {
+    const csvUrl = process.env.VOTES_SHEET_CSV_URL ?? FALLBACK_CSV_URL;
+    const csv = await fetchVotesCsv(csvUrl);
+    const parsedRows = parseCsv(csv);
 
-  const filteredVotes = parsedRows
-    .filter((row) => normalizeBoolean(row.enabled ?? ""))
-    .filter((row) => !isExpired(row.closesAt ?? ""))
-    .map((row) => {
-      const platforms = parsePlatforms(row.platform ?? "");
-      const rawOpensAt = row.opensAt?.trim() ?? "";
-      const openDate = parseDateKst(rawOpensAt);
-      const closeDate = parseDateKst(row.closesAt ?? "");
+    const filteredVotes = parsedRows
+      .filter((row) => normalizeBoolean(row.enabled ?? ""))
+      .filter((row) => !isExpired(row.closesAt ?? ""))
+      .map((row) => {
+        const platforms = parsePlatforms(row.platform ?? "");
+        const rawOpensAt = row.opensAt?.trim() ?? "";
+        const openDate = parseDateKst(rawOpensAt);
+        const closeDate = parseDateKst(row.closesAt ?? "");
 
-      return {
-        id: createStableId(row),
-        title: row.title?.trim() ?? "",
-        platform: platforms[0],
-        platformLabel: labelForPlatform(platforms[0]),
-        platforms,
-        platformLabels: platforms.map(labelForPlatform),
-        url: row.url?.trim() ?? "",
-        opensAt: isInProgressKeyword(rawOpensAt) ? "진행중" : openDate ? openDate.toISOString() : undefined,
-        closesAt: closeDate ? closeDate.toISOString() : undefined,
-        note: row.note?.trim() || undefined,
-      } as VoteItem;
-    })
-    .filter((vote) => vote.title && vote.url);
+        return {
+          id: createStableId(row),
+          title: row.title?.trim() ?? "",
+          platform: platforms[0],
+          platformLabel: labelForPlatform(platforms[0]),
+          platforms,
+          platformLabels: platforms.map(labelForPlatform),
+          url: row.url?.trim() ?? "",
+          opensAt: isInProgressKeyword(rawOpensAt) ? "진행중" : openDate ? openDate.toISOString() : undefined,
+          closesAt: closeDate ? closeDate.toISOString() : undefined,
+          note: row.note?.trim() || undefined,
+        } as VoteItem;
+      })
+      .filter((vote) => vote.title && vote.url);
 
-  memoryCache = {
-    expiresAt: now + CACHE_TTL_MS,
-    data: filteredVotes,
-  };
+    memoryCache = {
+      expiresAt: Date.now() + CACHE_TTL_MS,
+      data: filteredVotes,
+    };
 
-  return filteredVotes;
+    return filteredVotes;
+  })();
+
+  try {
+    return await inFlightRequest;
+  } catch (error) {
+    if (memoryCache?.data?.length) {
+      return memoryCache.data;
+    }
+    throw error;
+  } finally {
+    inFlightRequest = null;
+  }
 }
 
 export async function GET() {
   try {
     const votes = await loadVotesFromSheet();
-    return NextResponse.json(votes);
+    return NextResponse.json(votes, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   } catch {
     return NextResponse.json([], { status: 200 });
   }
