@@ -1,8 +1,4 @@
-diff --git a/app/icon.tsx b/app/icon.tsx
-index ed111078f6125d54cbb3cd6e97d5ed4ede67734c..b684a654ec2f81a65c91e420f0898b800126e9ff 100644
---- a/app/icon.tsx
-+++ b/app/icon.tsx
-@@ -5,31 +5,31 @@ import { join } from "node:path";
+import { join } from "node:path";
  export const size = {
    width: 512,
    height: 512,
