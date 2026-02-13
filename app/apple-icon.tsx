@@ -8,5 +8,5 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function AppleIcon() {
-  return createUnifiedIconImage(220 220);
+  return createUnifiedIconImage(220, 220);
 }
