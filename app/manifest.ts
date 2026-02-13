@@ -5,8 +5,8 @@ export default function manifest(): MetadataRoute.Manifest {
 
   return {
     name: "",
-    short_name: "",
-    description: "하데스 팬앱",
+    short_name: "HADES INFO",
+    description: "하데스에 대한 정보를 빠르게 받아보세요",
     start_url: "/",
     display: "standalone",
     background_color: "#000000",
