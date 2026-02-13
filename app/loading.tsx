@@ -1,33 +1,13 @@
 export default function Loading() {
+  // loading.tsx는 route 전환 시 Next.js Suspense fallback으로 사용됨.
+  // 콜드 스타트 스플래시는 layout.tsx의 #__splash가 담당하므로,
+  // 여기서는 검정 배경만 유지하여 전환 시 깜빡임을 방지.
   return (
     <main
       style={{
         minHeight: "100dvh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         background: "#000",
-        overflow: "hidden",
       }}
-    >
-      <img
-        src="/icons/splash_logo.png"
-        alt=""
-        aria-hidden="true"
-        style={{
-          width: "clamp(220px, 72vw, 520px)",
-          maxHeight: "42vh",
-          height: "auto",
-          objectFit: "contain",
-          display: "block",
-          background: "transparent",
-          border: "none",
-          boxShadow: "none",
-          padding: 0,
-          transform: "scale(1.9)",
-          transformOrigin: "center",
-        }}
-      />
-    </main>
+    />
   );
 }
