@@ -102,7 +102,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => setMenuOpen(false), [pathname]);
 
   return (
-    <div className="app-shell" style={{ height: "100dvh", overflow: "hidden" }}>
+    <div className="app-shell">
       <div className="header-wrap">
         <header className="header" style={{ borderTop: "none", boxShadow: "none" }}>
           <Link className="logo" href="/" aria-label="HADES INFO 홈으로 이동">
@@ -176,19 +176,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <InstallPrompt />
-      <div
-        className="container"
-        style={{
-          marginTop: "calc(52px + env(safe-area-inset-top, 0px))",
-          height: "calc(100dvh - (52px + env(safe-area-inset-top, 0px)) - (52px + env(safe-area-inset-bottom, 0px)))",
-          overflowY: "auto",
-          overflowX: "hidden",
-          overscrollBehavior: "contain",
-          scrollbarWidth: "thin",
-          paddingTop: 14,
-          paddingBottom: 20,
-        }}
-      >
+      <div className="container">
         {children}
       </div>
       <BottomNav />
