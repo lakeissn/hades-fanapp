@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import VoteAccordionItem from "./VoteAccordionItem";
 
 export type VoteItem = {
@@ -16,10 +16,19 @@ export type VoteItem = {
 
 type VotesAccordionProps = {
   votes: VoteItem[];
+  openVoteId?: string | null;
 };
 
-export default function VotesAccordion({ votes }: VotesAccordionProps) {
-  const [openId, setOpenId] = useState<string | null>(null);
+export default function VotesAccordion({ votes, openVoteId = null }: VotesAccordionProps) {
+  const [openId, setOpenId] = useState<string | null>(openVoteId);
+
+  useEffect(() => {
+    if (!openVoteId) return;
+    const exists = votes.some((vote) => vote.id === openVoteId);
+    if (exists) {
+      setOpenId(openVoteId);
+    }
+  }, [openVoteId, votes]);
 
   return (
     <div className="votes-accordion">
