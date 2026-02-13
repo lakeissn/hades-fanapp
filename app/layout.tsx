@@ -2,6 +2,7 @@ import "./globals.css";
 import AppShell from "../components/AppShell";
 import NotificationPoller from "../components/NotificationPoller";
 import NotificationManager from "../components/NotificationManager";
+import StartupOverlay from "../components/StartupOverlay";
 
 export const metadata = {
   title: "HADES INFO",
@@ -36,6 +37,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
       </head>
       <body>
+        <StartupOverlay />
         <AppShell>{children}</AppShell>
         {/* FCM 기반 백그라운드 푸시 (서버 발송) */}
         <NotificationManager />
