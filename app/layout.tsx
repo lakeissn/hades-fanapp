@@ -14,10 +14,8 @@ index 915db9381001d5e2d59feb3499f488f0f4f5c292..634d840951ee6be6a3c99fd6a7a434db
    themeColor: "#0a0a0a",
    manifest: "/manifest.webmanifest",
    icons: {
--    icon: "/icons/hades_helper.png",
--    apple: "/icons/hades_helper.png",
-+    icon: "/icon",
-+    apple: "/apple-icon",
+    icon: "/icon",
+    apple: "/apple-icon",
    },
    viewport: {
      width: "device-width",
