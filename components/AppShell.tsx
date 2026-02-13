@@ -163,7 +163,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </button>
             )}
             <button type="button" className="notice-later" onClick={hideNotice} disabled={isNoticeRequesting}>
-              {noticeState === "denied" ? "닫기" : "나중에"}
+              {noticeState === "denied" ? "닫" : "나중에"}
             </button>
           </div>
         </div>
