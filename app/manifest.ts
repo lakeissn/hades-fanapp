@@ -14,26 +14,19 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/icon-192",
         sizes: "192x192",
         type: "image/png",
-        purpose: "any",
+        purpose: "any maskable",
       },
       {
         src: "/icon-512",
         sizes: "512x512",
         type: "image/png",
-        purpose: "any",
+        purpose: "any maskable",
       },
       {
         src: "/apple-icon.png",
         sizes: "180x180",
         type: "image/png",
         purpose: "any",
-      },
-      /* (FIX #5) maskable 아이콘 별도 제공 → Android에서 적응형 아이콘으로 표시 */
-      {
-        src: "/icon-512",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "maskable",
       },
     ],
   };
