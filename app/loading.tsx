@@ -12,9 +12,8 @@ export default function Loading() {
       <img
         src="/icons/hades_helper.png"
         alt="HADES INFO"
-        width={92}
-        height={92}
-        style={{ borderRadius: 14 }}
+        width={180}
+        height={180}
       />
     </main>
   );
