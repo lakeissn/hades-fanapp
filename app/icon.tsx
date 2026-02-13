@@ -28,8 +28,7 @@ index ed111078f6125d54cbb3cd6e97d5ed4ede67734c..b684a654ec2f81a65c91e420f0898b80
          }}
        >
          {/* (FIX #5) 로고 크기 키움: 470→400 (여백 확보하여 모든 디바이스에서 예쁘게) */}
--        <img src={src} width={400} height={400} alt="Hades helper" />
-+        <img src={src} width={370} height={370} alt="Hades helper" />
+         <img src={src} width={340} height={340} alt="Hades helper" />
        </div>
      ),
      size
