@@ -562,7 +562,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
     overflow-x: auto;
     scroll-snap-type: x mandatory;
   }
-  .live-card { flex: 0 0 85%; min-width: 280px; }
+  .live-card { flex: 0 0 52%; min-width: 340px; }
   .live-scroll-btn { display: flex; }
   .live-body { padding: 14px 16px; }
   .live-name { font-size: 15px; }
@@ -582,7 +582,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .modal-content { max-width: 620px; }
 
   /* (FIX #3) PC에서 하단 패딩 줄임 (bottom nav 없으므로) */
-  .notice-banner { bottom: 20px; }
+  .notice-banner { top: calc(64px + env(safe-area-inset-top, 0px) + 12px); }
   .install-prompt { bottom: 20px; }
 }
 
