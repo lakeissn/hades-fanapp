@@ -11,7 +11,7 @@ const guideData = {
     title: "스트리밍 가이드",
     subtitle: "멜론/유튜브 스밍 설정법",
     items: [
-      {
+       {
         id: "melon-setup",
         title: "멜론 스밍 설정",
         description: "멜론에서 음원 스트리밍 반영을 위한 필수 설정",
@@ -41,7 +41,6 @@ const guideData = {
         images: ["/guides/images/sound_assi.jpg"],
       },
     ],
-  },
   gift: {
     title: "선물하기 가이드",
     subtitle: "멜론 음원 선물하기 방법",
@@ -54,8 +53,8 @@ const guideData = {
         tag: "present",
         hasDeviceImages: true,
         images: [],
-        pcImages: ["/guides/images/present_mobile.jpg],
-        mobileImages: ["/guides/images/present_pc.jpg"],
+        pcImages: ["/guides/images/present_pc.jpg"],
+        mobileImages: ["/guides/images/present_mobile.jpg"],
       },
     ],
   },
@@ -71,8 +70,8 @@ const guideData = {
         tag: "down",
         hasDeviceImages: true,
         images: [],
-        pcImages: ["/guides/images/download_mobile.jpg"],
-        mobileImages: ["/guides/images/download_pc.jpg"],
+        pcImages: ["/guides/images/download_pc.jpg"],
+        mobileImages: ["/guides/images/download_mobile.jpg"],
       },
     ],
   },
