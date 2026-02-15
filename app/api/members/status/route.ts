@@ -52,36 +52,18 @@ type MemberStatus = {
   fetchedAt: string;
 };
 
-type BroadListItem = {
-  user_id?: string;
-  broad_no?: number | string;
-  broad_title?: string;
-  broad_thumb?: string;
-  broad_cate_no?: number | string;
-  broad_start?: string;
-  total_view_cnt?: number | string;
-};
+type JsonObject = Record<string, unknown>;
 
-type BroadListResponse = {
-  broad?: BroadListItem[];
-};
-
-type BroadListFetchOptions = {
-  orderType: "view_cnt" | "broad_start";
-  startPage: 0 | 1;
-  selectKey?: "cate" | "lang";
-  selectValue?: string;
-};
-
-const OPEN_API_ENDPOINT = "https://openapi.sooplive.co.kr/broad/list";
-const MAX_PAGE = Number(process.env.SOOPLIVE_BROAD_LIST_MAX_PAGE ?? "12");
+const CHAPI_BASE_URL = "https://chapi.sooplive.co.kr/api";
 const CACHE_TTL_MS = 20_000;
 
-let cached: { data: MemberStatus[]; expiresAt: number } | null = null;
+const COMMON_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  accept: "application/json,text/plain,*/*",
+};
 
-function resolveClientId() {
-  return process.env.SOOPLIVE_CLIENT_ID ?? process.env.SOOPlIVE_CLIENT_ID ?? "";
-}
+let cached: { data: MemberStatus[]; expiresAt: number } | null = null;
 
 function normalizeThumbUrl(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
@@ -90,7 +72,8 @@ function normalizeThumbUrl(raw: unknown): string | null {
 
   if (value.startsWith("//")) return `https:${value}`;
   if (/^https?:\/\//i.test(value)) return value;
-  return `https://${value.replace(/^\/+/, "")}`;
+  if (value.startsWith("/")) return `https://ch.sooplive.co.kr${value}`;
+  return `https://${value}`;
 }
 
 function parseBroadNo(raw: unknown): string | null {
@@ -101,23 +84,227 @@ function parseBroadNo(raw: unknown): string | null {
   if (typeof raw === "string") {
     const normalized = raw.trim();
     if (!normalized) return null;
-    const digits = normalized.match(/\d+/)?.[0];
-    return digits ?? null;
+
+    const directDigits = normalized.match(/^\d+$/)?.[0];
+    if (directDigits) return directDigits;
+
+    const embeddedDigits = normalized.match(/(\d{6,})/);
+    if (embeddedDigits?.[1]) return embeddedDigits[1];
   }
 
   return null;
 }
 
-function buildLiveUrl(userId: string, broadNo: string | null) {
-  if (!broadNo) return `https://play.sooplive.co.kr/${userId}`;
+function buildLiveUrl(userId: string, broadNo: string | null): string | null {
+  if (!broadNo) return null;
   return `https://play.sooplive.co.kr/${userId}/${broadNo}`;
 }
 
-function extractTags(item: BroadListItem): string[] {
-  if (item.broad_cate_no === undefined || item.broad_cate_no === null) return [];
+function asObject(value: unknown): JsonObject | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as JsonObject;
+}
 
-  const cate = String(item.broad_cate_no).trim();
-  return cate ? [`cate:${cate}`] : [];
+function pickByPaths(source: JsonObject, paths: string[][]): unknown {
+  for (const path of paths) {
+    let cursor: unknown = source;
+
+    for (const key of path) {
+      const obj = asObject(cursor);
+      if (!obj || !(key in obj)) {
+        cursor = null;
+        break;
+      }
+      cursor = obj[key];
+    }
+
+    if (cursor !== null && cursor !== undefined) return cursor;
+  }
+
+  return undefined;
+}
+
+function toNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function liveFlagFromUnknown(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value > 0;
+  if (typeof value !== "string") return null;
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return null;
+
+  if (["y", "yes", "true", "1", "live", "on", "open", "playing"].includes(normalized)) {
+    return true;
+  }
+
+  if (["n", "no", "false", "0", "offline", "off", "close", "closed"].includes(normalized)) {
+    return false;
+  }
+
+  return null;
+}
+
+function collectTags(source: JsonObject): string[] {
+  const values = new Set<string>();
+
+  const candidatePaths: string[][] = [
+    ["station", "broad_cate_name"],
+    ["station", "cate_name"],
+    ["channel", "broad_cate_name"],
+    ["channel", "cate_name"],
+    ["broad", "broad_cate_name"],
+    ["broad", "cate_name"],
+    ["station", "broad_cate_no"],
+    ["channel", "broad_cate_no"],
+    ["broad", "broad_cate_no"],
+  ];
+
+  for (const path of candidatePaths) {
+    const found = pickByPaths(source, [path]);
+    const text = toNonEmptyString(found) ?? (typeof found === "number" ? String(found) : null);
+    if (text) values.add(text);
+  }
+
+  const tagArrayCandidates = [
+    pickByPaths(source, [["station", "hash_tags"]]),
+    pickByPaths(source, [["station", "tags"]]),
+    pickByPaths(source, [["channel", "hash_tags"]]),
+    pickByPaths(source, [["channel", "tags"]]),
+    pickByPaths(source, [["broad", "hash_tags"]]),
+    pickByPaths(source, [["broad", "tags"]]),
+  ];
+
+  for (const candidate of tagArrayCandidates) {
+    if (!Array.isArray(candidate)) continue;
+    for (const item of candidate) {
+      const text = toNonEmptyString(item);
+      if (text) values.add(text);
+    }
+  }
+
+  return Array.from(values).slice(0, 7);
+}
+
+function parseStationStatus(userId: string, payload: unknown) {
+  const root = asObject(payload);
+  if (!root) {
+    return {
+      isLive: false,
+      liveUrl: null,
+      title: null,
+      thumbUrl: null,
+      tags: [] as string[],
+    };
+  }
+
+  const broadNoRaw = pickByPaths(root, [
+    ["station", "broad_no"],
+    ["station", "bno"],
+    ["channel", "broad_no"],
+    ["channel", "BNO"],
+    ["broad", "broad_no"],
+    ["broad_no"],
+    ["bno"],
+    ["BNO"],
+  ]);
+  const broadNo = parseBroadNo(broadNoRaw);
+
+  const explicitLiveValue = pickByPaths(root, [
+    ["station", "is_live"],
+    ["station", "live_yn"],
+    ["station", "is_broad"],
+    ["station", "broad_yn"],
+    ["station", "is_onair"],
+    ["station", "onair"],
+    ["station", "broad_status"],
+    ["channel", "is_live"],
+    ["channel", "live_yn"],
+    ["channel", "is_broad"],
+    ["channel", "broad_yn"],
+    ["channel", "is_onair"],
+    ["channel", "onair"],
+    ["channel", "channel_status"],
+    ["channel", "CHANNEL_STATUS"],
+    ["broad", "is_live"],
+    ["broad", "live_yn"],
+    ["broad", "broad_status"],
+    ["is_live"],
+    ["live_yn"],
+    ["is_broad"],
+    ["broad_yn"],
+    ["onair"],
+    ["channel_status"],
+    ["CHANNEL_STATUS"],
+  ]);
+
+  const explicitLive = liveFlagFromUnknown(explicitLiveValue);
+  const isLive = explicitLive ?? !!broadNo;
+
+  const title = toNonEmptyString(
+    pickByPaths(root, [
+      ["station", "broad_title"],
+      ["channel", "broad_title"],
+      ["broad", "broad_title"],
+      ["station", "title"],
+      ["channel", "title"],
+      ["broad", "title"],
+      ["broad_title"],
+      ["title"],
+    ])
+  );
+
+  const thumbUrl = normalizeThumbUrl(
+    pickByPaths(root, [
+      ["station", "broad_thumb"],
+      ["channel", "broad_thumb"],
+      ["broad", "broad_thumb"],
+      ["station", "thumb"],
+      ["channel", "thumb"],
+      ["broad", "thumb"],
+      ["station", "thumb_url"],
+      ["channel", "thumb_url"],
+      ["broad", "thumb_url"],
+      ["broad_thumb"],
+      ["thumb"],
+      ["thumb_url"],
+    ])
+  );
+
+  return {
+    isLive,
+    liveUrl: isLive ? buildLiveUrl(userId, broadNo) ?? `https://play.sooplive.co.kr/${userId}` : null,
+    title: isLive ? title : null,
+    thumbUrl: isLive ? thumbUrl : null,
+    tags: isLive ? collectTags(root) : [],
+  };
+}
+
+async function fetchStationStatus(userId: string): Promise<Omit<MemberStatus, "id" | "name" | "soopUrl" | "avatarUrl" | "fetchedAt">> {
+  const endpoint = `${CHAPI_BASE_URL}/${encodeURIComponent(userId)}/station`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: COMMON_HEADERS,
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.warn(`[members/status] station api failed for ${userId}: ${response.status}`);
+      return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
+    }
+
+    const payload = (await response.json()) as unknown;
+    return parseStationStatus(userId, payload);
+  } catch (error) {
+    console.warn(`[members/status] station api error for ${userId}:`, error);
+    return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
+  }
 }
 
 function buildOfflineStatuses(nowIso: string): MemberStatus[] {
@@ -132,160 +319,41 @@ function buildOfflineStatuses(nowIso: string): MemberStatus[] {
   }));
 }
 
-function buildStatusesFromLiveMap(liveMap: Map<string, BroadListItem>, nowIso: string): MemberStatus[] {
-  return members.map((member) => {
-    const live = liveMap.get(member.id);
-
-    if (!live) {
-      return {
-        ...member,
-        isLive: false,
-        liveUrl: null,
-        title: null,
-        thumbUrl: null,
-        tags: [],
-        fetchedAt: nowIso,
-      };
-    }
-
-    const broadNo = parseBroadNo(live.broad_no);
-
-    return {
-      ...member,
-      isLive: true,
-      liveUrl: buildLiveUrl(member.id, broadNo),
-      title:
-        typeof live.broad_title === "string" && live.broad_title.trim().length > 0
-          ? live.broad_title.trim()
-          : null,
-      thumbUrl: normalizeThumbUrl(live.broad_thumb),
-      tags: extractTags(live),
-      fetchedAt: nowIso,
-    };
-  });
-}
-
-async function fetchBroadListPage(clientId: string, pageNo: number, options: BroadListFetchOptions) {
-  const params = new URLSearchParams({
-    client_id: clientId,
-    page_no: String(pageNo),
-    order_type: options.orderType,
-  });
-
-  if (options.selectKey && options.selectValue) {
-    params.set("select_key", options.selectKey);
-    params.set("select_value", options.selectValue);
-  }
-
-  const response = await fetch(`${OPEN_API_ENDPOINT}?${params.toString()}`, {
-    method: "GET",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`broad/list request failed (${options.orderType}, page ${pageNo}): ${response.status}`);
-  }
-
-  const json = (await response.json()) as BroadListResponse;
-  return Array.isArray(json.broad) ? json.broad : [];
-}
-
-async function collectLiveMap(
-  clientId: string,
-  options: BroadListFetchOptions,
-  seedMap?: Map<string, BroadListItem>
-) {
-  const targetIds = new Set(members.map((member) => member.id));
-  const liveMap = seedMap ? new Map(seedMap) : new Map<string, BroadListItem>();
-
-  for (let offset = 0; offset < MAX_PAGE; offset += 1) {
-    const pageNo = options.startPage + offset;
-    const broadList = await fetchBroadListPage(clientId, pageNo, options);
-
-    if (broadList.length === 0) break;
-
-    for (const item of broadList) {
-      const userId = typeof item.user_id === "string" ? item.user_id.trim() : "";
-      if (!userId || !targetIds.has(userId)) continue;
-
-      if (!liveMap.has(userId)) {
-        liveMap.set(userId, item);
-      }
-    }
-
-    if (liveMap.size === targetIds.size) break;
-  }
-
-  return liveMap;
-}
-
-async function fetchLiveMapFromOpenApi(clientId: string) {
-  const selectKey =
-    (process.env.SOOPLIVE_BROAD_LIST_SELECT_KEY as "cate" | "lang" | undefined) ?? undefined;
-  const selectValue = process.env.SOOPLIVE_BROAD_LIST_SELECT_VALUE;
-  const primaryOrder =
-    (process.env.SOOPLIVE_BROAD_LIST_ORDER_TYPE as "view_cnt" | "broad_start" | undefined) ??
-    "view_cnt";
-  const secondaryOrder = primaryOrder === "view_cnt" ? "broad_start" : "view_cnt";
-
-  const strategyOptions: BroadListFetchOptions[] = [
-    { orderType: primaryOrder, startPage: 1, selectKey, selectValue },
-    { orderType: primaryOrder, startPage: 0, selectKey, selectValue },
-    { orderType: secondaryOrder, startPage: 1, selectKey, selectValue },
-    { orderType: secondaryOrder, startPage: 0, selectKey, selectValue },
-  ];
-
-  let liveMap = new Map<string, BroadListItem>();
-
-  for (const options of strategyOptions) {
-    liveMap = await collectLiveMap(clientId, options, liveMap);
-    if (liveMap.size === members.length) break;
-  }
-
-  return liveMap;
-}
-
 export async function GET() {
   const now = Date.now();
-
   if (cached && cached.expiresAt > now) {
     return NextResponse.json(cached.data);
   }
 
   const nowIso = new Date().toISOString();
-  const clientId = resolveClientId();
-
-  if (!clientId) {
-    console.warn("[members/status] SOOP OpenAPI client_id missing. Fallback to offline.");
-
-    const fallbackData = cached?.data ?? buildOfflineStatuses(nowIso);
-    cached = {
-      data: fallbackData,
-      expiresAt: now + CACHE_TTL_MS,
-    };
-
-    return NextResponse.json(fallbackData);
-  }
 
   try {
-    const liveMap = await fetchLiveMapFromOpenApi(clientId);
-    const data = buildStatusesFromLiveMap(liveMap, nowIso);
+    const statuses = await Promise.all(
+      members.map(async (member) => {
+        const station = await fetchStationStatus(member.id);
+        return {
+          ...member,
+          ...station,
+          fetchedAt: nowIso,
+        };
+      })
+    );
 
     cached = {
-      data,
+      data: statuses,
       expiresAt: now + CACHE_TTL_MS,
     };
 
-    return NextResponse.json(data);
+    return NextResponse.json(statuses);
   } catch (error) {
-    console.error("[members/status] broad/list fetch failed:", error);
+    console.error("[members/status] unexpected error:", error);
 
-    const fallbackData = cached?.data ?? buildOfflineStatuses(nowIso);
+    const fallback = cached?.data ?? buildOfflineStatuses(nowIso);
     cached = {
-      data: fallbackData,
+      data: fallback,
       expiresAt: now + CACHE_TTL_MS,
     };
 
-    return NextResponse.json(fallbackData);
+    return NextResponse.json(fallback);
   }
 }
