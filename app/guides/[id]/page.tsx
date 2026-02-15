@@ -73,7 +73,7 @@ const guideData: Record<string, GuideCategory> = {
         tag: "present",
         hasDeviceImages: true,
         images: [],
-        pcImages: ["/guides/images/present_pc.jpg],
+        pcImages: ["/guides/images/present_pc.jpg"],
         mobileImages: ["/guides/images/present_mobile.jpg"],
       },
     ],
