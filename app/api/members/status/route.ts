@@ -48,6 +48,7 @@ type MemberStatus = {
   liveUrl: string | null;
   title: string | null;
   thumbUrl: string | null;
+  liveStartedAt: string | null;
   tags: string[];
   fetchedAt: string;
 };
@@ -168,6 +169,30 @@ function toNonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function normalizeDateTime(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const unitNormalized = value > 1_000_000_000_000 ? value : value * 1000;
+    const date = new Date(unitNormalized);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
+  const raw = toNonEmptyString(value);
+  if (!raw) return null;
+
+  const direct = new Date(raw);
+  if (!Number.isNaN(direct.getTime())) return direct.toISOString();
+
+  const normalized = raw.replace(/\./g, "-").replace(/\//g, "-").replace(/\s+/g, " ").trim();
+  const withSeconds = /\d{2}:\d{2}:\d{2}$/.test(normalized)
+    ? normalized
+    : /\d{2}:\d{2}$/.test(normalized)
+      ? `${normalized}:00`
+      : `${normalized} 00:00:00`;
+
+  const parsed = new Date(`${withSeconds.replace(" ", "T")}+09:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 function liveFlagFromUnknown(value: unknown): boolean | null {
@@ -417,6 +442,7 @@ function parseStationStatus(userId: string, payload: unknown): StationLiveFields
       liveUrl: null,
       title: null,
       thumbUrl: null,
+      liveStartedAt: null,
       tags: [],
     };
   }
@@ -499,12 +525,38 @@ function parseStationStatus(userId: string, payload: unknown): StationLiveFields
   );
 
   const liveUrl = isLive ? buildLiveUrl(userId, broadNo) : null;
+  const liveStartedAt = normalizeDateTime(
+    pickByPaths(root, [
+      ["station", "broad_start"],
+      ["station", "broad_start_time"],
+      ["station", "broad_start_datetime"],
+      ["station", "start_time"],
+      ["station", "start_at"],
+      ["channel", "broad_start"],
+      ["channel", "broad_start_time"],
+      ["channel", "broad_start_datetime"],
+      ["channel", "start_time"],
+      ["channel", "start_at"],
+      ["broad", "broad_start"],
+      ["broad", "broad_start_time"],
+      ["broad", "broad_start_datetime"],
+      ["broad", "start_time"],
+      ["broad", "start_at"],
+      ["broad_start"],
+      ["broad_start_time"],
+      ["broad_start_datetime"],
+      ["start_time"],
+      ["start_at"],
+      ["reg_date"],
+    ])
+  );
 
   return {
     isLive,
     liveUrl,
     title: isLive ? title : null,
     thumbUrl: isLive ? thumbUrl : null,
+    liveStartedAt: isLive ? liveStartedAt : null,
     tags: isLive ? collectTagsFromStation(root) : [],
   };
 }
@@ -521,14 +573,14 @@ async function fetchStationStatus(userId: string): Promise<StationLiveFields> {
 
     if (!response.ok) {
       console.warn(`[members/status] station api failed for ${userId}: ${response.status}`);
-      return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
+      return { isLive: false, liveUrl: null, title: null, thumbUrl: null, liveStartedAt: null, tags: [] };
     }
 
     const payload = (await response.json()) as unknown;
     return parseStationStatus(userId, payload);
   } catch (error) {
     console.warn(`[members/status] station api error for ${userId}:`, error);
-    return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
+    return { isLive: false, liveUrl: null, title: null, thumbUrl: null, liveStartedAt: null, tags: [] };
   }
 }
 
@@ -539,6 +591,7 @@ function buildOfflineStatuses(nowIso: string): MemberStatus[] {
     liveUrl: null,
     title: null,
     thumbUrl: null,
+    liveStartedAt: null,
     tags: [],
     fetchedAt: nowIso,
   }));
@@ -573,6 +626,7 @@ export async function GET() {
           ...member,
           ...station,
           thumbUrl: liveImgThumb ?? station.thumbUrl ?? member.avatarUrl,
+          liveStartedAt: station.liveStartedAt,
           tags,
           fetchedAt: nowIso,
         };
