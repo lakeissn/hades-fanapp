@@ -96,13 +96,17 @@ type LiveApiResponse = {
 };
 
 const COMMON_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 };
 
 let cached: { data: MemberStatus[]; expiresAt: number } | null = null;
 
 function pickFirstString(...values: Array<string | undefined | null>) {
-  return values.find((value) => typeof value === "string" && value.trim().length > 0) ?? null;
+  return (
+    values.find((value) => typeof value === "string" && value.trim().length > 0) ??
+    null
+  );
 }
 
 function parseBroadcastNo(raw: unknown): string | null {
@@ -114,7 +118,6 @@ function parseBroadcastNo(raw: unknown): string | null {
     const normalized = raw.trim();
     if (!normalized) return null;
 
-    // 예: "291653116", "bno=291653116", "291653116/" 형태 대응
     const directDigits = normalized.match(/^\d+$/)?.[0];
     if (directDigits) return directDigits;
 
@@ -126,12 +129,17 @@ function parseBroadcastNo(raw: unknown): string | null {
 }
 
 function extractMetaContent(html: string, property: string) {
-  const regex = new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i");
+  const regex = new RegExp(
+    `<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`,
+    "i"
+  );
   const match = html.match(regex);
   if (match?.[1]) return match[1];
 
-  // content가 property 앞에 올 수도 있음
-  const regex2 = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["'][^>]*>`, "i");
+  const regex2 = new RegExp(
+    `<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["'][^>]*>`,
+    "i"
+  );
   const match2 = html.match(regex2);
   return match2?.[1] ?? null;
 }
@@ -142,13 +150,103 @@ function extractTitleTag(html: string) {
 }
 
 function decodeUnicode(str: string) {
-  return str.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  return str.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
+    String.fromCharCode(parseInt(hex, 16))
+  );
+}
+
+function safeJsonParse<T>(raw: string): T | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const candidates = [trimmed];
+  if (trimmed.startsWith(")]}'")) {
+    candidates.push(trimmed.replace(/^\)\]\}'\s*/, ""));
+  }
+
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.push(trimmed.slice(firstBrace, lastBrace + 1));
+  }
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate) as T;
+    } catch {
+      // noop
+    }
+  }
+
+  return null;
+}
+
+function extractBroadcastNoFromRaw(raw: string): string | null {
+  const patterns = [
+    /"BNO"\s*:\s*"?(\d{6,})"?/i,
+    /"bno"\s*:\s*"?(\d{6,})"?/i,
+    /"broad_no"\s*:\s*"?(\d{6,})"?/i,
+    /"broadNo"\s*:\s*"?(\d{6,})"?/i,
+    /"nBroadNo"\s*:\s*"?(\d{6,})"?/i,
+    /\/play\.sooplive\.co\.kr\/[^\s"']+\/(\d{6,})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+
+  return null;
+}
+
+function extractTitleFromRaw(raw: string): string | null {
+  const patterns = [
+    /"TITLE"\s*:\s*"([^"]+)"/i,
+    /"title"\s*:\s*"([^"]+)"/i,
+    /<title[^>]*>([^<]+)<\/title>/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match?.[1]) return decodeUnicode(match[1]).trim();
+  }
+
+  return null;
+}
+
+function extractThumbFromRaw(raw: string): string | null {
+  const patterns = [
+    /"THUMBNAIL"\s*:\s*"([^"]+)"/i,
+    /"THUMB_URL"\s*:\s*"([^"]+)"/i,
+    /"thumb_url"\s*:\s*"([^"]+)"/i,
+    /"thumbUrl"\s*:\s*"([^"]+)"/i,
+    /"og:image"\s+content=["']([^"']+)["']/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match?.[1]) return decodeUnicode(match[1]).trim();
+  }
+
+  return null;
+}
+
+function detectLiveFromRaw(raw: string) {
+  const patterns = [
+    /"is_live"\s*:\s*"?Y"?/i,
+    /"live_yn"\s*:\s*"?Y"?/i,
+    /"onair"\s*:\s*true/i,
+    /"broad_status"\s*:\s*"?on"?/i,
+    /"RESULT"\s*:\s*1/i,
+    /"CHANNEL_STATUS"\s*:\s*"?1"?/i,
+  ];
+
+  return patterns.some((pattern) => pattern.test(raw));
 }
 
 function parseTagsFromHtml(html: string) {
   const values = new Set<string>();
 
-  // 1) broad_tag JSON 배열
   const broadTagMatch = html.match(/"broad_tag"\s*:\s*\[(.*?)\]/i);
   if (broadTagMatch?.[1]) {
     const inner = broadTagMatch[1];
@@ -161,7 +259,6 @@ function parseTagsFromHtml(html: string) {
       .forEach((item) => values.add(item));
   }
 
-  // 2) hash_tags 배열
   const hashTagsMatch = html.match(/"hash_tags"\s*:\s*\[(.*?)\]/i);
   if (hashTagsMatch?.[1]) {
     const inner = hashTagsMatch[1];
@@ -174,7 +271,6 @@ function parseTagsFromHtml(html: string) {
       .forEach((item) => values.add(item));
   }
 
-  // 3) hashTags (camelCase)
   const hashTagsCamelMatch = html.match(/"hashTags"\s*:\s*\[(.*?)\]/i);
   if (hashTagsCamelMatch?.[1]) {
     const inner = hashTagsCamelMatch[1];
@@ -187,7 +283,6 @@ function parseTagsFromHtml(html: string) {
       .forEach((item) => values.add(item));
   }
 
-  // 4) cate_name / category 키
   const catePatterns = [
     /"cate_name"\s*:\s*"([^"]+)"/i,
     /"category_name"\s*:\s*"([^"]+)"/i,
@@ -202,7 +297,6 @@ function parseTagsFromHtml(html: string) {
     }
   }
 
-  // 5) og:description에서 태그 추출 시도 (# 으로 시작하는 해시태그)
   const ogDesc = extractMetaContent(html, "og:description");
   if (ogDesc) {
     const hashTagParts = ogDesc.match(/#([^\s#,]+)/g);
@@ -214,7 +308,6 @@ function parseTagsFromHtml(html: string) {
     }
   }
 
-  // 6) data-tag 속성에서 태그 추출
   const dataTagMatches = html.match(/data-tag="([^"]+)"/g);
   if (dataTagMatches) {
     dataTagMatches.forEach((match) => {
@@ -228,7 +321,6 @@ function parseTagsFromHtml(html: string) {
     });
   }
 
-  // 7) 태그 클래스/영역에서 텍스트 추출 (태그 목록이 HTML에 있는 경우)
   const tagListMatch = html.match(/class="[^"]*tag[^"]*"[^>]*>([^<]+)</gi);
   if (tagListMatch) {
     tagListMatch.forEach((match) => {
@@ -276,6 +368,14 @@ function extractLiveUrlFromHtml(html: string, bjid: string) {
     }
   }
 
+  const ogUrl = extractMetaContent(html, "og:url");
+  if (ogUrl) {
+    const match = ogUrl.match(new RegExp(`play\\.sooplive\\.co\\.kr/${bjid}/(\\d{6,})`, "i"));
+    if (match?.[1]) {
+      return `https://play.sooplive.co.kr/${bjid}/${match[1]}`;
+    }
+  }
+
   return null;
 }
 
@@ -295,7 +395,13 @@ async function fetchLiveMeta(liveUrl: string) {
 async function fetchStationMeta(bjid: string) {
   try {
     const stationUrl = `https://play.sooplive.co.kr/${bjid}`;
-    const response = await fetch(stationUrl, { headers: COMMON_HEADERS, cache: "no-store" });
+    const response = await fetch(stationUrl, {
+      headers: {
+        ...COMMON_HEADERS,
+        referer: stationUrl,
+      },
+      cache: "no-store",
+    });
     const html = await response.text();
 
     const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
@@ -315,11 +421,11 @@ async function fetchStationMeta(bjid: string) {
   }
 }
 
-async function fetchStatus(bjid: string) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const body = new URLSearchParams({
+async function callPlayerLiveApi(bjid: string, signal: AbortSignal) {
+  const endpoint = "https://live.sooplive.co.kr/afreeca/player_live_api.php";
+
+  const payloads = [
+    {
       bid: bjid,
       bno: "null",
       type: "live",
@@ -330,69 +436,109 @@ async function fetchStatus(bjid: string) {
       mode: "landing",
       from_api: "0",
       is_revive: "false",
-    });
+    },
+    {
+      bid: bjid,
+      bno: "",
+      type: "live",
+      pwd: "",
+      player_type: "html5",
+      stream_type: "common",
+      quality: "HD",
+      mode: "watch",
+      from_api: "1",
+      is_revive: "false",
+    },
+  ];
 
-    const response = await fetch("https://live.sooplive.co.kr/afreeca/player_live_api.php", {
+  for (const payload of payloads) {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         ...COMMON_HEADERS,
-        "content-type": "application/x-www-form-urlencoded",
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        origin: "https://play.sooplive.co.kr",
+        referer: `https://play.sooplive.co.kr/${bjid}`,
       },
-      body: body.toString(),
-      signal: controller.signal,
+      body: new URLSearchParams(payload).toString(),
+      signal,
       cache: "no-store",
     });
 
-    const data = (await response.json()) as LiveApiResponse;
+    const raw = await response.text();
+    if (!raw.trim()) continue;
+
+    return {
+      raw,
+      json: safeJsonParse<LiveApiResponse>(raw),
+    };
+  }
+
+  return {
+    raw: "",
+    json: null,
+  };
+}
+
+async function fetchStatus(bjid: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const { raw, json } = await callPlayerLiveApi(bjid, controller.signal);
 
     const bnoCandidates = [
-      data.CHANNEL?.BNO,
-      data.CHANNEL?.broad_no,
-      data.CHANNEL?.broadNo,
-      data.CHANNEL?.nBroadNo,
-      data.BNO,
-      data.broad_no,
-      data.broadNo,
-      data.nBroadNo,
-      data.RMD?.broad_no,
-      data.RMD?.broadNo,
-      data.RMD?.nBroadNo,
-      data.DATA?.broad_no,
-      data.DATA?.broadNo,
-      data.DATA?.nBroadNo,
+      json?.CHANNEL?.BNO,
+      json?.CHANNEL?.broad_no,
+      json?.CHANNEL?.broadNo,
+      json?.CHANNEL?.nBroadNo,
+      json?.BNO,
+      json?.broad_no,
+      json?.broadNo,
+      json?.nBroadNo,
+      json?.RMD?.broad_no,
+      json?.RMD?.broadNo,
+      json?.RMD?.nBroadNo,
+      json?.DATA?.broad_no,
+      json?.DATA?.broadNo,
+      json?.DATA?.nBroadNo,
+      extractBroadcastNoFromRaw(raw),
     ];
 
-    const bno = bnoCandidates
-      .map((candidate) => parseBroadcastNo(candidate))
-      .find((candidate): candidate is string => !!candidate) ?? null;
+    const bno =
+      bnoCandidates
+        .map((candidate) => parseBroadcastNo(candidate))
+        .find((candidate): candidate is string => !!candidate) ?? null;
 
     const apiTitle = pickFirstString(
-      data.CHANNEL?.TITLE,
-      data.RMD?.title,
-      data.DATA?.title,
-      data.title
-    );
-    const apiThumb = pickFirstString(
-      data.CHANNEL?.THUMBNAIL,
-      data.CHANNEL?.THUMB,
-      data.CHANNEL?.THUMB_URL,
-      data.RMD?.thumb,
-      data.RMD?.thumb_url,
-      data.DATA?.thumb,
-      data.DATA?.thumb_url,
-      data.thumbnail,
-      data.thumbUrl
+      json?.CHANNEL?.TITLE,
+      json?.RMD?.title,
+      json?.DATA?.title,
+      json?.title,
+      extractTitleFromRaw(raw)
     );
 
-    // API 응답에서 태그 추출
+    const apiThumb = pickFirstString(
+      json?.CHANNEL?.THUMBNAIL,
+      json?.CHANNEL?.THUMB,
+      json?.CHANNEL?.THUMB_URL,
+      json?.RMD?.thumb,
+      json?.RMD?.thumb_url,
+      json?.DATA?.thumb,
+      json?.DATA?.thumb_url,
+      json?.thumbnail,
+      json?.thumbUrl,
+      extractThumbFromRaw(raw)
+    );
+
     const apiTags: string[] = [];
-    if (data.CHANNEL?.CATE_NAME) apiTags.push(data.CHANNEL.CATE_NAME);
-    if (data.CHANNEL?.BROAD_CATE) apiTags.push(data.CHANNEL.BROAD_CATE);
-    if (data.CHANNEL?.HASH_TAGS && Array.isArray(data.CHANNEL.HASH_TAGS)) {
-      data.CHANNEL.HASH_TAGS.forEach((t) => apiTags.push(t));
+    if (json?.CHANNEL?.CATE_NAME) apiTags.push(json.CHANNEL.CATE_NAME);
+    if (json?.CHANNEL?.BROAD_CATE) apiTags.push(json.CHANNEL.BROAD_CATE);
+    if (json?.CHANNEL?.HASH_TAGS && Array.isArray(json.CHANNEL.HASH_TAGS)) {
+      json.CHANNEL.HASH_TAGS.forEach((t) => apiTags.push(t));
     }
-    if (data.CHANNEL?.TAG) {
-      data.CHANNEL.TAG.split(",").forEach((t) => {
+    if (json?.CHANNEL?.TAG) {
+      json.CHANNEL.TAG.split(",").forEach((t) => {
         const trimmed = t.trim();
         if (trimmed) apiTags.push(trimmed);
       });
@@ -400,41 +546,32 @@ async function fetchStatus(bjid: string) {
 
     if (bno) {
       const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bno}`;
+      const [meta, stationMeta] = await Promise.all([
+        fetchLiveMeta(liveUrl),
+        apiTags.length < 4
+          ? fetchStationMeta(bjid)
+          : Promise.resolve({ title: null, thumbUrl: null, tags: [], liveUrl: null, isLive: false }),
+      ]);
 
-      try {
-        // 라이브 페이지 + 방송국 페이지에서 태그 보강
-        const [meta, stationMeta] = await Promise.all([
-          fetchLiveMeta(liveUrl),
-          apiTags.length < 4
-            ? fetchStationMeta(bjid)
-            : Promise.resolve({ title: null, thumbUrl: null, tags: [], liveUrl: null, isLive: false }),
-        ]);
+      const combinedTags = Array.from(
+        new Set([...apiTags, ...meta.tags, ...stationMeta.tags])
+      ).filter(Boolean);
 
-        const combinedTags = Array.from(new Set([...apiTags, ...meta.tags, ...stationMeta.tags])).filter(Boolean);
-
-        return {
-          isLive: true,
-          liveUrl,
-          title: apiTitle ?? meta.title ?? stationMeta.title,
-          thumbUrl: apiThumb ?? meta.thumbUrl ?? stationMeta.thumbUrl,
-          tags: combinedTags.slice(0, 7),
-        };
-      } catch {
-        return {
-          isLive: true,
-          liveUrl,
-          title: apiTitle,
-          thumbUrl: apiThumb,
-          tags: apiTags.slice(0, 7),
-        };
-      }
+      return {
+        isLive: true,
+        liveUrl,
+        title: apiTitle ?? meta.title ?? stationMeta.title,
+        thumbUrl: apiThumb ?? meta.thumbUrl ?? stationMeta.thumbUrl,
+        tags: combinedTags.slice(0, 7),
+      };
     }
 
-    // [fallback] 일부 컨텐츠(예: 시네티)에서 player_live_api의 BNO가 비어있는 케이스 대응
     const stationMeta = await fetchStationMeta(bjid);
     if (stationMeta.liveUrl) {
       const liveMeta = await fetchLiveMeta(stationMeta.liveUrl);
-      const combinedTags = Array.from(new Set([...apiTags, ...stationMeta.tags, ...liveMeta.tags])).filter(Boolean);
+      const combinedTags = Array.from(
+        new Set([...apiTags, ...stationMeta.tags, ...liveMeta.tags])
+      ).filter(Boolean);
 
       return {
         isLive: true,
@@ -445,7 +582,8 @@ async function fetchStatus(bjid: string) {
       };
     }
 
-    if (stationMeta.isLive) {
+    const apiSaysLive = detectLiveFromRaw(raw);
+    if (apiSaysLive || stationMeta.isLive) {
       return {
         isLive: true,
         liveUrl: `https://play.sooplive.co.kr/${bjid}`,
