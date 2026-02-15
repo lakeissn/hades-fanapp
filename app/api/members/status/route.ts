@@ -79,6 +79,26 @@ function pickFirstString(...values: Array<string | undefined | null>) {
   return values.find((value) => typeof value === "string" && value.trim().length > 0) ?? null;
 }
 
+function parseBroadcastNo(raw: unknown): string | null {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return String(Math.trunc(raw));
+  }
+
+  if (typeof raw === "string") {
+    const normalized = raw.trim();
+    if (!normalized) return null;
+
+    // 예: "291653116", "bno=291653116", "291653116/" 형태 대응
+    const directDigits = normalized.match(/^\d+$/)?.[0];
+    if (directDigits) return directDigits;
+
+    const embeddedDigits = normalized.match(/(\d{6,})/);
+    if (embeddedDigits?.[1]) return embeddedDigits[1];
+  }
+
+  return null;
+}
+
 function extractMetaContent(html: string, property: string) {
   const regex = new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i");
   const match = html.match(regex);
@@ -199,6 +219,24 @@ function parseTagsFromHtml(html: string) {
   return Array.from(values).slice(0, 7);
 }
 
+function extractLiveUrlFromHtml(html: string, bjid: string) {
+  const patterns = [
+    new RegExp(`https?:\\/\\/play\\.sooplive\\.co\\.kr\\/${bjid}\\/(\\d{6,})`, "i"),
+    new RegExp(`\\/play\\.sooplive\\.co\\.kr\\/${bjid}\\/(\\d{6,})`, "i"),
+    /"bno"\s*:\s*"?(\d{6,})"?/i,
+    /"broad_no"\s*:\s*"?(\d{6,})"?/i,
+  ];
+
+  for (const pattern of patterns) {
+    const m = html.match(pattern);
+    if (m?.[1]) {
+      return `https://play.sooplive.co.kr/${bjid}/${m[1]}`;
+    }
+  }
+
+  return null;
+}
+
 async function fetchLiveMeta(liveUrl: string) {
   try {
     const response = await fetch(liveUrl, { headers: COMMON_HEADERS, cache: "no-store" });
@@ -212,15 +250,20 @@ async function fetchLiveMeta(liveUrl: string) {
   }
 }
 
-// 방송국 페이지에서도 태그를 가져올 수 있도록 추가 fetch
-async function fetchStationTags(bjid: string) {
+async function fetchStationMeta(bjid: string) {
   try {
     const stationUrl = `https://play.sooplive.co.kr/${bjid}`;
     const response = await fetch(stationUrl, { headers: COMMON_HEADERS, cache: "no-store" });
     const html = await response.text();
-    return parseTagsFromHtml(html);
+
+    const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
+    const thumbUrl = extractMetaContent(html, "og:image");
+    const tags = parseTagsFromHtml(html);
+    const liveUrl = extractLiveUrlFromHtml(html, bjid);
+
+    return { title, thumbUrl, tags, liveUrl };
   } catch {
-    return [];
+    return { title: null, thumbUrl: null, tags: [], liveUrl: null };
   }
 }
 
@@ -253,44 +296,42 @@ async function fetchStatus(bjid: string) {
     });
 
     const data = (await response.json()) as LiveApiResponse;
-    const bnoValue = Number(data.CHANNEL?.BNO ?? 0);
+    const bno = parseBroadcastNo(data.CHANNEL?.BNO);
 
-    if (bnoValue > 0) {
-      const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bnoValue}`;
-      const apiTitle = pickFirstString(data.CHANNEL?.TITLE, data.title);
-      const apiThumb = pickFirstString(data.CHANNEL?.THUMBNAIL, data.CHANNEL?.THUMB, data.CHANNEL?.THUMB_URL, data.thumbnail, data.thumbUrl);
+    const apiTitle = pickFirstString(data.CHANNEL?.TITLE, data.title);
+    const apiThumb = pickFirstString(data.CHANNEL?.THUMBNAIL, data.CHANNEL?.THUMB, data.CHANNEL?.THUMB_URL, data.thumbnail, data.thumbUrl);
 
-      // API 응답에서 태그 추출
-      const apiTags: string[] = [];
-      if (data.CHANNEL?.CATE_NAME) apiTags.push(data.CHANNEL.CATE_NAME);
-      if (data.CHANNEL?.BROAD_CATE) apiTags.push(data.CHANNEL.BROAD_CATE);
-      if (data.CHANNEL?.HASH_TAGS && Array.isArray(data.CHANNEL.HASH_TAGS)) {
-        data.CHANNEL.HASH_TAGS.forEach((t) => apiTags.push(t));
-      }
-      if (data.CHANNEL?.TAG) {
-        data.CHANNEL.TAG.split(",").forEach((t) => {
-          const trimmed = t.trim();
-          if (trimmed) apiTags.push(trimmed);
-        });
-      }
+    // API 응답에서 태그 추출
+    const apiTags: string[] = [];
+    if (data.CHANNEL?.CATE_NAME) apiTags.push(data.CHANNEL.CATE_NAME);
+    if (data.CHANNEL?.BROAD_CATE) apiTags.push(data.CHANNEL.BROAD_CATE);
+    if (data.CHANNEL?.HASH_TAGS && Array.isArray(data.CHANNEL.HASH_TAGS)) {
+      data.CHANNEL.HASH_TAGS.forEach((t) => apiTags.push(t));
+    }
+    if (data.CHANNEL?.TAG) {
+      data.CHANNEL.TAG.split(",").forEach((t) => {
+        const trimmed = t.trim();
+        if (trimmed) apiTags.push(trimmed);
+      });
+    }
+
+    if (bno) {
+      const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bno}`;
 
       try {
-        // 라이브 페이지와 방송국 페이지 둘 다에서 태그 수집
-        const [meta, stationTags] = await Promise.all([
+        // 라이브 페이지 + 방송국 페이지에서 태그 보강
+        const [meta, stationMeta] = await Promise.all([
           fetchLiveMeta(liveUrl),
-          apiTags.length < 4 ? fetchStationTags(bjid) : Promise.resolve([]),
+          apiTags.length < 4 ? fetchStationMeta(bjid) : Promise.resolve({ title: null, thumbUrl: null, tags: [], liveUrl: null }),
         ]);
 
-        // 모든 소스에서 태그 합치기 (중복 제거)
-        const combinedTags = Array.from(
-          new Set([...apiTags, ...meta.tags, ...stationTags])
-        ).filter(Boolean);
+        const combinedTags = Array.from(new Set([...apiTags, ...meta.tags, ...stationMeta.tags])).filter(Boolean);
 
         return {
           isLive: true,
           liveUrl,
-          title: apiTitle ?? meta.title,
-          thumbUrl: apiThumb ?? meta.thumbUrl,
+          title: apiTitle ?? meta.title ?? stationMeta.title,
+          thumbUrl: apiThumb ?? meta.thumbUrl ?? stationMeta.thumbUrl,
           tags: combinedTags.slice(0, 7),
         };
       } catch {
@@ -303,6 +344,22 @@ async function fetchStatus(bjid: string) {
         };
       }
     }
+
+    // [fallback] 일부 컨텐츠(예: 시네티)에서 player_live_api의 BNO가 비어있는 케이스 대응
+    const stationMeta = await fetchStationMeta(bjid);
+    if (stationMeta.liveUrl) {
+      const liveMeta = await fetchLiveMeta(stationMeta.liveUrl);
+      const combinedTags = Array.from(new Set([...apiTags, ...stationMeta.tags, ...liveMeta.tags])).filter(Boolean);
+
+      return {
+        isLive: true,
+        liveUrl: stationMeta.liveUrl,
+        title: apiTitle ?? liveMeta.title ?? stationMeta.title,
+        thumbUrl: apiThumb ?? liveMeta.thumbUrl ?? stationMeta.thumbUrl,
+        tags: combinedTags.slice(0, 7),
+      };
+    }
+
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
   } catch {
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
