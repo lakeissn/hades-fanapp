@@ -54,6 +54,11 @@ type MemberStatus = {
 
 type JsonObject = Record<string, unknown>;
 
+type StationLiveFields = Omit<
+  MemberStatus,
+  "id" | "name" | "soopUrl" | "avatarUrl" | "fetchedAt"
+>;
+
 const CHAPI_BASE_URL = "https://chapi.sooplive.co.kr/api";
 const CACHE_TTL_MS = 20_000;
 
@@ -72,7 +77,7 @@ function normalizeThumbUrl(raw: unknown): string | null {
 
   if (value.startsWith("//")) return `https:${value}`;
   if (/^https?:\/\//i.test(value)) return value;
-  if (value.startsWith("/")) return `https://ch.sooplive.co.kr${value}`;
+  if (value.startsWith("/")) return `https://chapi.sooplive.co.kr${value}`;
   return `https://${value}`;
 }
 
@@ -149,48 +154,101 @@ function liveFlagFromUnknown(value: unknown): boolean | null {
   return null;
 }
 
+function pushTag(set: Set<string>, raw: unknown) {
+  if (typeof raw !== "string") return;
+
+  raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => part.replace(/^#/, "").trim())
+    .filter(Boolean)
+    .filter((part) => !/^\d+$/.test(part))
+    .forEach((part) => set.add(part));
+}
+
 function collectTags(source: JsonObject): string[] {
   const values = new Set<string>();
 
-  const candidatePaths: string[][] = [
-    ["station", "broad_cate_name"],
-    ["station", "cate_name"],
-    ["channel", "broad_cate_name"],
-    ["channel", "cate_name"],
-    ["broad", "broad_cate_name"],
-    ["broad", "cate_name"],
-    ["station", "broad_cate_no"],
-    ["channel", "broad_cate_no"],
-    ["broad", "broad_cate_no"],
-  ];
+  const primaryCategory = toNonEmptyString(
+    pickByPaths(source, [
+      ["station", "broad_cate_name"],
+      ["channel", "broad_cate_name"],
+      ["broad", "broad_cate_name"],
+      ["station", "cate_name"],
+      ["channel", "cate_name"],
+      ["broad", "cate_name"],
+      ["broad_cate_name"],
+      ["cate_name"],
+    ])
+  );
 
-  for (const path of candidatePaths) {
-    const found = pickByPaths(source, [path]);
-    const text = toNonEmptyString(found) ?? (typeof found === "number" ? String(found) : null);
-    if (text) values.add(text);
+  if (primaryCategory) {
+    values.add(primaryCategory);
   }
 
-  const tagArrayCandidates = [
-    pickByPaths(source, [["station", "hash_tags"]]),
-    pickByPaths(source, [["station", "tags"]]),
-    pickByPaths(source, [["channel", "hash_tags"]]),
-    pickByPaths(source, [["channel", "tags"]]),
-    pickByPaths(source, [["broad", "hash_tags"]]),
-    pickByPaths(source, [["broad", "tags"]]),
+  const language = toNonEmptyString(
+    pickByPaths(source, [
+      ["station", "lang"],
+      ["station", "lang_name"],
+      ["channel", "lang"],
+      ["channel", "lang_name"],
+      ["broad", "lang"],
+      ["broad", "lang_name"],
+      ["lang"],
+      ["lang_name"],
+    ])
+  );
+
+  if (language) {
+    values.add(language);
+  }
+
+  const stringTagPaths: string[][] = [
+    ["station", "broad_tag"],
+    ["station", "tags"],
+    ["station", "hash_tag"],
+    ["channel", "broad_tag"],
+    ["channel", "tags"],
+    ["channel", "hash_tag"],
+    ["broad", "broad_tag"],
+    ["broad", "tags"],
+    ["broad", "hash_tag"],
+    ["broad_tag"],
+    ["tags"],
+    ["hash_tag"],
   ];
 
-  for (const candidate of tagArrayCandidates) {
+  for (const path of stringTagPaths) {
+    pushTag(values, pickByPaths(source, [path]));
+  }
+
+  const arrayTagPaths: string[][] = [
+    ["station", "hash_tags"],
+    ["station", "tag_list"],
+    ["channel", "hash_tags"],
+    ["channel", "tag_list"],
+    ["broad", "hash_tags"],
+    ["broad", "tag_list"],
+    ["hash_tags"],
+    ["tag_list"],
+  ];
+
+  for (const path of arrayTagPaths) {
+    const candidate = pickByPaths(source, [path]);
     if (!Array.isArray(candidate)) continue;
+
     for (const item of candidate) {
-      const text = toNonEmptyString(item);
-      if (text) values.add(text);
+      if (typeof item === "string") {
+        pushTag(values, item);
+      }
     }
   }
 
   return Array.from(values).slice(0, 7);
 }
 
-function parseStationStatus(userId: string, payload: unknown) {
+function parseStationStatus(userId: string, payload: unknown): StationLiveFields {
   const root = asObject(payload);
   if (!root) {
     return {
@@ -198,7 +256,7 @@ function parseStationStatus(userId: string, payload: unknown) {
       liveUrl: null,
       title: null,
       thumbUrl: null,
-      tags: [] as string[],
+      tags: [],
     };
   }
 
@@ -263,13 +321,17 @@ function parseStationStatus(userId: string, payload: unknown) {
       ["station", "broad_thumb"],
       ["channel", "broad_thumb"],
       ["broad", "broad_thumb"],
-      ["station", "thumb"],
-      ["channel", "thumb"],
-      ["broad", "thumb"],
+      ["station", "broad_thumb_url"],
+      ["channel", "broad_thumb_url"],
+      ["broad", "broad_thumb_url"],
       ["station", "thumb_url"],
       ["channel", "thumb_url"],
       ["broad", "thumb_url"],
+      ["station", "thumb"],
+      ["channel", "thumb"],
+      ["broad", "thumb"],
       ["broad_thumb"],
+      ["broad_thumb_url"],
       ["thumb"],
       ["thumb_url"],
     ])
@@ -284,7 +346,7 @@ function parseStationStatus(userId: string, payload: unknown) {
   };
 }
 
-async function fetchStationStatus(userId: string): Promise<Omit<MemberStatus, "id" | "name" | "soopUrl" | "avatarUrl" | "fetchedAt">> {
+async function fetchStationStatus(userId: string): Promise<StationLiveFields> {
   const endpoint = `${CHAPI_BASE_URL}/${encodeURIComponent(userId)}/station`;
 
   try {
@@ -331,9 +393,11 @@ export async function GET() {
     const statuses = await Promise.all(
       members.map(async (member) => {
         const station = await fetchStationStatus(member.id);
+
         return {
           ...member,
           ...station,
+          thumbUrl: station.isLive ? station.thumbUrl ?? member.avatarUrl : null,
           fetchedAt: nowIso,
         };
       })
