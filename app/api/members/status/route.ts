@@ -100,9 +100,20 @@ function parseBroadNo(raw: unknown): string | null {
   return null;
 }
 
+function extractBroadNoFromLiveUrl(liveUrl: string | null): string | null {
+  if (!liveUrl) return null;
+  const match = liveUrl.match(/\/([0-9]{6,})(?:\?.*)?$/);
+  return match?.[1] ?? null;
+}
+
 function buildLiveUrl(userId: string, broadNo: string | null): string | null {
   if (!broadNo) return null;
   return `https://play.sooplive.co.kr/${userId}/${broadNo}`;
+}
+
+function buildLiveImageUrl(broadNo: string | null): string | null {
+  if (!broadNo) return null;
+  return `https://liveimg.sooplive.co.kr/m/${broadNo}`;
 }
 
 function asObject(value: unknown): JsonObject | null {
@@ -154,20 +165,25 @@ function liveFlagFromUnknown(value: unknown): boolean | null {
   return null;
 }
 
+function normalizeTag(raw: string): string | null {
+  const cleaned = raw.replace(/^#/, "").trim();
+  if (!cleaned) return null;
+  if (cleaned === "한국어") return null;
+  if (/^\d+$/.test(cleaned)) return null;
+  return cleaned;
+}
+
 function pushTag(set: Set<string>, raw: unknown) {
   if (typeof raw !== "string") return;
 
   raw
     .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => part.replace(/^#/, "").trim())
-    .filter(Boolean)
-    .filter((part) => !/^\d+$/.test(part))
+    .map((part) => normalizeTag(part))
+    .filter((part): part is string => !!part)
     .forEach((part) => set.add(part));
 }
 
-function collectTags(source: JsonObject): string[] {
+function collectTagsFromStation(source: JsonObject): string[] {
   const values = new Set<string>();
 
   const primaryCategory = toNonEmptyString(
@@ -183,7 +199,7 @@ function collectTags(source: JsonObject): string[] {
     ])
   );
 
-  if (primaryCategory) {
+  if (primaryCategory && primaryCategory !== "한국어") {
     values.add(primaryCategory);
   }
 
@@ -200,7 +216,7 @@ function collectTags(source: JsonObject): string[] {
     ])
   );
 
-  if (language) {
+  if (language && language !== "한국어") {
     values.add(language);
   }
 
@@ -240,8 +256,54 @@ function collectTags(source: JsonObject): string[] {
 
     for (const item of candidate) {
       if (typeof item === "string") {
-        pushTag(values, item);
+        const normalized = normalizeTag(item);
+        if (normalized) values.add(normalized);
       }
+    }
+  }
+
+  return Array.from(values).slice(0, 7);
+}
+
+function collectTagsFromLiveHtml(html: string): string[] {
+  const values = new Set<string>();
+
+  const arrayPatterns = [
+    /"broad_tag"\s*:\s*\[(.*?)\]/gi,
+    /"hash_tags"\s*:\s*\[(.*?)\]/gi,
+    /"hashTags"\s*:\s*\[(.*?)\]/gi,
+    /"tags"\s*:\s*\[(.*?)\]/gi,
+  ];
+
+  for (const pattern of arrayPatterns) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(html)) !== null) {
+      const inner = match[1] ?? "";
+      const tokenMatches = inner.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g) ?? [];
+
+      for (const token of tokenMatches) {
+        const raw = token.slice(1, -1).replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
+          String.fromCharCode(parseInt(hex, 16))
+        );
+        const normalized = normalizeTag(raw);
+        if (normalized) values.add(normalized);
+      }
+    }
+  }
+
+  const categoryPatterns = [
+    /"broad_cate_name"\s*:\s*"([^"]+)"/i,
+    /"cate_name"\s*:\s*"([^"]+)"/i,
+  ];
+
+  for (const pattern of categoryPatterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      const normalized = normalizeTag(
+        match[1].replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+      );
+      if (normalized) values.add(normalized);
+      break;
     }
   }
 
@@ -342,7 +404,7 @@ function parseStationStatus(userId: string, payload: unknown): StationLiveFields
     liveUrl: isLive ? buildLiveUrl(userId, broadNo) ?? `https://play.sooplive.co.kr/${userId}` : null,
     title: isLive ? title : null,
     thumbUrl: isLive ? thumbUrl : null,
-    tags: isLive ? collectTags(root) : [],
+    tags: isLive ? collectTagsFromStation(root) : [],
   };
 }
 
@@ -367,6 +429,35 @@ async function fetchStationStatus(userId: string): Promise<StationLiveFields> {
     console.warn(`[members/status] station api error for ${userId}:`, error);
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
   }
+}
+
+async function fetchLivePageTags(liveUrl: string | null): Promise<string[]> {
+  if (!liveUrl) return [];
+
+  try {
+    const response = await fetch(liveUrl, {
+      headers: COMMON_HEADERS,
+      cache: "no-store",
+    });
+
+    if (!response.ok) return [];
+
+    const html = await response.text();
+    return collectTagsFromLiveHtml(html);
+  } catch {
+    return [];
+  }
+}
+
+function mergeTags(primary: string[], secondary: string[]): string[] {
+  const set = new Set<string>();
+
+  for (const tag of [...primary, ...secondary]) {
+    const normalized = normalizeTag(tag);
+    if (normalized) set.add(normalized);
+  }
+
+  return Array.from(set).slice(0, 7);
 }
 
 function buildOfflineStatuses(nowIso: string): MemberStatus[] {
@@ -394,10 +485,24 @@ export async function GET() {
       members.map(async (member) => {
         const station = await fetchStationStatus(member.id);
 
+        if (!station.isLive) {
+          return {
+            ...member,
+            ...station,
+            fetchedAt: nowIso,
+          };
+        }
+
+        const broadNoFromUrl = extractBroadNoFromLiveUrl(station.liveUrl);
+        const liveImgThumb = buildLiveImageUrl(broadNoFromUrl);
+        const livePageTags = await fetchLivePageTags(station.liveUrl);
+        const tags = mergeTags(livePageTags, station.tags);
+
         return {
           ...member,
           ...station,
-          thumbUrl: station.isLive ? station.thumbUrl ?? member.avatarUrl : null,
+          thumbUrl: liveImgThumb ?? station.thumbUrl ?? member.avatarUrl,
+          tags,
           fetchedAt: nowIso,
         };
       })
