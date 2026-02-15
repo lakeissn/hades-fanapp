@@ -19,8 +19,8 @@ const guideData = {
         tag: "MELON",
         hasDeviceImages: true,
         images: [],
-        pcImages: ["/guides/images/streaming-melon-setup-pc.png"],
-        mobileImages: ["/guides/images/streaming-melon-setup-mobile.png"],
+        pcImages: ["/guides/images/streaming_guide_pc.jpg"],
+        mobileImages: ["/guides/images/streaming_guide_m.jpg"],
       },
       {
         id: "youtube-setup",
@@ -29,7 +29,7 @@ const guideData = {
         icon: "▶️",
         tag: "YOUTUBE",
         hasDeviceImages: false,
-        images: ["/guides/images/streaming-youtube-setup.png"],
+        images: ["/guides/images/youtube_guide.jpg"],
       },
       {
         id: "streaming-tips",
@@ -38,7 +38,7 @@ const guideData = {
         icon: "💡",
         tag: "TIP",
         hasDeviceImages: false,
-        images: ["/guides/images/streaming-tips.png"],
+        images: ["/guides/images/sound_assi.jpg"],
       },
     ],
   },
