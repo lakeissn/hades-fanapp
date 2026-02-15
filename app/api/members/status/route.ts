@@ -121,6 +121,13 @@ const COMMON_HEADERS = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 };
 
+// [핵심] 모바일 환경으로 위장하기 위한 헤더
+const MOBILE_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
+  "Referer": "https://m.sooplive.co.kr/",
+};
+
 let cached: { data: MemberStatus[]; expiresAt: number } | null = null;
 
 function pickFirstString(...values: Array<string | undefined | null>) {
@@ -442,6 +449,40 @@ async function fetchStationMeta(bjid: string) {
   }
 }
 
+// [신규 기능] 모바일 스테이션 파싱: 로그인 리다이렉트 우회 및 19+ 컨텐츠 감지
+async function fetchMobileStation(bjid: string) {
+  try {
+    const url = `https://m.sooplive.co.kr/${bjid}`;
+    const res = await fetch(url, { headers: MOBILE_HEADERS, cache: "no-store" });
+    const html = await res.text();
+
+    // 모바일 페이지 HTML에서 broad_no 찾기 (HTML 내 JS 변수나 data 속성)
+    const bnoMatch = 
+      html.match(/broad_no["']?\s*[:=]\s*["']?(\d{8,})["']?/i) || 
+      html.match(/bno["']?\s*[:=]\s*["']?(\d{8,})["']?/i) ||
+      html.match(/data-bno=["']?(\d{8,})["']?/i);
+
+    if (bnoMatch?.[1]) {
+      const bno = bnoMatch[1];
+      
+      // 모바일 페이지 메타데이터 추출
+      const title = extractMetaContent(html, "og:title") || extractTitleTag(html);
+      const thumb = extractMetaContent(html, "og:image");
+      
+      return {
+        broadNo: bno,
+        title: title ? decodeUnicode(title) : null,
+        thumb: thumb,
+        // 모바일 태그 파싱은 기존 함수 재사용
+        tags: parseTagsFromHtml(html) 
+      };
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function callPlayerLiveApi(bjid: string, signal: AbortSignal) {
   const endpoint = "https://live.sooplive.co.kr/afreeca/player_live_api.php";
 
@@ -458,6 +499,8 @@ async function callPlayerLiveApi(bjid: string, signal: AbortSignal) {
       from_api: "0",
       is_revive: "false",
     },
+    // 일부 방송은 type 파라미터를 비우거나 다르게 호출해야 할 수 있음 (예: type=movie 등)
+    // 하지만 API 구조상 모바일 파싱이 더 강력하므로 여기서는 기본만 시도
     {
       bid: bjid,
       bno: "",
@@ -614,7 +657,7 @@ async function fetchStatus(bjid: string) {
       extractTitleFromRaw(raw)
     );
 
-    const apiThumb = pickFirstString(
+    let apiThumb = pickFirstString(
       json?.CHANNEL?.THUMBNAIL,
       json?.CHANNEL?.THUMB,
       json?.CHANNEL?.THUMB_URL,
@@ -640,6 +683,19 @@ async function fetchStatus(bjid: string) {
       });
     }
 
+    // [1단계 수정] 일반 API 실패 시 -> 모바일 스테이션 파싱 (가장 강력)
+    if (!bno) {
+      const mobileData = await fetchMobileStation(bjid);
+      if (mobileData) {
+        bno = mobileData.broadNo;
+        apiTitle = apiTitle ?? mobileData.title;
+        apiThumb = apiThumb ?? mobileData.thumb;
+        // 모바일에서 가져온 태그 병합
+        mobileData.tags.forEach(t => apiTags.push(t));
+      }
+    }
+
+    // [2단계 수정] 모바일도 실패 시 -> 검색 API (최후의 보루)
     if (!bno) {
       const searchLive = await fetchSearchLive(bjid, controller.signal);
       if (searchLive) {
@@ -651,6 +707,8 @@ async function fetchStatus(bjid: string) {
 
     if (bno) {
       const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bno}`;
+      
+      // BNO를 알았으므로, PC 페이지도 특정 URL로 찌르면 오픈그래프 태그를 뱉을 확률이 높음
       const [meta, stationMeta] = await Promise.all([
         fetchLiveMeta(liveUrl),
         apiTags.length < 4
