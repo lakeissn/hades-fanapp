@@ -173,7 +173,9 @@ async function sendFCMMessages(
   if (targets.length === 0) return result;
 
   const sentAt = new Date().toISOString();
-  const TTL_SECONDS = 180; // 3분 TTL (더 빠른 전달 우선)
+  // Android Doze / 네트워크 변동 구간에서도 누락을 줄이기 위해 TTL을 충분히 확보
+  // (환경변수로 조절 가능, 기본 24시간)
+  const TTL_SECONDS = Number(process.env.FCM_TTL_SECONDS ?? "86400");
 
   // data-only + notification 동시 사용
   // Android WebView/Chrome 환경에서 즉시 표시를 돕기 위해 notification 필드도 포함
@@ -248,19 +250,32 @@ async function sendFCMMessages(
     batches.push(tokens.slice(i, i + BATCH_SIZE));
   }
 
-  async function sendBatch(batch: string[]) {
-    try {
-      const response = await messaging.sendEachForMulticast({
-        tokens: batch,
-        ...message,
-      });
+  async function sendBatchWithRetry(batch: string[]) {
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      try {
+        const response = await messaging.sendEachForMulticast({
+          tokens: batch,
+          ...message,
+        });
 
-      result.sent += response.successCount;
-      result.failed += response.failureCount;
+        const retryTokens: string[] = [];
 
-      response.responses.forEach((resp, idx) => {
-        if (resp.error) {
-          const code = resp.error.code;
+        response.responses.forEach((resp, idx) => {
+          if (resp.success) {
+            result.sent += 1;
+            return;
+          }
+
+          result.failed += 1;
+          const code = resp.error?.code;
+
+          if (code === "messaging/internal-error" || code === "messaging/server-unavailable") {
+            retryTokens.push(batch[idx]);
+            result.failed -= 1;
+            return;
+          }
+
           if (
             code === "messaging/invalid-registration-token" ||
             code === "messaging/registration-token-not-registered" ||
@@ -268,17 +283,34 @@ async function sendFCMMessages(
           ) {
             result.invalidTokens.push(batch[idx]);
           }
+        });
+
+        if (retryTokens.length === 0 || attempt === MAX_ATTEMPTS) {
+          if (retryTokens.length > 0) {
+            result.failed += retryTokens.length;
+          }
+          return;
         }
-      });
-    } catch (err) {
-      console.error("[cron] FCM batch 발송 실패:", err);
-      result.failed += batch.length;
+
+        const delayMs = 300 * 2 ** (attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        batch = retryTokens;
+      } catch (err) {
+        if (attempt === MAX_ATTEMPTS) {
+          console.error("[cron] FCM batch 발송 실패(재시도 종료):", err);
+          result.failed += batch.length;
+          return;
+        }
+
+        const delayMs = 300 * 2 ** (attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
     }
   }
 
   for (let i = 0; i < batches.length; i += CONCURRENCY) {
     const chunk = batches.slice(i, i + CONCURRENCY);
-    await Promise.all(chunk.map((batch) => sendBatch(batch)));
+    await Promise.all(chunk.map((batch) => sendBatchWithRetry(batch)));
   }
 
   // Invalid 토큰 DB 정리
@@ -572,7 +604,7 @@ export async function GET(req: Request) {
           if (targets.length > 0) {
             for (const video of changedVideos) {
               const res = await sendFCMMessages(targets, {
-                title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}이 올라왔어요! ▶️`,
+                title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}가 올라왔어요! ▶️`,
                 body: video.title,
                 url: video.url || "/",
                 tag: `yt-${video.id}`,
