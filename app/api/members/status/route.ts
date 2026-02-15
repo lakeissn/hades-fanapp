@@ -265,14 +265,42 @@ function collectTagsFromStation(source: JsonObject): string[] {
   return Array.from(values).slice(0, 7);
 }
 
+function decodeUnicodeEscapes(raw: string): string {
+  return raw.replace(/\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+function extractMetaContent(html: string, property: string): string | null {
+  const patterns = [
+    new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+name=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${property}["'][^>]*>`, "i"),
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      return decodeUnicodeEscapes(match[1]);
+    }
+  }
+
+  return null;
+}
+
 function collectTagsFromLiveHtml(html: string): string[] {
   const values = new Set<string>();
 
+  const addTag = (raw: string) => {
+    const normalized = normalizeTag(decodeUnicodeEscapes(raw));
+    if (normalized) values.add(normalized);
+  };
+
   const arrayPatterns = [
-    /"broad_tag"\s*:\s*\[(.*?)\]/gi,
-    /"hash_tags"\s*:\s*\[(.*?)\]/gi,
-    /"hashTags"\s*:\s*\[(.*?)\]/gi,
-    /"tags"\s*:\s*\[(.*?)\]/gi,
+    /"broad_tag"\s*:\s*\[(.*?)\]/gis,
+    /"hash_tags"\s*:\s*\[(.*?)\]/gis,
+    /"hashTags"\s*:\s*\[(.*?)\]/gis,
+    /"tags"\s*:\s*\[(.*?)\]/gis,
+    /"BROAD_TAG"\s*:\s*\[(.*?)\]/gis,
   ];
 
   for (const pattern of arrayPatterns) {
@@ -282,28 +310,49 @@ function collectTagsFromLiveHtml(html: string): string[] {
       const tokenMatches = inner.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g) ?? [];
 
       for (const token of tokenMatches) {
-        const raw = token.slice(1, -1).replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
-          String.fromCharCode(parseInt(hex, 16))
-        );
-        const normalized = normalizeTag(raw);
-        if (normalized) values.add(normalized);
+        addTag(token.slice(1, -1));
       }
+    }
+  }
+
+  const csvPatterns = [
+    /"broad_tag"\s*:\s*"([^"]+)"/gi,
+    /"hash_tag"\s*:\s*"([^"]+)"/gi,
+    /"tags"\s*:\s*"([^"]+)"/gi,
+    /"BROAD_TAG"\s*:\s*"([^"]+)"/gi,
+  ];
+
+  for (const pattern of csvPatterns) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(html)) !== null) {
+      const raw = decodeUnicodeEscapes(match[1] ?? "");
+      raw
+        .split(/[|,]/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach(addTag);
     }
   }
 
   const categoryPatterns = [
     /"broad_cate_name"\s*:\s*"([^"]+)"/i,
     /"cate_name"\s*:\s*"([^"]+)"/i,
+    /"BROAD_CATE_NAME"\s*:\s*"([^"]+)"/i,
   ];
 
   for (const pattern of categoryPatterns) {
     const match = html.match(pattern);
     if (match?.[1]) {
-      const normalized = normalizeTag(
-        match[1].replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-      );
-      if (normalized) values.add(normalized);
+      addTag(match[1]);
       break;
+    }
+  }
+
+  const ogDesc = extractMetaContent(html, "og:description") ?? extractMetaContent(html, "description");
+  if (ogDesc) {
+    const hashTags = ogDesc.match(/#([^\s#,]+)/g) ?? [];
+    for (const tag of hashTags) {
+      addTag(tag.replace(/^#/, ""));
     }
   }
 
