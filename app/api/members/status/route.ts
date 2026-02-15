@@ -266,7 +266,7 @@ function collectTagsFromStation(source: JsonObject): string[] {
 }
 
 function decodeUnicodeEscapes(raw: string): string {
-  return raw.replace(/\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  return raw.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
 }
 
 function extractMetaContent(html: string, property: string): string | null {
