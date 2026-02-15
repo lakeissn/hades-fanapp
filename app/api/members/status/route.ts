@@ -39,6 +39,8 @@ const members = [
   },
 ];
 
+type Member = (typeof members)[number];
+
 type MemberStatus = {
   id: string;
   name: string;
@@ -52,92 +54,53 @@ type MemberStatus = {
   fetchedAt: string;
 };
 
-type LiveApiResponse = {
-  RESULT?: number | string;
-  BNO?: number | string;
-  broad_no?: number | string;
-  broadNo?: number | string;
-  nBroadNo?: number | string;
-  CHANNEL_STATUS?: string;
-  channel_status?: string;
-  RMD?: {
-    broad_no?: number | string;
-    broadNo?: number | string;
-    nBroadNo?: number | string;
-    title?: string;
-    thumb?: string;
-    thumb_url?: string;
-  };
-  DATA?: {
-    broad_no?: number | string;
-    broadNo?: number | string;
-    nBroadNo?: number | string;
-    title?: string;
-    thumb?: string;
-    thumb_url?: string;
-  };
-  CHANNEL?: {
-    BNO?: number | string;
-    broad_no?: number | string;
-    broadNo?: number | string;
-    nBroadNo?: number | string;
-    TITLE?: string;
-    THUMBNAIL?: string;
-    THUMB?: string;
-    THUMB_URL?: string;
-    CATE_NAME?: string;
-    TAG?: string;
-    HASH_TAGS?: string[];
-    BROAD_CATE?: string;
-  };
-  title?: string;
-  thumbnail?: string;
-  thumbUrl?: string;
-};
-
-type SearchBroadItem = {
+type BroadListItem = {
   user_id?: string;
+  user_nick?: string;
   broad_no?: number | string;
   broad_title?: string;
-  broad_cate_name?: string;
-  broad_category?: string;
-  broad_tag?: string;
-  hash_tags?: string[];
-  thumb?: string;
-  thumb_url?: string;
-  mobile_thumb?: string;
-  pc_thumb?: string;
-  sn_thumb?: string;
+  broad_thumb?: string;
+  broad_cate_no?: number | string;
+  broad_start?: string;
+  total_view_cnt?: number | string;
 };
 
-type SearchApiResponse = {
-  REAL_BROAD?: SearchBroadItem[];
-  broad_list?: SearchBroadItem[];
-  BROAD?: SearchBroadItem[];
+type BroadListResponse = {
+  broad?: BroadListItem[];
 };
 
-const COMMON_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+type BroadListFetchOptions = {
+  orderType?: "view_cnt" | "broad_start";
+  selectKey?: "cate" | "lang";
+  selectValue?: string;
 };
 
-const MOBILE_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-  accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-};
-
+const OPEN_API_ENDPOINT = "https://openapi.sooplive.co.kr/broad/list";
+const MAX_PAGE = Number(process.env.SOOPLIVE_BROAD_LIST_MAX_PAGE ?? "8");
+const DEFAULT_ORDER_TYPE =
+  (process.env.SOOPLIVE_BROAD_LIST_ORDER_TYPE as "view_cnt" | "broad_start" | undefined) ??
+  "view_cnt";
+const CACHE_TTL_MS = 20_000;
 
 let cached: { data: MemberStatus[]; expiresAt: number } | null = null;
 
-function pickFirstString(...values: Array<string | undefined | null>) {
-  return (
-    values.find((value) => typeof value === "string" && value.trim().length > 0) ??
-    null
-  );
+function resolveClientId() {
+  return process.env.SOOPLIVE_CLIENT_ID ?? process.env.SOOPlIVE_CLIENT_ID ?? "";
 }
 
-function parseBroadcastNo(raw: unknown): string | null {
+function normalizeThumbUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const value = raw.trim();
+  if (!value) return null;
+
+  if (value.startsWith("//")) return `https:${value}`;
+
+  if (/^https?:\/\//i.test(value)) return value;
+
+  return `https://${value.replace(/^\/+/, "")}`;
+}
+
+function parseBroadNo(raw: unknown): string | null {
   if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
     return String(Math.trunc(raw));
   }
@@ -145,671 +108,162 @@ function parseBroadcastNo(raw: unknown): string | null {
   if (typeof raw === "string") {
     const normalized = raw.trim();
     if (!normalized) return null;
-
-    const directDigits = normalized.match(/^\d+$/)?.[0];
-    if (directDigits) return directDigits;
-
-    const embeddedDigits = normalized.match(/(\d{6,})/);
-    if (embeddedDigits?.[1]) return embeddedDigits[1];
+    const digits = normalized.match(/\d+/)?.[0];
+    return digits ?? null;
   }
 
   return null;
 }
 
-function extractMetaContent(html: string, property: string) {
-  const regex = new RegExp(
-    `<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`,
-    "i"
-  );
-  const match = html.match(regex);
-  if (match?.[1]) return match[1];
-
-  const regex2 = new RegExp(
-    `<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["'][^>]*>`,
-    "i"
-  );
-  const match2 = html.match(regex2);
-  return match2?.[1] ?? null;
+function buildLiveUrl(userId: string, broadNo: string | null) {
+  if (!broadNo) return `https://play.sooplive.co.kr/${userId}`;
+  return `https://play.sooplive.co.kr/${userId}/${broadNo}`;
 }
 
-function extractTitleTag(html: string) {
-  const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  return match?.[1] ?? null;
-}
-
-function decodeUnicode(str: string) {
-  return str.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16))
-  );
-}
-
-function safeJsonParse<T>(raw: string): T | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-
-  const candidates = [trimmed];
-  if (trimmed.startsWith(")]}'")) {
-    candidates.push(trimmed.replace(/^\)\]\}'\s*/, ""));
-  }
-
-  const firstBrace = trimmed.indexOf("{");
-  const lastBrace = trimmed.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    candidates.push(trimmed.slice(firstBrace, lastBrace + 1));
-  }
-
-  for (const candidate of candidates) {
-    try {
-      return JSON.parse(candidate) as T;
-    } catch {
-      // noop
-    }
-  }
-
-  return null;
-}
-
-function extractBroadcastNoFromRaw(raw: string): string | null {
-  const patterns = [
-    /"BNO"\s*:\s*"?(\d{6,})"?/i,
-    /"bno"\s*:\s*"?(\d{6,})"?/i,
-    /"broad_no"\s*:\s*"?(\d{6,})"?/i,
-    /"broadNo"\s*:\s*"?(\d{6,})"?/i,
-    /"nBroadNo"\s*:\s*"?(\d{6,})"?/i,
-    /\/play\.sooplive\.co\.kr\/[^\s"']+\/(\d{6,})/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = raw.match(pattern);
-    if (match?.[1]) return match[1];
-  }
-
-  return null;
-}
-
-function extractTitleFromRaw(raw: string): string | null {
-  const patterns = [
-    /"TITLE"\s*:\s*"([^"]+)"/i,
-    /"title"\s*:\s*"([^"]+)"/i,
-    /<title[^>]*>([^<]+)<\/title>/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = raw.match(pattern);
-    if (match?.[1]) return decodeUnicode(match[1]).trim();
-  }
-
-  return null;
-}
-
-function extractThumbFromRaw(raw: string): string | null {
-  const patterns = [
-    /"THUMBNAIL"\s*:\s*"([^"]+)"/i,
-    /"THUMB_URL"\s*:\s*"([^"]+)"/i,
-    /"thumb_url"\s*:\s*"([^"]+)"/i,
-    /"thumbUrl"\s*:\s*"([^"]+)"/i,
-    /"og:image"\s+content=["']([^"']+)["']/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = raw.match(pattern);
-    if (match?.[1]) return decodeUnicode(match[1]).trim();
-  }
-
-  return null;
-}
-
-function detectLiveFromRaw(raw: string) {
-  const patterns = [
-    /"is_live"\s*:\s*"?Y"?/i,
-    /"live_yn"\s*:\s*"?Y"?/i,
-    /"onair"\s*:\s*true/i,
-    /"broad_status"\s*:\s*"?on"?/i,
-    /"RESULT"\s*:\s*1/i,
-    /"CHANNEL_STATUS"\s*:\s*"?1"?/i,
-  ];
-
-  return patterns.some((pattern) => pattern.test(raw));
-}
-
-function parseTagsFromHtml(html: string) {
-  const values = new Set<string>();
-
-  const broadTagMatch = html.match(/"broad_tag"\s*:\s*\[(.*?)\]/i);
-  if (broadTagMatch?.[1]) {
-    const inner = broadTagMatch[1];
-    const tagMatches = inner.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g) ?? [];
-    tagMatches
-      .map((item) => item.slice(1, -1))
-      .map(decodeUnicode)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .forEach((item) => values.add(item));
-  }
-
-  const hashTagsMatch = html.match(/"hash_tags"\s*:\s*\[(.*?)\]/i);
-  if (hashTagsMatch?.[1]) {
-    const inner = hashTagsMatch[1];
-    const tagMatches = inner.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g) ?? [];
-    tagMatches
-      .map((item) => item.slice(1, -1))
-      .map(decodeUnicode)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .forEach((item) => values.add(item));
-  }
-
-  const hashTagsCamelMatch = html.match(/"hashTags"\s*:\s*\[(.*?)\]/i);
-  if (hashTagsCamelMatch?.[1]) {
-    const inner = hashTagsCamelMatch[1];
-    const tagMatches = inner.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g) ?? [];
-    tagMatches
-      .map((item) => item.slice(1, -1))
-      .map(decodeUnicode)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .forEach((item) => values.add(item));
-  }
-
-  const catePatterns = [
-    /"cate_name"\s*:\s*"([^"]+)"/i,
-    /"category_name"\s*:\s*"([^"]+)"/i,
-    /"broad_cate_name"\s*:\s*"([^"]+)"/i,
-    /"category"\s*:\s*"([^"]+)"/i,
-  ];
-  for (const pattern of catePatterns) {
-    const match = html.match(pattern);
-    if (match?.[1]) {
-      const decoded = decodeUnicode(match[1]).trim();
-      if (decoded) values.add(decoded);
-    }
-  }
-
-  const ogDesc = extractMetaContent(html, "og:description");
-  if (ogDesc) {
-    const hashTagParts = ogDesc.match(/#([^\s#,]+)/g);
-    if (hashTagParts) {
-      hashTagParts
-        .map((t) => t.replace(/^#/, "").trim())
-        .filter(Boolean)
-        .forEach((t) => values.add(t));
-    }
-  }
-
-  const dataTagMatches = html.match(/data-tag="([^"]+)"/g);
-  if (dataTagMatches) {
-    dataTagMatches.forEach((match) => {
-      const value = match.replace(/data-tag="/, "").replace(/"$/, "").trim();
-      if (value) {
-        value.split(",").forEach((t) => {
-          const trimmed = t.trim();
-          if (trimmed) values.add(trimmed);
-        });
-      }
-    });
-  }
-
-  const tagListMatch = html.match(/class="[^"]*tag[^"]*"[^>]*>([^<]+)</gi);
-  if (tagListMatch) {
-    tagListMatch.forEach((match) => {
-      const textMatch = match.match(/>([^<]+)$/);
-      if (textMatch?.[1]) {
-        const text = textMatch[1].trim();
-        if (text && text.length < 20 && !text.includes("{") && !text.includes("(")) {
-          values.add(text);
-        }
-      }
-    });
-  }
-
-  return Array.from(values).slice(0, 7);
-}
-
-function detectLiveFromHtml(html: string) {
-  const patterns = [
-    /"is_live"\s*:\s*"?Y"?/i,
-    /"live_yn"\s*:\s*"?Y"?/i,
-    /"onair"\s*:\s*true/i,
-    /"broad_status"\s*:\s*"?on"?/i,
-  ];
-
-  return patterns.some((pattern) => pattern.test(html));
-}
-
-function extractLiveUrlFromHtml(html: string, bjid: string) {
-  const patterns = [
-    new RegExp(`https?:\\/\\/play\\.sooplive\\.co\\.kr\\/${bjid}\\/(\\d{6,})`, "i"),
-    new RegExp(`https?:\\\\/\\\\/play\\.sooplive\\.co\\.kr\\\\/${bjid}\\\\/(\\d{6,})`, "i"),
-    new RegExp(`\\/play\\.sooplive\\.co\\.kr\\/${bjid}\\/(\\d{6,})`, "i"),
-    new RegExp(`\\\\/play\\.sooplive\\.co\\.kr\\\\/${bjid}\\\\/(\\d{6,})`, "i"),
-    /"bno"\s*:\s*"?(\d{6,})"?/i,
-    /"BNO"\s*:\s*"?(\d{6,})"?/i,
-    /"broad_no"\s*:\s*"?(\d{6,})"?/i,
-    /"broadNo"\s*:\s*"?(\d{6,})"?/i,
-    /"nBroadNo"\s*:\s*"?(\d{6,})"?/i,
-  ];
-
-  for (const pattern of patterns) {
-    const m = html.match(pattern);
-    if (m?.[1]) {
-      return `https://play.sooplive.co.kr/${bjid}/${m[1]}`;
-    }
-  }
-
-  const ogUrl = extractMetaContent(html, "og:url");
-  if (ogUrl) {
-    const match = ogUrl.match(new RegExp(`play\\.sooplive\\.co\\.kr/${bjid}/(\\d{6,})`, "i"));
-    if (match?.[1]) {
-      return `https://play.sooplive.co.kr/${bjid}/${match[1]}`;
-    }
-  }
-
-  return null;
-}
-
-async function fetchLiveMeta(liveUrl: string) {
-  try {
-    const response = await fetch(liveUrl, { headers: COMMON_HEADERS, cache: "no-store" });
-    const html = await response.text();
-    const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
-    const thumbUrl = extractMetaContent(html, "og:image");
-    const tags = parseTagsFromHtml(html);
-    return { title, thumbUrl, tags };
-  } catch {
-    return { title: null, thumbUrl: null, tags: [] };
-  }
-}
-
-async function fetchStationMeta(bjid: string) {
-  try {
-    const stationUrl = `https://play.sooplive.co.kr/${bjid}`;
-    const response = await fetch(stationUrl, {
-      headers: {
-        ...COMMON_HEADERS,
-        referer: stationUrl,
-      },
-      cache: "no-store",
-    });
-    const html = await response.text();
-
-    const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
-    const thumbUrl = extractMetaContent(html, "og:image");
-    const tags = parseTagsFromHtml(html);
-    const liveUrlFromHtml = extractLiveUrlFromHtml(html, bjid);
-    const liveUrlFromRedirect =
-      response.url && response.url.includes(`/play.sooplive.co.kr/${bjid}/`)
-        ? response.url
-        : null;
-    const liveUrl = liveUrlFromHtml ?? liveUrlFromRedirect;
-    const isLive = detectLiveFromHtml(html) || !!liveUrl;
-
-    return { title, thumbUrl, tags, liveUrl, isLive };
-  } catch {
-    return { title: null, thumbUrl: null, tags: [], liveUrl: null, isLive: false };
-  }
-}
-
-async function callPlayerLiveApi(bjid: string, signal: AbortSignal) {
-  const endpoint = "https://live.sooplive.co.kr/afreeca/player_live_api.php";
-
-  const payloads = [
-    {
-      bid: bjid,
-      bno: "null",
-      type: "live",
-      pwd: "",
-      player_type: "html5",
-      stream_type: "common",
-      quality: "HD",
-      mode: "landing",
-      from_api: "0",
-      is_revive: "false",
-    },
-    {
-      bid: bjid,
-      bno: "",
-      type: "live",
-      pwd: "",
-      player_type: "html5",
-      stream_type: "common",
-      quality: "HD",
-      mode: "watch",
-      from_api: "1",
-      is_revive: "false",
-    },
-  ];
-
-  for (const payload of payloads) {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        ...COMMON_HEADERS,
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        origin: "https://play.sooplive.co.kr",
-        referer: `https://play.sooplive.co.kr/${bjid}`,
-      },
-      body: new URLSearchParams(payload).toString(),
-      signal,
-      cache: "no-store",
-    });
-
-    const raw = await response.text();
-    if (!raw.trim()) continue;
-
-    return {
-      raw,
-      json: safeJsonParse<LiveApiResponse>(raw),
-    };
-  }
-
-  return {
-    raw: "",
-    json: null,
-  };
-}
-
-function parseTagsFromSearchItem(item: SearchBroadItem) {
+function extractTags(item: BroadListItem): string[] {
   const tags: string[] = [];
 
-  const category = pickFirstString(item.broad_cate_name, item.broad_category);
-  if (category) tags.push(category);
-
-  if (typeof item.broad_tag === "string") {
-    item.broad_tag
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean)
-      .forEach((tag) => tags.push(tag));
+  if (item.broad_cate_no !== undefined && item.broad_cate_no !== null) {
+    const cate = String(item.broad_cate_no).trim();
+    if (cate) tags.push(`cate:${cate}`);
   }
 
-  if (Array.isArray(item.hash_tags)) {
-    item.hash_tags
-      .map((tag) => String(tag).trim())
-      .filter(Boolean)
-      .forEach((tag) => tags.push(tag));
-  }
-
-  return Array.from(new Set(tags)).slice(0, 7);
+  return tags;
 }
 
-async function fetchSearchLive(bjid: string, signal: AbortSignal) {
-  try {
-    const params = new URLSearchParams({
-      m: "search",
-      v: "1.0",
-      szOrder: "score",
-      szKeyword: bjid,
-      c: "UTF-8",
-    });
+function buildOfflineStatuses(nowIso: string): MemberStatus[] {
+  return members.map((member) => ({
+    ...member,
+    isLive: false,
+    liveUrl: null,
+    title: null,
+    thumbUrl: null,
+    tags: [],
+    fetchedAt: nowIso,
+  }));
+}
 
-    const response = await fetch(`https://sch.sooplive.co.kr/api.php?${params.toString()}`, {
-      headers: {
-        ...COMMON_HEADERS,
-        referer: "https://www.sooplive.co.kr/",
-      },
-      signal,
-      cache: "no-store",
-    });
+function buildStatusesFromLiveMap(liveMap: Map<string, BroadListItem>, nowIso: string): MemberStatus[] {
+  return members.map((member) => {
+    const live = liveMap.get(member.id);
 
-    const raw = await response.text();
-    const json = safeJsonParse<SearchApiResponse>(raw);
+    if (!live) {
+      return {
+        ...member,
+        isLive: false,
+        liveUrl: null,
+        title: null,
+        thumbUrl: null,
+        tags: [],
+        fetchedAt: nowIso,
+      };
+    }
 
-    const candidates = [
-      ...(json?.REAL_BROAD ?? []),
-      ...(json?.broad_list ?? []),
-      ...(json?.BROAD ?? []),
-    ];
-
-    const found = candidates.find((item) => item.user_id === bjid);
-    if (!found) return null;
-
-    const broadNo = parseBroadcastNo(found.broad_no);
-    if (!broadNo) return null;
+    const broadNo = parseBroadNo(live.broad_no);
 
     return {
-      broadNo,
-      title: pickFirstString(found.broad_title),
-      thumbUrl: pickFirstString(
-        found.thumb,
-        found.thumb_url,
-        found.mobile_thumb,
-        found.pc_thumb,
-        found.sn_thumb
-      ),
-      tags: parseTagsFromSearchItem(found),
+      ...member,
+      isLive: true,
+      liveUrl: buildLiveUrl(member.id, broadNo),
+      title: typeof live.broad_title === "string" && live.broad_title.trim() ? live.broad_title.trim() : null,
+      thumbUrl: normalizeThumbUrl(live.broad_thumb),
+      tags: extractTags(live),
+      fetchedAt: nowIso,
     };
-  } catch {
-    return null;
-  }
+  });
 }
 
-async function fetchMobileStation(bjid: string) {
-  const urls = [
-    `https://m.sooplive.co.kr/${bjid}`,
-    `https://m.sooplive.co.kr/#/player/${bjid}`,
-  ];
+async function fetchBroadListPage(clientId: string, pageNo: number, options: BroadListFetchOptions) {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    page_no: String(pageNo),
+    order_type: options.orderType ?? DEFAULT_ORDER_TYPE,
+  });
 
-  for (const stationUrl of urls) {
-    try {
-      const response = await fetch(stationUrl, {
-        headers: {
-          ...MOBILE_HEADERS,
-          referer: "https://m.sooplive.co.kr/",
-        },
-        cache: "no-store",
-      });
-      const html = await response.text();
-      if (!html.trim()) continue;
-
-      const mobileBno = extractBroadcastNoFromRaw(html);
-      const liveUrlFromHtml = extractLiveUrlFromHtml(html, bjid);
-      const liveUrl =
-        liveUrlFromHtml ??
-        (mobileBno ? `https://play.sooplive.co.kr/${bjid}/${mobileBno}` : null);
-
-      const isLive = detectLiveFromHtml(html) || detectLiveFromRaw(html) || !!liveUrl;
-
-      if (!isLive && !mobileBno) continue;
-
-      return {
-        broadNo: mobileBno,
-        liveUrl,
-        title: extractMetaContent(html, "og:title") ?? extractTitleTag(html),
-        thumbUrl:
-          extractMetaContent(html, "og:image") ??
-          extractThumbFromRaw(html),
-        tags: parseTagsFromHtml(html),
-        isLive,
-      };
-    } catch {
-      // noop
-    }
+  if (options.selectKey && options.selectValue) {
+    params.set("select_key", options.selectKey);
+    params.set("select_value", options.selectValue);
   }
 
-  return null;
+  const response = await fetch(`${OPEN_API_ENDPOINT}?${params.toString()}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`broad/list request failed: ${response.status}`);
+  }
+
+  const json = (await response.json()) as BroadListResponse;
+  return Array.isArray(json.broad) ? json.broad : [];
 }
 
-async function fetchStatus(bjid: string) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
+async function fetchLiveMapFromOpenApi(clientId: string, options: BroadListFetchOptions) {
+  const targetIds = new Set(members.map((member) => member.id));
+  const liveMap = new Map<string, BroadListItem>();
 
-  try {
-    const { raw, json } = await callPlayerLiveApi(bjid, controller.signal);
+  for (let pageNo = 1; pageNo <= MAX_PAGE; pageNo += 1) {
+    const broadList = await fetchBroadListPage(clientId, pageNo, options);
 
-    const bnoCandidates = [
-      json?.CHANNEL?.BNO,
-      json?.CHANNEL?.broad_no,
-      json?.CHANNEL?.broadNo,
-      json?.CHANNEL?.nBroadNo,
-      json?.BNO,
-      json?.broad_no,
-      json?.broadNo,
-      json?.nBroadNo,
-      json?.RMD?.broad_no,
-      json?.RMD?.broadNo,
-      json?.RMD?.nBroadNo,
-      json?.DATA?.broad_no,
-      json?.DATA?.broadNo,
-      json?.DATA?.nBroadNo,
-      extractBroadcastNoFromRaw(raw),
-    ];
+    if (broadList.length === 0) break;
 
-    let bno =
-      bnoCandidates
-        .map((candidate) => parseBroadcastNo(candidate))
-        .find((candidate): candidate is string => !!candidate) ?? null;
-
-    let apiTitle = pickFirstString(
-      json?.CHANNEL?.TITLE,
-      json?.RMD?.title,
-      json?.DATA?.title,
-      json?.title,
-      extractTitleFromRaw(raw)
-    );
-
-    const apiThumb = pickFirstString(
-      json?.CHANNEL?.THUMBNAIL,
-      json?.CHANNEL?.THUMB,
-      json?.CHANNEL?.THUMB_URL,
-      json?.RMD?.thumb,
-      json?.RMD?.thumb_url,
-      json?.DATA?.thumb,
-      json?.DATA?.thumb_url,
-      json?.thumbnail,
-      json?.thumbUrl,
-      extractThumbFromRaw(raw)
-    );
-
-    const apiTags: string[] = [];
-    if (json?.CHANNEL?.CATE_NAME) apiTags.push(json.CHANNEL.CATE_NAME);
-    if (json?.CHANNEL?.BROAD_CATE) apiTags.push(json.CHANNEL.BROAD_CATE);
-    if (json?.CHANNEL?.HASH_TAGS && Array.isArray(json.CHANNEL.HASH_TAGS)) {
-      json.CHANNEL.HASH_TAGS.forEach((t) => apiTags.push(t));
-    }
-    if (json?.CHANNEL?.TAG) {
-      json.CHANNEL.TAG.split(",").forEach((t) => {
-        const trimmed = t.trim();
-        if (trimmed) apiTags.push(trimmed);
-      });
+    for (const item of broadList) {
+      const userId = typeof item.user_id === "string" ? item.user_id.trim() : "";
+      if (!userId || !targetIds.has(userId)) continue;
+      if (!liveMap.has(userId)) liveMap.set(userId, item);
     }
 
-    let mobileStation: Awaited<ReturnType<typeof fetchMobileStation>> | null = null;
-
-    if (!bno) {
-      const searchLive = await fetchSearchLive(bjid, controller.signal);
-      if (searchLive) {
-        bno = searchLive.broadNo;
-        apiTitle = apiTitle ?? searchLive.title;
-        apiTags.push(...searchLive.tags);
-      }
-    }
-
-    if (!bno) {
-      mobileStation = await fetchMobileStation(bjid);
-      if (mobileStation?.broadNo) {
-        bno = mobileStation.broadNo;
-      }
-      if (mobileStation?.tags.length) {
-        apiTags.push(...mobileStation.tags);
-      }
-      apiTitle = apiTitle ?? mobileStation?.title ?? null;
-    }
-
-    if (bno) {
-      const liveUrl = `https://play.sooplive.co.kr/${bjid}/${bno}`;
-      const [meta, stationMeta] = await Promise.all([
-        fetchLiveMeta(liveUrl),
-        apiTags.length < 4
-          ? fetchStationMeta(bjid)
-          : Promise.resolve({ title: null, thumbUrl: null, tags: [], liveUrl: null, isLive: false }),
-      ]);
-
-      const combinedTags = Array.from(
-        new Set([...apiTags, ...meta.tags, ...stationMeta.tags])
-      ).filter(Boolean);
-
-      return {
-        isLive: true,
-        liveUrl,
-        title: apiTitle ?? mobileStation?.title ?? meta.title ?? stationMeta.title,
-        thumbUrl: apiThumb ?? mobileStation?.thumbUrl ?? meta.thumbUrl ?? stationMeta.thumbUrl,
-        tags: combinedTags.slice(0, 7),
-      };
-    }
-
-    mobileStation = mobileStation ?? (await fetchMobileStation(bjid));
-    if (mobileStation?.liveUrl) {
-      const liveMeta = await fetchLiveMeta(mobileStation.liveUrl);
-      const combinedTags = Array.from(
-        new Set([...apiTags, ...mobileStation.tags, ...liveMeta.tags])
-      ).filter(Boolean);
-
-      return {
-        isLive: true,
-        liveUrl: mobileStation.liveUrl,
-        title: apiTitle ?? mobileStation.title ?? liveMeta.title,
-        thumbUrl: apiThumb ?? mobileStation.thumbUrl ?? liveMeta.thumbUrl,
-        tags: combinedTags.slice(0, 7),
-      };
-    }
-
-    const stationMeta = await fetchStationMeta(bjid);
-    if (stationMeta.liveUrl) {
-      const liveMeta = await fetchLiveMeta(stationMeta.liveUrl);
-      const combinedTags = Array.from(
-        new Set([...apiTags, ...stationMeta.tags, ...liveMeta.tags])
-      ).filter(Boolean);
-
-      return {
-        isLive: true,
-        liveUrl: stationMeta.liveUrl,
-        title: apiTitle ?? liveMeta.title ?? stationMeta.title,
-        thumbUrl: apiThumb ?? liveMeta.thumbUrl ?? stationMeta.thumbUrl,
-        tags: combinedTags.slice(0, 7),
-      };
-    }
-
-    const apiSaysLive = detectLiveFromRaw(raw);
-    if (apiSaysLive || stationMeta.isLive) {
-      return {
-        isLive: true,
-        liveUrl: `https://play.sooplive.co.kr/${bjid}`,
-        title: apiTitle ?? stationMeta.title,
-        thumbUrl: apiThumb ?? stationMeta.thumbUrl,
-        tags: Array.from(new Set([...apiTags, ...stationMeta.tags])).slice(0, 7),
-      };
-    }
-
-
-    return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
-  } catch {
-    return { isLive: false, liveUrl: null, title: null, thumbUrl: null, tags: [] };
-  } finally {
-    clearTimeout(timeout);
+    if (liveMap.size === targetIds.size) break;
   }
+
+  return liveMap;
 }
 
 export async function GET() {
   const now = Date.now();
+
   if (cached && cached.expiresAt > now) {
     return NextResponse.json(cached.data);
   }
 
-  const results: MemberStatus[] = await Promise.all(
-    members.map(async (member) => {
-      const status = await fetchStatus(member.id);
-      return {
-        ...member,
-        ...status,
-        fetchedAt: new Date().toISOString(),
-      };
-    })
-  );
+  const nowIso = new Date().toISOString();
+  const clientId = resolveClientId();
 
-  cached = {
-    data: results,
-    expiresAt: now + 20_000,
-  };
+  if (!clientId) {
+    console.warn("[members/status] SOOP OpenAPI client_id missing. Fallback to offline.");
 
-  return NextResponse.json(results);
+    const fallbackData = cached?.data ?? buildOfflineStatuses(nowIso);
+    cached = {
+      data: fallbackData,
+      expiresAt: now + CACHE_TTL_MS,
+    };
+
+    return NextResponse.json(fallbackData);
+  }
+
+  try {
+    const liveMap = await fetchLiveMapFromOpenApi(clientId, {
+      orderType: DEFAULT_ORDER_TYPE,
+      selectKey: (process.env.SOOPLIVE_BROAD_LIST_SELECT_KEY as "cate" | "lang" | undefined) ?? undefined,
+      selectValue: process.env.SOOPLIVE_BROAD_LIST_SELECT_VALUE,
+    });
+
+    const data = buildStatusesFromLiveMap(liveMap, nowIso);
+    cached = {
+      data,
+      expiresAt: now + CACHE_TTL_MS,
+    };
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("[members/status] broad/list fetch failed:", error);
+
+    const fallbackData = cached?.data ?? buildOfflineStatuses(nowIso);
+    cached = {
+      data: fallbackData,
+      expiresAt: now + CACHE_TTL_MS,
+    };
+
+    return NextResponse.json(fallbackData);
+  }
 }
