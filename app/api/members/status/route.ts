@@ -59,31 +59,7 @@ type StationLiveFields = Omit<
   "id" | "name" | "soopUrl" | "avatarUrl" | "fetchedAt"
 >;
 
-type PlayerLiveApiResponse = {
-  RESULT?: number | string;
-  CHANNEL_STATUS?: string | number;
-  channel_status?: string | number;
-  BNO?: number | string;
-  bno?: number | string;
-  broad_no?: number | string;
-  broadNo?: number | string;
-  nBroadNo?: number | string;
-  CHANNEL?: {
-    BNO?: number | string;
-    bno?: number | string;
-    broad_no?: number | string;
-    broadNo?: number | string;
-    nBroadNo?: number | string;
-    TITLE?: string;
-    CATE_NAME?: string;
-    BROAD_CATE?: string;
-    TAG?: string; // "봉준,무수,하데스,보라,종겜" 같이 올 수 있음
-    HASH_TAGS?: string[]; // ["버추얼","노래","하데스"] 같이 올 수 있음
-  };
-};
-
 const CHAPI_BASE_URL = "https://chapi.sooplive.co.kr/api";
-const PLAYER_LIVE_API_ENDPOINT = "https://live.sooplive.co.kr/afreeca/player_live_api.php";
 const CACHE_TTL_MS = 20_000;
 
 const COMMON_HEADERS = {
@@ -130,8 +106,8 @@ function extractBroadNoFromLiveUrl(liveUrl: string | null): string | null {
   return match?.[1] ?? null;
 }
 
-function buildLiveUrl(userId: string, broadNo: string | null): string {
-  if (!broadNo) return `https://play.sooplive.co.kr/${userId}`;
+function buildLiveUrl(userId: string, broadNo: string | null): string | null {
+  if (!broadNo) return null;
   return `https://play.sooplive.co.kr/${userId}/${broadNo}`;
 }
 
@@ -194,24 +170,14 @@ function normalizeTag(raw: string): string | null {
   if (!cleaned) return null;
   if (cleaned === "한국어") return null;
   if (/^\d+$/.test(cleaned)) return null;
-  if (cleaned.length > 30) return null;
   return cleaned;
-}
-
-function mergeTags(primary: string[], secondary: string[]): string[] {
-  const set = new Set<string>();
-  for (const tag of [...primary, ...secondary]) {
-    const n = normalizeTag(tag);
-    if (n) set.add(n);
-  }
-  return Array.from(set).slice(0, 7);
 }
 
 function pushTag(set: Set<string>, raw: unknown) {
   if (typeof raw !== "string") return;
 
   raw
-    .split(/[|,]/)
+    .split(",")
     .map((part) => normalizeTag(part))
     .filter((part): part is string => !!part)
     .forEach((part) => set.add(part));
@@ -233,9 +199,8 @@ function collectTagsFromStation(source: JsonObject): string[] {
     ])
   );
 
-  if (primaryCategory) {
-    const n = normalizeTag(primaryCategory);
-    if (n) values.add(n);
+  if (primaryCategory && primaryCategory !== "한국어") {
+    values.add(primaryCategory);
   }
 
   const language = toNonEmptyString(
@@ -251,9 +216,8 @@ function collectTagsFromStation(source: JsonObject): string[] {
     ])
   );
 
-  if (language) {
-    const n = normalizeTag(language);
-    if (n) values.add(n);
+  if (language && language !== "한국어") {
+    values.add(language);
   }
 
   const stringTagPaths: string[][] = [
@@ -292,8 +256,8 @@ function collectTagsFromStation(source: JsonObject): string[] {
 
     for (const item of candidate) {
       if (typeof item === "string") {
-        const n = normalizeTag(item);
-        if (n) values.add(n);
+        const normalized = normalizeTag(item);
+        if (normalized) values.add(normalized);
       }
     }
   }
@@ -301,112 +265,133 @@ function collectTagsFromStation(source: JsonObject): string[] {
   return Array.from(values).slice(0, 7);
 }
 
-function safeJsonParse<T>(raw: string): T | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
+function decodeUnicodeEscapes(raw: string): string {
+  return raw.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
 
-  const candidates = [trimmed];
-  if (trimmed.startsWith(")]}'")) {
-    candidates.push(trimmed.replace(/^\)\]\}'\s*/, ""));
-  }
+function extractMetaContent(html: string, property: string): string | null {
+  const patterns = [
+    new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+name=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${property}["'][^>]*>`, "i"),
+  ];
 
-  const firstBrace = trimmed.indexOf("{");
-  const lastBrace = trimmed.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    candidates.push(trimmed.slice(firstBrace, lastBrace + 1));
-  }
-
-  for (const c of candidates) {
-    try {
-      return JSON.parse(c) as T;
-    } catch {
-      // continue
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      return decodeUnicodeEscapes(match[1]);
     }
   }
+
   return null;
 }
 
-async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promise<string[]> {
-  // broadNo가 있어도/없어도 동작하는 payload 두 개를 시도
-  const payloads: Record<string, string>[] = [
-    {
-      bid: bjid,
-      bno: broadNo ?? "null",
-      type: "live",
-      pwd: "",
-      player_type: "html5",
-      stream_type: "common",
-      quality: "HD",
-      mode: "landing",
-      from_api: "0",
-      is_revive: "false",
-    },
-    {
-      bid: bjid,
-      bno: broadNo ?? "",
-      type: "live",
-      pwd: "",
-      player_type: "html5",
-      stream_type: "common",
-      quality: "HD",
-      mode: "watch",
-      from_api: "1",
-      is_revive: "false",
-    },
+function decodeHtmlEntities(raw: string): string {
+  return raw
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
+}
+
+function extractTagsFromHashtagHtml(html: string): string[] {
+  const values = new Set<string>();
+  const wrapMatch = html.match(/<div[^>]*id=["']hashtag["'][^>]*>[\s\S]*?<\/div>/i);
+  if (!wrapMatch?.[0]) return [];
+
+  const wrap = wrapMatch[0];
+  const anchorRegex = /<a\b[^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = anchorRegex.exec(wrap)) !== null) {
+    const inner = match[1] ?? "";
+    const text = decodeHtmlEntities(decodeUnicodeEscapes(inner.replace(/<[^>]+>/g, "").trim()));
+    const normalized = normalizeTag(text);
+    if (normalized) values.add(normalized);
+  }
+
+  return Array.from(values).slice(0, 7);
+}
+
+function collectTagsFromLiveHtml(html: string): string[] {
+  const values = new Set<string>();
+
+  const addTag = (raw: string) => {
+    const normalized = normalizeTag(decodeUnicodeEscapes(raw));
+    if (normalized) values.add(normalized);
+  };
+
+  const arrayPatterns = [
+    /"broad_tag"\s*:\s*\[([\s\S]*?)\]/gi,
+    /"hash_tags"\s*:\s*\[([\s\S]*?)\]/gi,
+    /"hashTags"\s*:\s*\[([\s\S]*?)\]/gi,
+    /"tags"\s*:\s*\[([\s\S]*?)\]/gi,
+    /"BROAD_TAG"\s*:\s*\[([\s\S]*?)\]/gi,
   ];
 
-  for (const payload of payloads) {
-    try {
-      const res = await fetch(PLAYER_LIVE_API_ENDPOINT, {
-        method: "POST",
-        headers: {
-          ...COMMON_HEADERS,
-          "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-          origin: "https://play.sooplive.co.kr",
-          referer: `https://play.sooplive.co.kr/${bjid}`,
-        },
-        body: new URLSearchParams(payload).toString(),
-        cache: "no-store",
-      });
+  for (const pattern of arrayPatterns) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(html)) !== null) {
+      const inner = match[1] ?? "";
+      const tokenMatches = inner.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g) ?? [];
 
-      if (!res.ok) continue;
-
-      const raw = await res.text();
-      const json = safeJsonParse<PlayerLiveApiResponse>(raw);
-      if (!json) continue;
-
-      const tags: string[] = [];
-
-      const cateName = json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE;
-      if (typeof cateName === "string") {
-        const n = normalizeTag(cateName);
-        if (n) tags.push(n);
+      for (const token of tokenMatches) {
+        addTag(token.slice(1, -1));
       }
-
-      const csv = json.CHANNEL?.TAG;
-      if (typeof csv === "string" && csv.trim()) {
-        csv.split(",").forEach((t) => {
-          const n = normalizeTag(t);
-          if (n) tags.push(n);
-        });
-      }
-
-      const hash = json.CHANNEL?.HASH_TAGS;
-      if (Array.isArray(hash)) {
-        hash.forEach((t) => {
-          const n = normalizeTag(String(t));
-          if (n) tags.push(n);
-        });
-      }
-
-      const out = Array.from(new Set(tags)).slice(0, 7);
-      if (out.length > 0) return out;
-    } catch {
-      // ignore and try next payload
     }
   }
 
-  return [];
+  const csvPatterns = [
+    /"broad_tag"\s*:\s*"([^"]+)"/gi,
+    /"hash_tag"\s*:\s*"([^"]+)"/gi,
+    /"tags"\s*:\s*"([^"]+)"/gi,
+    /"BROAD_TAG"\s*:\s*"([^"]+)"/gi,
+  ];
+
+  for (const pattern of csvPatterns) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(html)) !== null) {
+      const raw = decodeUnicodeEscapes(match[1] ?? "");
+      raw
+        .split(/[|,]/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach(addTag);
+    }
+  }
+
+  const categoryPatterns = [
+    /"broad_cate_name"\s*:\s*"([^"]+)"/i,
+    /"cate_name"\s*:\s*"([^"]+)"/i,
+    /"BROAD_CATE_NAME"\s*:\s*"([^"]+)"/i,
+  ];
+
+  for (const pattern of categoryPatterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      addTag(match[1]);
+      break;
+    }
+  }
+
+  const ogDesc = extractMetaContent(html, "og:description") ?? extractMetaContent(html, "description");
+  if (ogDesc) {
+    const hashTags = ogDesc.match(/#([^\s#,]+)/g) ?? [];
+    for (const tag of hashTags) {
+      addTag(tag.replace(/^#/, ""));
+    }
+  }
+
+  const hashtagTags = extractTagsFromHashtagHtml(html);
+  for (const tag of hashtagTags) {
+    addTag(tag);
+  }
+
+  return Array.from(values).slice(0, 7);
 }
 
 function parseStationStatus(userId: string, payload: unknown): StationLiveFields {
@@ -498,11 +483,9 @@ function parseStationStatus(userId: string, payload: unknown): StationLiveFields
     ])
   );
 
-  const liveUrl = isLive ? buildLiveUrl(userId, broadNo) : null;
-
   return {
     isLive,
-    liveUrl,
+    liveUrl: isLive ? buildLiveUrl(userId, broadNo) ?? `https://play.sooplive.co.kr/${userId}` : null,
     title: isLive ? title : null,
     thumbUrl: isLive ? thumbUrl : null,
     tags: isLive ? collectTagsFromStation(root) : [],
@@ -532,6 +515,35 @@ async function fetchStationStatus(userId: string): Promise<StationLiveFields> {
   }
 }
 
+async function fetchLivePageTags(liveUrl: string | null): Promise<string[]> {
+  if (!liveUrl) return [];
+
+  try {
+    const response = await fetch(liveUrl, {
+      headers: COMMON_HEADERS,
+      cache: "no-store",
+    });
+
+    if (!response.ok) return [];
+
+    const html = await response.text();
+    return collectTagsFromLiveHtml(html);
+  } catch {
+    return [];
+  }
+}
+
+function mergeTags(primary: string[], secondary: string[]): string[] {
+  const set = new Set<string>();
+
+  for (const tag of [...primary, ...secondary]) {
+    const normalized = normalizeTag(tag);
+    if (normalized) set.add(normalized);
+  }
+
+  return Array.from(set).slice(0, 7);
+}
+
 function buildOfflineStatuses(nowIso: string): MemberStatus[] {
   return members.map((member) => ({
     ...member,
@@ -558,16 +570,17 @@ export async function GET() {
         const station = await fetchStationStatus(member.id);
 
         if (!station.isLive) {
-          return { ...member, ...station, fetchedAt: nowIso };
+          return {
+            ...member,
+            ...station,
+            fetchedAt: nowIso,
+          };
         }
 
-        // 1) liveimg 썸네일 우선
         const broadNoFromUrl = extractBroadNoFromLiveUrl(station.liveUrl);
         const liveImgThumb = buildLiveImageUrl(broadNoFromUrl);
-
-        // 2) 태그: player_live_api로 보강(핵심)
-        const playerTags = await fetchPlayerLiveTags(member.id, broadNoFromUrl);
-        const tags = mergeTags(playerTags, station.tags);
+        const livePageTags = await fetchLivePageTags(station.liveUrl);
+        const tags = mergeTags(livePageTags, station.tags);
 
         return {
           ...member,
