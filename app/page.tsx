@@ -10,7 +10,7 @@ import MelonPlaylist from "../components/MelonPlaylist";
 type MemberStatus = {
   id: string; name: string; soopUrl: string; avatarUrl: string;
   isLive: boolean; liveUrl: string | null; title: string | null;
-  thumbUrl: string | null; tags: string[]; fetchedAt: string;
+  thumbUrl: string | null; liveStartedAt: string | null; tags: string[]; fetchedAt: string;
 };
 
 type VoteItem = {
@@ -216,7 +216,13 @@ export default function HomePage() {
   }, []);
 
   const { liveMembers, offlineMembers } = useMemo(() => ({
-    liveMembers: members.filter(m => m.isLive),
+    liveMembers: members
+      .filter(m => m.isLive)
+      .sort((a, b) => {
+        const aTime = a.liveStartedAt ? new Date(a.liveStartedAt).getTime() : Number.POSITIVE_INFINITY;
+        const bTime = b.liveStartedAt ? new Date(b.liveStartedAt).getTime() : Number.POSITIVE_INFINITY;
+        return bTime - aTime;
+      }),
     offlineMembers: members.filter(m => !m.isLive),
   }), [members]);
 
