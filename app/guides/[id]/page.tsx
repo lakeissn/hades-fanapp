@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type DeviceType = "pc" | "mobile";
 
@@ -11,11 +11,8 @@ type GuideItem = {
   description: string;
   icon: string;
   tag: string;
-  // 디바이스별 이미지가 필요한 가이드인지 여부
   hasDeviceImages: boolean;
-  // 기본 이미지 (디바이스 구분 없는 경우)
   images: string[];
-  // 디바이스별 이미지 (PC/모바일)
   pcImages?: string[];
   mobileImages?: string[];
 };
@@ -25,6 +22,9 @@ type GuideCategory = {
   subtitle: string;
   items: GuideItem[];
 };
+
+const GUIDE_IMAGE_BASE_URL =
+  process.env.NEXT_PUBLIC_GUIDE_IMAGE_BASE_URL?.trim().replace(/\/$/, "") ?? "";
 
 const guideData: Record<string, GuideCategory> = {
   streaming: {
@@ -39,8 +39,8 @@ const guideData: Record<string, GuideCategory> = {
         tag: "MELON",
         hasDeviceImages: true,
         images: [],
-        pcImages: ["/guides/streaming_guide_pc.jpg"],
-        mobileImages: ["/guides/streaming_guide_m.jpg"],
+        pcImages: ["/guides/images/streaming-melon-setup-pc.png"],
+        mobileImages: ["/guides/images/streaming-melon-setup-mobile.png"],
       },
       {
         id: "youtube-setup",
@@ -49,7 +49,7 @@ const guideData: Record<string, GuideCategory> = {
         icon: "▶️",
         tag: "YOUTUBE",
         hasDeviceImages: false,
-        images: ["/guides/youtube_guide.jpg"],
+        images: ["/guides/images/streaming-youtube-setup.png"],
       },
       {
         id: "streaming-tips",
@@ -58,41 +58,86 @@ const guideData: Record<string, GuideCategory> = {
         icon: "💡",
         tag: "TIP",
         hasDeviceImages: false,
-        images: ["/guides/sound_assi.jpg"],
+        images: ["/guides/images/streaming-tips.png"],
       },
     ],
   },
   gift: {
     title: "선물하기 가이드",
-    subtitle: "멜론 음원 선물하기 방법",
+    subtitle: "후원과 굿즈 전달 방법",
     items: [
       {
-        id: "melon-gift",
-        title: "멜론 음원 선물하기 방법",
-        description: "멜론에서 음원 선물하는 방법",
+        id: "soop-gift",
+        title: "숲 후원 방법",
+        description: "숲(SOOP)에서 후원하는 방법 안내",
         icon: "🎁",
-        tag: "Present",
+        tag: "SOOP",
         hasDeviceImages: true,
         images: [],
-        pcImages: ["/guides/present_pc.jpg"],
-        mobileImages: ["/guides/present_mobile.jpg"],
+        pcImages: ["/guides/images/gift-soop-pc.png"],
+        mobileImages: ["/guides/images/gift-soop-mobile.png"],
+      },
+      {
+        id: "goods-delivery",
+        title: "굿즈 전달 방법",
+        description: "팬 굿즈를 안전하게 전달하는 방법",
+        icon: "📦",
+        tag: "GOODS",
+        hasDeviceImages: false,
+        images: ["/guides/images/gift-goods.png"],
+      },
+      {
+        id: "subscribe",
+        title: "구독/멤버십 방법",
+        description: "유료 멤버십 가입 및 구독 방법",
+        icon: "⭐",
+        tag: "SUBSCRIBE",
+        hasDeviceImages: false,
+        images: ["/guides/images/gift-subscribe.png"],
+      },
+      {
+        id: "gift-tips",
+        title: "후원 꿀팁",
+        description: "효율적인 후원을 위한 팁",
+        icon: "💡",
+        tag: "TIP",
+        hasDeviceImages: false,
+        images: ["/guides/images/gift-tips.png"],
       },
     ],
   },
   download: {
     title: "다운로드 가이드",
-    subtitle: "멜론 음원 다운로드",
+    subtitle: "클립과 자료 다운로드",
     items: [
       {
-        id: "melon-download",
-        title: "멜론 음원 다운로드 방법",
-        description: "멜론 음원 다운로드 방법",
+        id: "clip-download",
+        title: "방송 클립 다운로드",
+        description: "방송 다시보기 클립을 저장하는 방법",
         icon: "🎬",
         tag: "CLIP",
         hasDeviceImages: true,
         images: [],
-        pcImages: ["/guides/download_pc.jpg.png"],
-        mobileImages: ["/guides/download_mobile.jpg"],
+        pcImages: ["/guides/images/download-clip-pc.png"],
+        mobileImages: ["/guides/images/download-clip-mobile.png"],
+      },
+      {
+        id: "photo-download",
+        title: "고화질 사진 다운로드",
+        description: "공식 사진/이미지를 고화질로 받기",
+        icon: "📸",
+        tag: "PHOTO",
+        hasDeviceImages: false,
+        images: ["/guides/images/download-photo.png"],
+      },
+      {
+        id: "music-download",
+        title: "음원 다운로드",
+        description: "멜론 등에서 음원을 다운로드하는 방법",
+        icon: "🎶",
+        tag: "MUSIC",
+        hasDeviceImages: false,
+        images: ["/guides/images/download-music.png"],
       },
     ],
   },
@@ -102,34 +147,94 @@ const guideData: Record<string, GuideCategory> = {
     items: [
       {
         id: "vote-idolchamp",
-        title: "음악방송 집계 반영비",
-        description: "음악방송 집계 반영비",
+        title: "아이돌챔프 투표",
+        description: "아이돌챔프에서 투표하는 방법",
         icon: "🏆",
         tag: "IDOLCHAMP",
         hasDeviceImages: false,
-        images: ["/guides/programv_guide_2.jpg"],
+        images: ["/guides/images/vote-idolchamp.png"],
       },
       {
         id: "vote-mubeat",
-        title: "음악방송 앱별 투표 가이드",
-        description: "음악방송 앱별 투표하는 방법",
+        title: "뮤빗 투표",
+        description: "뮤빗에서 투표하는 방법",
         icon: "🎤",
         tag: "MUBEAT",
         hasDeviceImages: false,
-        images: ["/guides/programv_guide.jpg"],
+        images: ["/guides/images/vote-mubeat.png"],
       },
       {
         id: "vote-fancast",
-        title: "뮤빗 투표 가이드",
-        description: "뮤빗에서 투표하는 방법",
+        title: "팬캐스트 투표",
+        description: "팬캐스트에서 투표하는 방법",
         icon: "📣",
         tag: "FANCAST",
         hasDeviceImages: false,
-        images: ["/guides/mubeat_guide.jpg"],
+        images: ["/guides/images/vote-fancast.png"],
+      },
+      {
+        id: "vote-general",
+        title: "투표 일반 가이드",
+        description: "투표 플랫폼 공통 팁과 주의사항",
+        icon: "💡",
+        tag: "TIP",
+        hasDeviceImages: false,
+        images: ["/guides/images/vote-general.png"],
       },
     ],
   },
 };
+
+function normalizeGithubBlobUrl(url: string): string {
+  const m = url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/);
+  if (!m) return url;
+  const [, owner, repo, branch, filePath] = m;
+  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`;
+}
+
+function buildImageCandidates(src: string): string[] {
+  const next = new Set<string>();
+  const normalized = normalizeGithubBlobUrl(src);
+
+  next.add(src);
+  next.add(normalized);
+
+  if (GUIDE_IMAGE_BASE_URL && src.startsWith("/")) {
+    next.add(`${GUIDE_IMAGE_BASE_URL}${src}`);
+  }
+
+  if (src.startsWith("/guides/images/")) {
+    const noExt = src.replace(/\.[a-zA-Z0-9]+$/, "");
+    [".png", ".jpg", ".jpeg", ".webp"].forEach((ext) => {
+      next.add(`${noExt}${ext}`);
+      if (GUIDE_IMAGE_BASE_URL) {
+        next.add(`${GUIDE_IMAGE_BASE_URL}${noExt}${ext}`);
+      }
+    });
+  }
+
+  return Array.from(next)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => encodeURI(item));
+}
+
+function GuideImage({ src, alt }: { src: string; alt: string }) {
+  const candidates = useMemo(() => buildImageCandidates(src), [src]);
+  const [index, setIndex] = useState(0);
+
+  if (index >= candidates.length) {
+    return (
+      <div className="guide-image-placeholder">
+        <div style={{ fontSize: 32 }}>🖼️</div>
+        <p>이미지를 불러오지 못했습니다.</p>
+        <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{src}</p>
+      </div>
+    );
+  }
+
+  return <img src={candidates[index]} alt={alt} onError={() => setIndex((prev) => prev + 1)} />;
+}
 
 function ImageViewer({
   item,
@@ -139,7 +244,6 @@ function ImageViewer({
   onClose: () => void;
 }) {
   const [device, setDevice] = useState<DeviceType>("mobile");
-  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
 
   const images = item.hasDeviceImages
     ? device === "pc"
@@ -171,19 +275,12 @@ function ImageViewer({
         </div>
 
         <div className="modal-scroll-area">
-          {/* PC / 모바일 선택 - 디바이스별 이미지가 있는 경우만 */}
           {item.hasDeviceImages && (
             <div className="device-selector">
-              <button
-                className={device === "mobile" ? "active" : ""}
-                onClick={() => setDevice("mobile")}
-              >
+              <button className={device === "mobile" ? "active" : ""} onClick={() => setDevice("mobile")}>
                 📱 모바일
               </button>
-              <button
-                className={device === "pc" ? "active" : ""}
-                onClick={() => setDevice("pc")}
-              >
+              <button className={device === "pc" ? "active" : ""} onClick={() => setDevice("pc")}>
                 💻 PC
               </button>
             </div>
@@ -199,36 +296,11 @@ function ImageViewer({
           ) : (
             images.map((src, i) => (
               <div
-                key={`${device}-${i}`}
+                key={`${device}-${src}-${i}`}
                 className="guide-image-container"
                 style={{ marginBottom: i < images.length - 1 ? 10 : 0 }}
               >
-                {imgErrors[`${device}-${src}`] ? (
-                  <div className="guide-image-placeholder">
-                    <div style={{ fontSize: 32 }}>🖼️</div>
-                    <p>이미지가 아직 등록되지 않았습니다.</p>
-                    <p
-                      style={{
-                        fontSize: 11,
-                        color: "var(--muted)",
-                        marginTop: 4,
-                      }}
-                    >
-                      {src}
-                    </p>
-                  </div>
-                ) : (
-                  <img
-                    src={src}
-                    alt={`${item.title} 가이드 이미지`}
-                    onError={() =>
-                      setImgErrors((prev) => ({
-                        ...prev,
-                        [`${device}-${src}`]: true,
-                      }))
-                    }
-                  />
-                )}
+                <GuideImage src={src} alt={`${item.title} 가이드 이미지`} />
               </div>
             ))
           )}
@@ -305,11 +377,7 @@ export default function GuideDetailPage({
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <path
-                  d="M9 6l6 6-6 6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
           </div>
@@ -322,9 +390,7 @@ export default function GuideDetailPage({
         </Link>
       </div>
 
-      {viewingItem && (
-        <ImageViewer item={viewingItem} onClose={() => setViewingItem(null)} />
-      )}
+      {viewingItem && <ImageViewer item={viewingItem} onClose={() => setViewingItem(null)} />}
     </main>
   );
 }
