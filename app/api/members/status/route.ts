@@ -266,7 +266,7 @@ function collectTagsFromStation(source: JsonObject): string[] {
 }
 
 function decodeUnicodeEscapes(raw: string): string {
-  return raw.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  return raw.replace(/\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
 }
 
 function extractMetaContent(html: string, property: string): string | null {
@@ -296,11 +296,11 @@ function collectTagsFromLiveHtml(html: string): string[] {
   };
 
   const arrayPatterns = [
-    /"broad_tag"\s*:\s*\[(.*?)\]/gis,
-    /"hash_tags"\s*:\s*\[(.*?)\]/gis,
-    /"hashTags"\s*:\s*\[(.*?)\]/gis,
-    /"tags"\s*:\s*\[(.*?)\]/gis,
-    /"BROAD_TAG"\s*:\s*\[(.*?)\]/gis,
+    /"broad_tag"\s*:\s*\[([\s\S]*?)\]/gi,
+    /"hash_tags"\s*:\s*\[([\s\S]*?)\]/gi,
+    /"hashTags"\s*:\s*\[([\s\S]*?)\]/gi,
+    /"tags"\s*:\s*\[([\s\S]*?)\]/gi,
+    /"BROAD_TAG"\s*:\s*\[([\s\S]*?)\]/gi,
   ];
 
   for (const pattern of arrayPatterns) {
