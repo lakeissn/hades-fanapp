@@ -53,8 +53,34 @@ type MemberStatus = {
 };
 
 type LiveApiResponse = {
+  RESULT?: number | string;
+  BNO?: number | string;
+  broad_no?: number | string;
+  broadNo?: number | string;
+  nBroadNo?: number | string;
+  CHANNEL_STATUS?: string;
+  channel_status?: string;
+  RMD?: {
+    broad_no?: number | string;
+    broadNo?: number | string;
+    nBroadNo?: number | string;
+    title?: string;
+    thumb?: string;
+    thumb_url?: string;
+  };
+  DATA?: {
+    broad_no?: number | string;
+    broadNo?: number | string;
+    nBroadNo?: number | string;
+    title?: string;
+    thumb?: string;
+    thumb_url?: string;
+  };
   CHANNEL?: {
     BNO?: number | string;
+    broad_no?: number | string;
+    broadNo?: number | string;
+    nBroadNo?: number | string;
     TITLE?: string;
     THUMBNAIL?: string;
     THUMB?: string;
@@ -233,9 +259,14 @@ function detectLiveFromHtml(html: string) {
 function extractLiveUrlFromHtml(html: string, bjid: string) {
   const patterns = [
     new RegExp(`https?:\\/\\/play\\.sooplive\\.co\\.kr\\/${bjid}\\/(\\d{6,})`, "i"),
+    new RegExp(`https?:\\\\/\\\\/play\\.sooplive\\.co\\.kr\\\\/${bjid}\\\\/(\\d{6,})`, "i"),
     new RegExp(`\\/play\\.sooplive\\.co\\.kr\\/${bjid}\\/(\\d{6,})`, "i"),
+    new RegExp(`\\\\/play\\.sooplive\\.co\\.kr\\\\/${bjid}\\\\/(\\d{6,})`, "i"),
     /"bno"\s*:\s*"?(\d{6,})"?/i,
+    /"BNO"\s*:\s*"?(\d{6,})"?/i,
     /"broad_no"\s*:\s*"?(\d{6,})"?/i,
+    /"broadNo"\s*:\s*"?(\d{6,})"?/i,
+    /"nBroadNo"\s*:\s*"?(\d{6,})"?/i,
   ];
 
   for (const pattern of patterns) {
@@ -313,10 +344,45 @@ async function fetchStatus(bjid: string) {
     });
 
     const data = (await response.json()) as LiveApiResponse;
-    const bno = parseBroadcastNo(data.CHANNEL?.BNO);
 
-    const apiTitle = pickFirstString(data.CHANNEL?.TITLE, data.title);
-    const apiThumb = pickFirstString(data.CHANNEL?.THUMBNAIL, data.CHANNEL?.THUMB, data.CHANNEL?.THUMB_URL, data.thumbnail, data.thumbUrl);
+    const bnoCandidates = [
+      data.CHANNEL?.BNO,
+      data.CHANNEL?.broad_no,
+      data.CHANNEL?.broadNo,
+      data.CHANNEL?.nBroadNo,
+      data.BNO,
+      data.broad_no,
+      data.broadNo,
+      data.nBroadNo,
+      data.RMD?.broad_no,
+      data.RMD?.broadNo,
+      data.RMD?.nBroadNo,
+      data.DATA?.broad_no,
+      data.DATA?.broadNo,
+      data.DATA?.nBroadNo,
+    ];
+
+    const bno = bnoCandidates
+      .map((candidate) => parseBroadcastNo(candidate))
+      .find((candidate): candidate is string => !!candidate) ?? null;
+
+    const apiTitle = pickFirstString(
+      data.CHANNEL?.TITLE,
+      data.RMD?.title,
+      data.DATA?.title,
+      data.title
+    );
+    const apiThumb = pickFirstString(
+      data.CHANNEL?.THUMBNAIL,
+      data.CHANNEL?.THUMB,
+      data.CHANNEL?.THUMB_URL,
+      data.RMD?.thumb,
+      data.RMD?.thumb_url,
+      data.DATA?.thumb,
+      data.DATA?.thumb_url,
+      data.thumbnail,
+      data.thumbUrl
+    );
 
     // API 응답에서 태그 추출
     const apiTags: string[] = [];
