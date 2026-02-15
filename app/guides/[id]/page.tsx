@@ -61,6 +61,7 @@ const guideData: Record<string, GuideCategory> = {
         images: ["/guides/images/sound_assi.jpg"],
       },
     ],
+  },
   gift: {
     title: "선물하기 가이드",
     subtitle: "멜론 음원 선물하기 방법",
