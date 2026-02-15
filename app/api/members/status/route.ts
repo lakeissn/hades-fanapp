@@ -219,6 +219,17 @@ function parseTagsFromHtml(html: string) {
   return Array.from(values).slice(0, 7);
 }
 
+function detectLiveFromHtml(html: string) {
+  const patterns = [
+    /"is_live"\s*:\s*"?Y"?/i,
+    /"live_yn"\s*:\s*"?Y"?/i,
+    /"onair"\s*:\s*true/i,
+    /"broad_status"\s*:\s*"?on"?/i,
+  ];
+
+  return patterns.some((pattern) => pattern.test(html));
+}
+
 function extractLiveUrlFromHtml(html: string, bjid: string) {
   const patterns = [
     new RegExp(`https?:\\/\\/play\\.sooplive\\.co\\.kr\\/${bjid}\\/(\\d{6,})`, "i"),
@@ -259,11 +270,17 @@ async function fetchStationMeta(bjid: string) {
     const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
     const thumbUrl = extractMetaContent(html, "og:image");
     const tags = parseTagsFromHtml(html);
-    const liveUrl = extractLiveUrlFromHtml(html, bjid);
+    const liveUrlFromHtml = extractLiveUrlFromHtml(html, bjid);
+    const liveUrlFromRedirect =
+      response.url && response.url.includes(`/play.sooplive.co.kr/${bjid}/`)
+        ? response.url
+        : null;
+    const liveUrl = liveUrlFromHtml ?? liveUrlFromRedirect;
+    const isLive = detectLiveFromHtml(html) || !!liveUrl;
 
-    return { title, thumbUrl, tags, liveUrl };
+    return { title, thumbUrl, tags, liveUrl, isLive };
   } catch {
-    return { title: null, thumbUrl: null, tags: [], liveUrl: null };
+    return { title: null, thumbUrl: null, tags: [], liveUrl: null, isLive: false };
   }
 }
 
@@ -322,7 +339,9 @@ async function fetchStatus(bjid: string) {
         // 라이브 페이지 + 방송국 페이지에서 태그 보강
         const [meta, stationMeta] = await Promise.all([
           fetchLiveMeta(liveUrl),
-          apiTags.length < 4 ? fetchStationMeta(bjid) : Promise.resolve({ title: null, thumbUrl: null, tags: [], liveUrl: null }),
+          apiTags.length < 4
+            ? fetchStationMeta(bjid)
+            : Promise.resolve({ title: null, thumbUrl: null, tags: [], liveUrl: null, isLive: false }),
         ]);
 
         const combinedTags = Array.from(new Set([...apiTags, ...meta.tags, ...stationMeta.tags])).filter(Boolean);
@@ -357,6 +376,16 @@ async function fetchStatus(bjid: string) {
         title: apiTitle ?? liveMeta.title ?? stationMeta.title,
         thumbUrl: apiThumb ?? liveMeta.thumbUrl ?? stationMeta.thumbUrl,
         tags: combinedTags.slice(0, 7),
+      };
+    }
+
+    if (stationMeta.isLive) {
+      return {
+        isLive: true,
+        liveUrl: `https://play.sooplive.co.kr/${bjid}`,
+        title: apiTitle ?? stationMeta.title,
+        thumbUrl: apiThumb ?? stationMeta.thumbUrl,
+        tags: Array.from(new Set([...apiTags, ...stationMeta.tags])).slice(0, 7),
       };
     }
 
