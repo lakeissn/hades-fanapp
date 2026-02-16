@@ -604,7 +604,7 @@ export async function GET(req: Request) {
           if (targets.length > 0) {
             for (const video of changedVideos) {
               const res = await sendFCMMessages(targets, {
-                title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}가 올라왔어요! ▶️`,
+                title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}이 올라왔어요! ▶️`,
                 body: video.title,
                 url: video.url || "/",
                 tag: `yt-${video.id}`,
