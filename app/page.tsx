@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { Children, useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import LiveCard from "../components/LiveCard";
@@ -34,10 +34,10 @@ const coverStyles: Record<string, React.CSSProperties> = {
 };
 
 const officialLinks = [
-  { id: "cafe", label: "팬카페", href: "https://cafe.naver.com/moomoo", icon: (<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4h3.6l4.4 7V4h3v16h-3.6l-4.4-7v7h-3V4z" fill="currentColor"/></svg>) },
-  { id: "youtube", label: "YouTube", href: "https://www.youtube.com/@HADES_offi", icon: (<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 7.7c-.2-.9-.9-1.6-1.8-1.8C18.2 5.5 12 5.5 12 5.5s-6.2 0-7.8.4c-.9.2-1.6.9-1.8 1.8C2 9.3 2 12 2 12s0 2.7.4 4.3c.2.9.9 1.6 1.8 1.8 1.6.4 7.8.4 7.8.4s6.2 0 7.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.6.4-4.3.4-4.3s0-2.7-.4-4.3z" fill="currentColor"/><path d="M10 15.5V8.5L16 12l-6 3.5z" fill="var(--bg)"/></svg>) },
-  { id: "instagram", label: "Instagram", href: "https://www.instagram.com/hades_offi/", icon: (<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4V7a4 4 0 014-4zm5 5.3a3.7 3.7 0 100 7.4 3.7 3.7 0 000-7.4zm6.1-.8a1 1 0 100 2 1 1 0 000-2z" fill="currentColor"/></svg>) },
-  { id: "x", label: "X", href: "https://x.com/hades_offi", icon: (<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h4.7l4.3 5.8L18.3 4H22l-6.3 7.7L22 20h-4.7l-4.6-6.1L6.2 20H2.5l6.7-8.1L4 4z" fill="currentColor"/></svg>) },
+  { id: "cafe", label: "네이버 팬카페", href: "https://cafe.naver.com/moomoo", iconSrc: "/icons/cafe.png" },
+  { id: "youtube", label: "YouTube", href: "https://www.youtube.com/@HADES_offi", iconSrc: "https://cdn.simpleicons.org/youtube/FF0000" },
+  { id: "instagram", label: "Instagram", href: "https://www.instagram.com/hades_offi/", iconSrc: "https://static.xx.fbcdn.net/assets/?set=help_center_about_page_illustrations&name=desktop-instagram-gradient-logo&density=1" },
+  { id: "x", label: "X", href: "https://x.com/hades_offi", iconSrc: "https://cdn.simpleicons.org/x/000000", iconSrcDark: "https://upload.wikimedia.org/wikipedia/commons/5/57/X_logo_2023_%28white%29.png" },
 ];
 
 function parseKstDate(value?: string) {
@@ -90,54 +90,104 @@ function VotePreviewPlatforms({ vote }: { vote: VoteItem }) {
   );
 }
 
-/* (FIX #4) PC 전용 라이브 그리드 스크롤 버튼 래퍼 */
-function LiveGridWrapper({ children }: { children: React.ReactNode }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showLeft, setShowLeft] = useState(false);
-  const [showRight, setShowRight] = useState(false);
+/* 라이브 캐러셀 */
+const AUTOPLAY_MS = 5000;
 
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setShowLeft(el.scrollLeft > 10);
-    setShowRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+function LiveCarousel({ children }: { children: React.ReactNode }) {
+  const [current, setCurrent] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const touchStartX = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const items = Children.toArray(children);
+  const total = items.length;
+
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
   }, []);
+
+  const startTimer = useCallback(() => {
+    if (total <= 1) return;
+    resetTimer();
+    timerRef.current = setTimeout(() => {
+      setCurrent(prev => (prev + 1) % total);
+      setIsTransitioning(true);
+    }, AUTOPLAY_MS);
+  }, [total, resetTimer]);
 
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    checkScroll();
-    el.addEventListener("scroll", checkScroll, { passive: true });
-    const ro = new ResizeObserver(checkScroll);
-    ro.observe(el);
-    return () => { el.removeEventListener("scroll", checkScroll); ro.disconnect(); };
-  }, [checkScroll]);
+    startTimer();
+    return resetTimer;
+  }, [current, startTimer, resetTimer]);
 
-  const scroll = useCallback((dir: "left" | "right") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const amount = el.clientWidth * 0.8;
-    el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
-  }, []);
+  const goTo = useCallback((i: number) => {
+    setCurrent(((i % total) + total) % total);
+    setIsTransitioning(true);
+  }, [total]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setIsTransitioning(false);
+    setDragOffset(0);
+    resetTimer();
+  }, [resetTimer]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const delta = e.touches[0].clientX - touchStartX.current;
+    if ((current === 0 && delta > 0) || (current === total - 1 && delta < 0)) {
+      setDragOffset(delta * 0.3);
+    } else {
+      setDragOffset(delta);
+    }
+  }, [current, total]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsTransitioning(true);
+    if (Math.abs(dragOffset) > 50) {
+      if (dragOffset < 0 && current < total - 1) setCurrent(current + 1);
+      else if (dragOffset > 0 && current > 0) setCurrent(current - 1);
+    }
+    setDragOffset(0);
+  }, [dragOffset, current, total]);
+
+  if (total === 0) return null;
 
   return (
-    <div className="live-grid-wrapper">
-      {showLeft && (
-        <button className="live-scroll-btn left" onClick={() => scroll("left")} aria-label="이전">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
-        </button>
-      )}
-      <div className="live-grid" ref={scrollRef}>
-        {children}
+    <div className="live-carousel">
+      <div
+        className="live-carousel-viewport"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div
+          className="live-carousel-track"
+          style={{
+            transform: `translateX(calc(-${current * 100}% + ${dragOffset}px))`,
+            transition: isTransitioning ? 'transform 0.4s cubic-bezier(0.16,1,0.3,1)' : 'none',
+          }}
+        >
+          {items.map((child, i) => (
+            <div key={i} className="live-carousel-slide">{child}</div>
+          ))}
+        </div>
       </div>
-      {showRight && (
-        <button className="live-scroll-btn right" onClick={() => scroll("right")} aria-label="다음">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        </button>
+      {total > 1 && (
+        <>
+          <button className="live-carousel-btn left" onClick={() => goTo(current - 1)} aria-label="이전">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <button className="live-carousel-btn right" onClick={() => goTo(current + 1)} aria-label="다음">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+          <div className="live-carousel-dots">
+            {items.map((_, i) => (
+              <button key={i} className={`live-carousel-dot${i === current ? ' active' : ''}`} onClick={() => goTo(i)} aria-label={`슬라이드 ${i + 1}`} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -159,8 +209,18 @@ function YouTubeSection() {
 
   if (loading) return (
     <section className="section-block">
-      <div className="section-head"><div><p className="section-tag">YOUTUBE</p><h2>최신 영상</h2></div></div>
-      <div className="empty-state"><p>영상을 불러오는 중...</p></div>
+      <div className="section-head"><div><p className="section-tag"></p><h2>유튜브 최신 영상</h2></div></div>
+      <div className="youtube-grid">
+        {[0, 1].map(i => (
+          <div key={i} className="youtube-card" style={{ pointerEvents: "none" }}>
+            <div className="skeleton skeleton-youtube" />
+            <div className="youtube-info" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="skeleton skeleton-text w80" />
+              <div className="skeleton skeleton-text w40" />
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 
@@ -169,16 +229,13 @@ function YouTubeSection() {
   return (
     <section className="section-block">
       <div className="section-head">
-        <div><p className="section-tag">YOUTUBE</p><h2>최신 영상</h2></div>
+        <div><p className="section-tag"></p><h2>유튜브 최신 영상</h2></div>
       </div>
       <div className="youtube-grid">
         {videos.map(v => (
           <a key={v.id} className="youtube-card" href={v.url} target="_blank" rel="noreferrer">
             <div className="youtube-thumb">
               <img src={v.thumbnail} alt="" loading="lazy" />
-              <span className={`youtube-badge ${v.type === "shorts" ? "shorts" : ""}`}>
-                {v.type === "shorts" ? "Shorts" : "Video"}
-              </span>
             </div>
             <div className="youtube-info">
               <h4>{v.title}</h4>
@@ -233,65 +290,100 @@ export default function HomePage() {
       {/* LIVE */}
       <section className="section-block">
         <div className="section-head page-header">
-          <div><p className="section-tag">LIVE NOW</p><h2>지금 방송 중인 멤버</h2></div>
+          <div><p className="section-tag"></p><h2>지금 방송 중인 멤버</h2></div>
         </div>
-        {/* (FIX #4) PC 스크롤 버튼이 있는 래퍼 */}
-        <LiveGridWrapper>
-          {isLoading && <div className="empty-state"><p>라이브 상태를 불러오는 중...</p></div>}
-          {!isLoading && liveMembers.length === 0 && <div className="empty-state"><p>현재 방송 중인 멤버가 없습니다.</p></div>}
-          {liveMembers.map(m => (
-            <LiveCard key={m.id} name={m.name} soopUrl={m.liveUrl ?? m.soopUrl} avatarUrl={m.avatarUrl}
-              coverStyle={coverStyles[m.id] ?? { background: "#1f1f1f" }} title={m.title} thumbUrl={m.thumbUrl} tags={m.tags} />
-          ))}
-        </LiveGridWrapper>
+        {isLoading ? (
+          <div className="skeleton-live">
+            <div className="skeleton skeleton-live-cover" />
+          </div>
+        ) : liveMembers.length === 0 ? (
+          <div className="empty-state"><p>현재 방송 중인 멤버가 없습니다.</p></div>
+        ) : (
+          <LiveCarousel>
+            {liveMembers.map(m => (
+              <LiveCard key={m.id} name={m.name} soopUrl={m.liveUrl ?? m.soopUrl} avatarUrl={m.avatarUrl}
+                coverStyle={coverStyles[m.id] ?? { background: "#1f1f1f" }} title={m.title} thumbUrl={m.thumbUrl} tags={m.tags} />
+            ))}
+          </LiveCarousel>
+        )}
       </section>
 
       {/* OFFLINE */}
       <section className="section-block">
-        <div className="section-head"><div><p className="section-tag">OFFLINE</p><h2>잠시 쉬는 중</h2></div></div>
-        <div className="chip-grid">
-          {offlineMembers.map(m => <MemberChip key={m.id} name={m.name} avatarUrl={m.avatarUrl} />)}
-        </div>
+        <div className="section-head"><div><p className="section-tag"></p><h2>잠시 쉬는 중</h2></div></div>
+        {isLoading ? (
+          <div className="chip-grid">
+            {[0, 1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton skeleton-chip" />)}
+          </div>
+        ) : (
+          <div className="chip-grid">
+            {offlineMembers.map(m => <MemberChip key={m.id} name={m.name} avatarUrl={m.avatarUrl} />)}
+          </div>
+        )}
       </section>
 
       {/* YOUTUBE */}
       <YouTubeSection />
 
       {/* VOTES */}
-      <Card>
-        <div className="section-head"><h2>투표 목록</h2></div>
-        <div className="card-body">
-          {isVotesLoading ? <div className="empty-state"><p>투표 목록을 불러오는 중...</p></div>
+      <section className="vote-card">
+        <div className="vote-card-header">
+          <img className="vote-card-header-bg" src="/icons/할로윈_띵귤1_final.png" alt="" />
+          <div className="vote-card-header-content">
+            <div className="vote-card-header-top">
+              <p className="vote-card-date">{new Date().toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "long" })} 기준</p>
+              <a href="/votes" className="vote-card-more">전체보기 &rsaquo;</a>
+            </div>
+            <h2 className="vote-card-title">투표 목록</h2>
+          </div>
+        </div>
+        <div className="vote-card-body">
+          {isVotesLoading ? (
+            <div className="vote-todo-list">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="vote-todo-item skeleton-vote-item">
+                  <span className="skeleton skeleton-vote-num" />
+                  <span className="skeleton skeleton-vote-icon" />
+                  <span className="skeleton skeleton-text" style={{ flex: 1 }} />
+                  <span className="skeleton skeleton-vote-deadline" />
+                </div>
+              ))}
+            </div>
+          )
           : votePreviewItems.length === 0 ? <div className="empty-state"><p>진행중인 투표가 없습니다.</p></div>
           : (
-            <div className="vote-preview-list">
-              {votePreviewItems.map(vote => {
-                const status = resolveStatus(vote.opensAt, vote.closesAt);
-                return (
-                  <article key={vote.id} className="vote-preview-item">
-                    <VotePreviewPlatforms vote={vote} />
-                    <p className="vote-preview-title">{vote.title}</p>
-                    <span className="vote-status" data-status={status}>{status === "upcoming" ? "예정" : "진행중"}</span>
-                    <p className="vote-preview-deadline">{formatDeadline(vote.closesAt)}</p>
-                  </article>
-                );
-              })}
+            <div className="vote-todo-list">
+              {votePreviewItems.map((vote, idx) => (
+                <a key={vote.id} href={vote.url || "/votes"} target={vote.url ? "_blank" : undefined} rel={vote.url ? "noreferrer" : undefined} className="vote-todo-item">
+                  <span className="vote-todo-num">{idx + 1}</span>
+                  <VotePreviewPlatforms vote={vote} />
+                  <span className="vote-todo-title">{vote.title}</span>
+                  <span className="vote-todo-deadline">{formatDeadline(vote.closesAt)}</span>
+                  <span className="vote-todo-chevron" aria-hidden>
+                    <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </span>
+                </a>
+              ))}
             </div>
           )}
         </div>
-        <div className="section-footer"><Button href="/votes">투표 전체 보기</Button></div>
-      </Card>
+      </section>
 
       {/* MELON */}
       <MelonPlaylist />
 
       {/* OFFICIAL LINKS */}
       <section className="section-block">
-        <div className="section-head"><div><p className="section-tag">OFFICIAL</p><h2>공식 링크</h2></div></div>
+        <div className="section-head"><div><p className="section-tag"></p><h2>공식 링크</h2></div></div>
         <div className="link-grid">
           {officialLinks.map(link => (
             <a key={link.id} className={`link-card link-${link.id}`} href={link.href} target="_blank" rel="noreferrer">
-              <span className="link-icon" aria-hidden>{link.icon}</span>
+              <div className="link-icon-wrap">
+                <span className="link-icon" aria-hidden>
+                  <img className={link.iconSrcDark ? "link-icon-light" : ""} src={link.iconSrc} alt="" width={16} height={16} />
+                  {link.iconSrcDark && <img className="link-icon-dark" src={link.iconSrcDark} alt="" width={16} height={16} />}
+                </span>
+              </div>
               <span className="link-label">{link.label}</span>
               <span className="link-chevron" aria-hidden>
                 <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>

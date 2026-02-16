@@ -197,60 +197,58 @@ export default function VoteAccordionItem({
 
       {isOpen && (
         <div className="vote-panel compact-panel">
-          <div className="panel-actions">
-            <div className="panel-platforms">
-              <span className="panel-label">투표처</span>
-              <div className="platform-grid-compact">
-                {platforms.map((platform) => {
-                  const missing = missingIcons[platform];
-                  const label = PLATFORM_LABELS?.[platform] ?? platform;
-                  return (
-                    <span key={`${vote.id}-${platform}`} className="platform-pill" title={label}>
-                      <span className="compact-icon" aria-hidden>
-                        {!missing && (
-                          <img src={`/icons/${platform}.png`} alt=""
-                            onError={() => setMissingIcons((prev) => ({ ...prev, [platform]: true }))} />
-                        )}
-                        {missing && (
-                          <span className="vote-icon-fallback vote-icon-neutral" aria-hidden><span /></span>
-                        )}
-                      </span>
-                      <span className="platform-name">{label}</span>
+          {/* 플랫폼 */}
+          <div className="panel-section">
+            <span className="panel-label">투표처</span>
+            <div className="platform-grid-compact">
+              {platforms.map((platform) => {
+                const missing = missingIcons[platform];
+                const label = PLATFORM_LABELS?.[platform] ?? platform;
+                return (
+                  <span key={`${vote.id}-${platform}`} className="platform-pill" title={label}>
+                    <span className="compact-icon" aria-hidden>
+                      {!missing && (
+                        <img src={`/icons/${platform}.png`} alt=""
+                          onError={() => setMissingIcons((prev) => ({ ...prev, [platform]: true }))} />
+                      )}
+                      {missing && (
+                        <span className="vote-icon-fallback vote-icon-neutral" aria-hidden><span /></span>
+                      )}
                     </span>
-                  );
-                })}
-              </div>
+                    <span className="platform-name">{label}</span>
+                  </span>
+                );
+              })}
             </div>
-
-            <a className={`vote-action-btn ${hasUrl ? "" : "is-disabled"}`} href={vote.url ?? "#"} target="_blank" rel="noreferrer" onClick={stopRowToggle}>
-              투표하러 가기
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </a>
           </div>
 
-          <div className="panel-footer">
-            <div className="panel-info">
-              <span className="panel-label">기간</span>
-              <span className="panel-value date-text-fit" ref={periodFit.containerRef}>
+          {/* 기간 / 리워드 */}
+          <div className="panel-section panel-meta">
+            <div className="panel-meta-row">
+              <span className="panel-meta-label">기간</span>
+              <span className="panel-meta-value" ref={periodFit.containerRef}>
                 <span className="fit-text" ref={periodFit.textRef} style={{ fontSize: `${periodFit.fontSize}px` }}>
                   {periodText}
                 </span>
               </span>
             </div>
-
             {vote.note && (
-              <div className="panel-info note">
-                <span className="panel-label text-accent">리워드</span>
-                <span className="panel-value note-text-fit">
-                  <span className="fit-text" style={{ fontSize: "14px" }}>
-                    {vote.note}
-                  </span>
+              <div className="panel-meta-row">
+                <span className="panel-meta-label accent">리워드</span>
+                <span className="panel-meta-value">
+                  <span className="fit-text" style={{ fontSize: "13px" }}>{vote.note}</span>
                 </span>
               </div>
             )}
           </div>
+
+          {/* CTA */}
+          <a className={`vote-action-btn ${hasUrl ? "" : "is-disabled"}`} href={vote.url ?? "#"} target="_blank" rel="noreferrer" onClick={stopRowToggle}>
+            투표하러 가기
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M7 17L17 7M17 7H8M17 7v9" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
         </div>
       )}
     </div>

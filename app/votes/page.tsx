@@ -60,11 +60,10 @@ export default function VotesPage() {
       <section className="section-block">
         <div className="section-head page-header">
           <div>
-            <p className="section-tag">VOTES</p>
             <h2>투표 목록</h2>
           </div>
         </div>
-        <Card>
+        <Card className="vote-list-card">
           {isLoading ? (
             <div className="empty-state">
               <p>투표 목록을 불러오는 중...</p>

@@ -7,20 +7,32 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-export default function InstallPrompt() {
+type Props = {
+  onVisibilityChange?: (visible: boolean) => void;
+};
+
+export default function InstallPrompt({ onVisibilityChange }: Props) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 이미 설치된 경우
     const standalone = window.matchMedia("(display-mode: standalone)").matches
       || (window.navigator as any).standalone === true;
     setIsStandalone(standalone);
     if (standalone) return;
+
+    // 모바일/태블릿 감지
+    const ua = navigator.userAgent;
+    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+      || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+      || ("ontouchstart" in window && window.innerWidth < 1024);
+    setIsMobileDevice(mobile);
+    if (!mobile) return;
 
     // 이미 닫은 경우 (3일간 표시 안 함)
     const dismissed = localStorage.getItem("hades_install_dismissed");
@@ -30,7 +42,6 @@ export default function InstallPrompt() {
     }
 
     // iOS 감지
-    const ua = navigator.userAgent;
     const iosDevice = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     setIsIOS(iosDevice);
 
@@ -47,7 +58,7 @@ export default function InstallPrompt() {
       setTimeout(() => setShowPrompt(true), 2000);
     }
 
-    // Firefox 등 beforeinstallprompt 미지원 + 비-iOS에서도 표시
+    // 비-iOS 모바일에서도 표시
     const timer = setTimeout(() => {
       if (!iosDevice && !standalone) {
         setShowPrompt(true);
@@ -60,6 +71,11 @@ export default function InstallPrompt() {
     };
   }, []);
 
+  useEffect(() => {
+    const visible = !isStandalone && isMobileDevice && showPrompt;
+    onVisibilityChange?.(visible);
+  }, [showPrompt, isStandalone, isMobileDevice, onVisibilityChange]);
+
   const handleInstall = useCallback(async () => {
     if (deferredPrompt) {
       await deferredPrompt.prompt();
@@ -69,10 +85,8 @@ export default function InstallPrompt() {
       }
       setDeferredPrompt(null);
     } else if (isIOS) {
-      // iOS에서는 안내 표시
       alert("Safari 하단의 공유 버튼(□↑)을 누른 후\n'홈 화면에 추가'를 선택해 주세요.");
     } else {
-      // 기타 브라우저 안내
       alert("브라우저 메뉴에서 '앱 설치' 또는 '홈 화면에 추가'를 선택해 주세요.");
     }
   }, [deferredPrompt, isIOS]);
@@ -82,27 +96,21 @@ export default function InstallPrompt() {
     setShowPrompt(false);
   }, []);
 
-  if (isStandalone || !showPrompt) return null;
+  if (isStandalone || !showPrompt || !isMobileDevice) return null;
 
   return (
-    <div className="install-prompt">
-      <div className="install-prompt-icon">📱</div>
-      <div className="install-prompt-text">
-        <strong>앱으로 설치하기</strong>
-        <span>
-          {isIOS
-            ? "홈 화면에 추가하면 앱처럼 사용할 수 있어요"
-            : "설치하면 더 빠르게 접속할 수 있어요"}
-        </span>
+    <div className="smart-banner" role="banner">
+      <button type="button" className="smart-banner-close" onClick={handleDismiss} aria-label="닫기">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+      </button>
+      <img className="smart-banner-icon" src="/icons/hades_helper.png" alt="" width={40} height={40} />
+      <div className="smart-banner-info">
+        <strong>HADES INFO</strong>
+        <span>{isIOS ? "홈 화면에 추가하여 앱으로 보기" : "앱으로 설치하면 더 빠르게"}</span>
       </div>
-      <div className="install-prompt-actions">
-        <button className="install-btn" onClick={handleInstall}>
-          {isIOS ? "방법 보기" : "설치"}
-        </button>
-        <button className="install-dismiss" onClick={handleDismiss}>
-          닫기
-        </button>
-      </div>
+      <button type="button" className="smart-banner-action" onClick={handleInstall}>
+        {isIOS ? "보기" : "열기"}
+      </button>
     </div>
   );
 }

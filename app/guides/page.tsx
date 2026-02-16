@@ -1,71 +1,25 @@
 "use client";
 
 import Link from "next/link";
-
-const guideCategories = [
-  {
-    id: "streaming",
-    title: "스트리밍 가이드",
-    description: "음원 차트 반영을 위한 멜론/유튜브 필수 설정법",
-    icon: "🎧",
-    items: 3,
-  },
-  {
-    id: "gift",
-    title: "선물하기 가이드",
-    description: "멜론 음원 선물하기 방법",
-    icon: "🎁",
-    items: 4,
-  },
-  {
-    id: "download",
-    title: "다운로드 가이드",
-    description: "멜론 개별곡/FLAC 다운로드 방법",
-    icon: "💾",
-    items: 3,
-  },
-  {
-    id: "vote",
-    title: "투표 가이드",
-    description: "각 투표 플랫폼별 투표 방법과 팁을 알아보세요",
-    icon: "🗳️",
-    items: 4,
-  },
-];
+import { guideData, GUIDE_ORDER } from "./guideData";
 
 export default function GuidesPage() {
+  const categories = GUIDE_ORDER.map((id) => ({ id, ...guideData[id] })).filter(Boolean);
+
   return (
     <main>
       <section className="section-block">
         <div className="section-head page-header">
-          <div>
-            <p className="section-tag">GUIDES</p>
-            <h2>가이드 목록</h2>
-          </div>
+          <div><h2>가이드</h2></div>
         </div>
 
         <div className="guides-grid">
-          {guideCategories.map((category) => (
-            <Link 
-              key={category.id} 
-              href={`/guides/${category.id}`}
-              className="guide-card-link"
-            >
-              <article className="guide-card">
-                <div className="guide-card-head">
-                  <span className="guide-card-icon">{category.icon}</span>
-                  <span className="guide-card-date">{category.items}개 항목</span>
-                </div>
-                
-                <div className="guide-card-body" style={{ marginTop: '12px' }}>
-                  <h3>{category.title}</h3>
-                  <p style={{ marginTop: '6px' }}>{category.description}</p>
-                </div>
-
-                <div className="guide-card-footer section-footer">
-                  <span className="guide-card-cta">가이드 보기 →</span>
-                </div>
-              </article>
+          {categories.map((cat) => (
+            <Link key={cat.id} href={`/guides/${cat.id}`} className="guide-tile">
+              <span className="guide-tile-icon" aria-hidden>{cat.icon}</span>
+              <h3 className="guide-tile-title">{cat.title}</h3>
+              <p className="guide-tile-desc">{cat.subtitle}</p>
+              <span className="guide-tile-count">{cat.items.length}개 항목</span>
             </Link>
           ))}
         </div>

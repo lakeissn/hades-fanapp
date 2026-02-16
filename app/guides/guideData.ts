@@ -15,18 +15,22 @@ export type GuideItem = {
 export type GuideCategory = {
   title: string;
   subtitle: string;
+  icon: string;
   items: GuideItem[];
 };
 
 export const GUIDE_IMAGE_BASE_URL =
   process.env.NEXT_PUBLIC_GUIDE_IMAGE_BASE_URL?.trim().replace(/\/$/, "") ?? "";
 
+export const GUIDE_ORDER: string[] = ["streaming", "gift", "download", "vote"];
+
 export const guideData: Record<string, GuideCategory> = {
   streaming: {
     title: "스트리밍 가이드",
     subtitle: "멜론/유튜브 스밍 설정법",
+    icon: "🎧",
     items: [
-           {
+      {
         id: "melon-setup",
         title: "멜론 스밍 설정",
         description: "멜론에서 음원 스트리밍 반영을 위한 필수 설정",
@@ -60,6 +64,7 @@ export const guideData: Record<string, GuideCategory> = {
   gift: {
     title: "선물하기 가이드",
     subtitle: "멜론 음원 선물하기 방법",
+    icon: "🎁",
     items: [
       {
         id: "melon-gift",
@@ -77,6 +82,7 @@ export const guideData: Record<string, GuideCategory> = {
   download: {
     title: "다운로드 가이드",
     subtitle: "멜론 음원 다운로드 방법",
+    icon: "💾",
     items: [
       {
         id: "melon-download",
@@ -94,6 +100,7 @@ export const guideData: Record<string, GuideCategory> = {
   vote: {
     title: "투표 가이드",
     subtitle: "투표 플랫폼별 투표 방법",
+    icon: "🗳️",
     items: [
       {
         id: "percent-musicpro",

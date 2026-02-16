@@ -22,7 +22,7 @@ export default function MemberChip({ name, avatarUrl }: MemberChipProps) {
       </div>
       <div>
         <p className="chip-name">{name}</p>
-        <p className="chip-status">OFFLINE</p>
+        <p className="chip-status">오프라인</p>
       </div>
     </div>
   );

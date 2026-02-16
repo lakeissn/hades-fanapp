@@ -29,6 +29,7 @@ type ChartEntry = {
   albumName: string;
   rankChange: "up" | "down" | "same" | "new";
   changeAmount: number;
+  likes: number;
 };
 
 const cacheMap = new Map<string, { data: ChartEntry[]; expiresAt: number }>();
@@ -87,6 +88,14 @@ function parseChartHtml(html: string): ChartEntry[] {
     }
   }
 
+  // 좋아요(cnt) 파싱
+  const likeCounts: number[] = [];
+  const likeMatches = html.match(/<button[^>]*class="[^"]*like[^"]*"[^>]*>[\s\S]*?<\/button>/g) ?? [];
+  for (const btn of likeMatches) {
+    const cntMatch = btn.match(/<span class="cnt">([\d,]+)<\/span>/);
+    likeCounts.push(cntMatch ? parseInt(cntMatch[1].replace(/,/g, ""), 10) : 0);
+  }
+
   const count = Math.min(titles.length, artists.length, 100);
 
   for (let i = 0; i < count; i++) {
@@ -98,6 +107,7 @@ function parseChartHtml(html: string): ChartEntry[] {
       albumName: albums[i] ?? "",
       rankChange: rankChanges[i]?.type ?? "same",
       changeAmount: rankChanges[i]?.amount ?? 0,
+      likes: likeCounts[i] ?? 0,
     });
   }
 

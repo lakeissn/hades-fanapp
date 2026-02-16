@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronRight, Moon, Sun, Bell, Radio, Vote, Youtube, Info, Shield } from "lucide-react";
 import {
   activatePush,
   deactivatePush,
@@ -169,45 +170,37 @@ export default function SettingsPage() {
     <main className="settings-page">
       <section className="section-block">
         <div className="section-head page-header">
-          <div>
-            <p className="section-tag">SETTINGS</p>
-            <h2>설정</h2>
-          </div>
+          <h2>설정</h2>
         </div>
       </section>
 
+      {/* 화면 설정 */}
       <div className="settings-group">
-        <span className="settings-group-title">화면 설정</span>
+        <span className="settings-group-title">화면</span>
         <div className="settings-card">
-          <div
-            className="settings-item"
-            style={{
-              flexDirection: "column",
-              alignItems: "stretch",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div className="settings-item-icon">🎨</div>
+          <div className="settings-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 14 }}>
+            <div className="settings-item-left">
+              <div className="settings-item-icon-wrap">
+                {theme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
+              </div>
               <div className="settings-item-text">
                 <span className="settings-item-label">화면 모드</span>
                 <span className="settings-item-desc">앱의 전체 색상을 변경합니다</span>
               </div>
             </div>
-
             {isHydrated ? (
               <div className={`theme-selector ${canAnimate ? "" : "no-animate"}`}>
                 <button
                   className={`theme-option ${theme === "dark" ? "active" : ""}`}
                   onClick={() => changeTheme("dark")}
                 >
-                  🌙 다크
+                  <Moon size={14} /> 다크
                 </button>
                 <button
                   className={`theme-option ${theme === "light" ? "active" : ""}`}
                   onClick={() => changeTheme("light")}
                 >
-                  ☀️ 라이트
+                  <Sun size={14} /> 라이트
                 </button>
               </div>
             ) : (
@@ -217,12 +210,15 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* 알림 설정 */}
       <div className="settings-group">
-        <span className="settings-group-title">알림 설정</span>
+        <span className="settings-group-title">알림</span>
         <div className="settings-card">
           <div className="settings-item">
             <div className="settings-item-left">
-              <div className="settings-item-icon">🔔</div>
+              <div className="settings-item-icon-wrap">
+                <Bell size={16} />
+              </div>
               <div className="settings-item-text">
                 <span className="settings-item-label">푸시 알림</span>
                 <span className="settings-item-desc">{isHydrated ? pushDescription : "설정을 불러오는 중..."}</span>
@@ -242,11 +238,13 @@ export default function SettingsPage() {
 
           {isHydrated && notif.master && (
             <div className="notification-sub-settings">
-              <div className="settings-item">
+              <div className="settings-item settings-sub-item">
                 <div className="settings-item-left">
-                  <div className="settings-item-icon">📡</div>
+                  <div className="settings-item-icon-wrap sub">
+                    <Radio size={14} />
+                  </div>
                   <div className="settings-item-text">
-                    <span className="settings-item-label">라이브 방송 알림</span>
+                    <span className="settings-item-label">라이브 방송</span>
                     <span className="settings-item-desc">멤버가 방송을 시작하면 알림</span>
                   </div>
                 </div>
@@ -257,11 +255,13 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <div className="settings-item">
+              <div className="settings-item settings-sub-item">
                 <div className="settings-item-left">
-                  <div className="settings-item-icon">🗳️</div>
+                  <div className="settings-item-icon-wrap sub">
+                    <Vote size={14} />
+                  </div>
                   <div className="settings-item-text">
-                    <span className="settings-item-label">새 투표 알림</span>
+                    <span className="settings-item-label">새 투표</span>
                     <span className="settings-item-desc">새로운 투표가 등록되면 알림</span>
                   </div>
                 </div>
@@ -272,11 +272,13 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <div className="settings-item">
+              <div className="settings-item settings-sub-item">
                 <div className="settings-item-left">
-                  <div className="settings-item-icon">▶️</div>
+                  <div className="settings-item-icon-wrap sub">
+                    <Youtube size={14} />
+                  </div>
                   <div className="settings-item-text">
-                    <span className="settings-item-label">유튜브 업로드 알림</span>
+                    <span className="settings-item-label">유튜브 업로드</span>
                     <span className="settings-item-desc">새 영상이 업로드되면 알림</span>
                   </div>
                 </div>
@@ -291,32 +293,34 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* 정보 */}
       <div className="settings-group">
-        <span className="settings-group-title">앱 정보</span>
+        <span className="settings-group-title">정보</span>
         <div className="settings-card">
           <div className="settings-item">
             <div className="settings-item-left">
-              <div className="settings-item-icon">ℹ️</div>
+              <div className="settings-item-icon-wrap">
+                <Info size={16} />
+              </div>
               <div className="settings-item-text">
                 <span className="settings-item-label">버전</span>
               </div>
             </div>
-            <span
-              style={{
-                fontSize: 13,
-                color: "var(--muted)",
-                fontWeight: 600,
-              }}
-            >
-              1.1.0
-            </span>
+            <span className="settings-value">1.1.0</span>
           </div>
+          <Link href="/privacy" className="settings-item settings-link-item">
+            <div className="settings-item-left">
+              <div className="settings-item-icon-wrap">
+                <Shield size={16} />
+              </div>
+              <div className="settings-item-text">
+                <span className="settings-item-label">개인정보처리방침</span>
+              </div>
+            </div>
+            <ChevronRight size={18} className="settings-chevron" />
+          </Link>
         </div>
       </div>
-
-      <Link href="/privacy" className="settings-privacy-link">
-        개인정보처리방침
-      </Link>
     </main>
   );
 }
