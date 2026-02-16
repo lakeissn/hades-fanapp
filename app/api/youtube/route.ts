@@ -22,6 +22,28 @@ function extractVideoId(text: string): string | null {
   return match?.[1] ?? null;
 }
 
+function extractLatestVideoId(text: string): string | null {
+  const rendererIds: string[] = [];
+  const rendererPatterns = [
+    /"gridVideoRenderer"\s*:\s*\{[\s\S]{0,120}?"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/g,
+    /"videoRenderer"\s*:\s*\{[\s\S]{0,120}?"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/g,
+  ];
+
+  for (const pattern of rendererPatterns) {
+    for (const match of text.matchAll(pattern)) {
+      const id = match[1];
+      if (id) rendererIds.push(id);
+    }
+    if (rendererIds.length > 0) break;
+  }
+
+  if (rendererIds.length > 0) {
+    return Array.from(new Set(rendererIds))[0] ?? null;
+  }
+
+  return extractVideoId(text);
+}
+
 function extractShortsId(text: string): string | null {
   const match = text.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
   return match?.[1] ?? null;
@@ -330,7 +352,7 @@ async function fetchLatestVideo(): Promise<YouTubeVideo | null> {
       cache: "no-store",
     });
     const html = await res.text();
-    const videoId = extractVideoId(html);
+    const videoId = extractLatestVideoId(html);
     if (!videoId) return null;
 
     const title = extractTitle(html, videoId);
