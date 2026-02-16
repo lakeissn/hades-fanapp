@@ -242,6 +242,99 @@ function pushTag(set: Set<string>, raw: unknown) {
     .forEach((part) => set.add(part));
 }
 
+function pushTagsFromFreeText(set: Set<string>, raw: unknown) {
+  if (typeof raw !== "string") return;
+
+  const normalized = raw.replace(/\u0023/g, "#").replace(/&quot;/g, '"');
+
+  const hashtagMatches = normalized.match(/#[^#\s,|/]{1,30}/g) ?? [];
+  for (const token of hashtagMatches) {
+    const n = normalizeTag(token);
+    if (n) set.add(n);
+  }
+
+  normalized
+    .split(/[|,/\n\r\t]/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .forEach((part) => {
+      const n = normalizeTag(part);
+      if (n) set.add(n);
+    });
+}
+
+function extractJsonStringArray(html: string, key: string): string[] {
+  const pattern = new RegExp(`"${key}"\\s*:\\s*\\[(.*?)\\]`, "gs");
+  const out: string[] = [];
+
+  for (const match of html.matchAll(pattern)) {
+    const body = match[1] ?? "";
+    const itemPattern = /"([^"\\]*(?:\\.[^"\\]*)*)"/g;
+
+    for (const item of body.matchAll(itemPattern)) {
+      const raw = item[1];
+      if (!raw) continue;
+      const decoded = raw
+        .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+        .replace(/\\\"/g, '"')
+        .replace(/\\\//g, "/");
+      out.push(decoded);
+    }
+  }
+
+  return out;
+}
+
+async function fetchPlayPageTags(userId: string, broadNo: string | null): Promise<string[]> {
+  const urls = [
+    broadNo ? `https://play.sooplive.co.kr/${userId}/${broadNo}` : null,
+    `https://play.sooplive.co.kr/${userId}`,
+  ].filter((url): url is string => !!url);
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          ...COMMON_HEADERS,
+          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+        cache: "no-store",
+      });
+
+      if (!res.ok) continue;
+
+      const html = await res.text();
+      const values = new Set<string>();
+
+      const tagArrayKeys = ["hashTags", "hash_tags", "tags", "tag_list"];
+      for (const key of tagArrayKeys) {
+        for (const item of extractJsonStringArray(html, key)) {
+          pushTagsFromFreeText(values, item);
+        }
+      }
+
+      const metaKeywords = html.match(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i)
+        ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']keywords["'][^>]*>/i);
+      if (metaKeywords?.[1]) {
+        pushTagsFromFreeText(values, metaKeywords[1]);
+      }
+
+      const tagLikeStrings = html.match(/"(?:hashTag|hash_tag|tag|tags)"\s*:\s*"([^"\n\r]{1,300})"/g) ?? [];
+      for (const raw of tagLikeStrings) {
+        const m = raw.match(/:\s*"([^"\n\r]{1,300})"/);
+        if (m?.[1]) pushTagsFromFreeText(values, m[1]);
+      }
+
+      const out = Array.from(values).slice(0, 7);
+      if (out.length > 0) return out;
+    } catch {
+      // ignore and fallback
+    }
+  }
+
+  return [];
+}
+
 function collectTagsFromStation(source: JsonObject): string[] {
   const values = new Set<string>();
 
@@ -618,9 +711,12 @@ export async function GET() {
         const broadNoFromUrl = extractBroadNoFromLiveUrl(station.liveUrl);
         const liveImgThumb = buildLiveImageUrl(broadNoFromUrl);
 
-        // 2) 태그: player_live_api로 보강(핵심)
+        // 2) 태그: player_live_api + 플레이 페이지 HTML fallback 보강
         const playerTags = await fetchPlayerLiveTags(member.id, broadNoFromUrl);
-        const tags = mergeTags(playerTags, station.tags);
+        const playPageTags = playerTags.length > 0
+          ? []
+          : await fetchPlayPageTags(member.id, broadNoFromUrl);
+        const tags = mergeTags(playerTags, mergeTags(playPageTags, station.tags));
 
         return {
           ...member,
