@@ -60,6 +60,7 @@ type StationLiveFields = Omit<
   "id" | "name" | "soopUrl" | "avatarUrl" | "fetchedAt"
 >;
 
+// [FIX] CATEGORY_TAGS, AUTO_HASHTAGS 추가
 type PlayerLiveApiResponse = {
   RESULT?: number | string;
   CHANNEL_STATUS?: string | number;
@@ -75,11 +76,14 @@ type PlayerLiveApiResponse = {
     broad_no?: number | string;
     broadNo?: number | string;
     nBroadNo?: number | string;
+    RESULT?: number | string;
     TITLE?: string;
     CATE_NAME?: string;
     BROAD_CATE?: string;
     TAG?: string; // "봉준,무수,하데스,보라,종겜" 같이 올 수 있음
     HASH_TAGS?: string[]; // ["버추얼","노래","하데스"] 같이 올 수 있음
+    CATEGORY_TAGS?: string[]; // ["VRChat"] 같이 카테고리 태그
+    AUTO_HASHTAGS?: string[]; // 자동 생성 해시태그
   };
 };
 
@@ -359,7 +363,7 @@ async function fetchPlayPageTags(userId: string, broadNo: string | null): Promis
         return htmlTags;
       }
 
-      const tagArrayKeys = ["hashTags", "hash_tags", "tags", "tag_list"];
+      const tagArrayKeys = ["hashTags", "hash_tags", "tags", "tag_list", "HASH_TAGS", "CATEGORY_TAGS", "AUTO_HASHTAGS", "category_tags", "auto_hashtags"];
       for (const key of tagArrayKeys) {
         for (const item of extractJsonStringArray(html, key)) {
           pushTagsFromFreeText(values, item);
@@ -440,15 +444,28 @@ function collectTagsFromStation(source: JsonObject): string[] {
     pushTag(values, pickByPaths(source, [path]));
   }
 
+  // [FIX] CATEGORY_TAGS, AUTO_HASHTAGS 경로 추가
   const arrayTagPaths: string[][] = [
     ["station", "hash_tags"],
     ["station", "tag_list"],
+    ["station", "category_tags"],
+    ["station", "auto_hashtags"],
     ["channel", "hash_tags"],
     ["channel", "tag_list"],
+    ["channel", "category_tags"],
+    ["channel", "auto_hashtags"],
+    ["channel", "CATEGORY_TAGS"],
+    ["channel", "AUTO_HASHTAGS"],
     ["broad", "hash_tags"],
     ["broad", "tag_list"],
+    ["broad", "category_tags"],
+    ["broad", "auto_hashtags"],
     ["hash_tags"],
     ["tag_list"],
+    ["category_tags"],
+    ["auto_hashtags"],
+    ["CATEGORY_TAGS"],
+    ["AUTO_HASHTAGS"],
   ];
 
   for (const path of arrayTagPaths) {
@@ -491,34 +508,38 @@ function safeJsonParse<T>(raw: string): T | null {
   return null;
 }
 
+// [FIX] stream_type 변형 추가 + CATEGORY_TAGS/AUTO_HASHTAGS 파싱 + RESULT:0 스킵
 async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promise<string[]> {
-  // broadNo가 있어도/없어도 동작하는 payload 두 개를 시도
-  const payloads: Record<string, string>[] = [
-    {
+  // stream_type을 "common" 외에 "cineti"도 시도 (시네티 컨텐츠 대응)
+  const streamTypes = ["common", "cineti"];
+  const payloads: Record<string, string>[] = [];
+
+  for (const st of streamTypes) {
+    payloads.push({
       bid: bjid,
       bno: broadNo ?? "null",
       type: "live",
       pwd: "",
       player_type: "html5",
-      stream_type: "common",
+      stream_type: st,
       quality: "HD",
       mode: "landing",
       from_api: "0",
       is_revive: "false",
-    },
-    {
+    });
+    payloads.push({
       bid: bjid,
       bno: broadNo ?? "",
       type: "live",
       pwd: "",
       player_type: "html5",
-      stream_type: "common",
+      stream_type: st,
       quality: "HD",
       mode: "watch",
       from_api: "1",
       is_revive: "false",
-    },
-  ];
+    });
+  }
 
   for (const payload of payloads) {
     try {
@@ -540,12 +561,25 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
       const json = safeJsonParse<PlayerLiveApiResponse>(raw);
       if (!json) continue;
 
+      // RESULT: 0 이면 방송 데이터 없음 → 다음 payload 시도
+      const result = json.CHANNEL?.RESULT ?? json.RESULT;
+      if (result === 0 || result === "0") continue;
+
       const tags: string[] = [];
 
       const cateName = json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE;
       if (typeof cateName === "string") {
         const n = normalizeTag(cateName);
         if (n) tags.push(n);
+      }
+
+      // [FIX] CATEGORY_TAGS 파싱 추가
+      const categoryTags = json.CHANNEL?.CATEGORY_TAGS;
+      if (Array.isArray(categoryTags)) {
+        categoryTags.forEach((t) => {
+          const n = normalizeTag(String(t));
+          if (n) tags.push(n);
+        });
       }
 
       const csv = json.CHANNEL?.TAG;
@@ -559,6 +593,15 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
       const hash = json.CHANNEL?.HASH_TAGS;
       if (Array.isArray(hash)) {
         hash.forEach((t) => {
+          const n = normalizeTag(String(t));
+          if (n) tags.push(n);
+        });
+      }
+
+      // [FIX] AUTO_HASHTAGS 파싱 추가
+      const autoHash = json.CHANNEL?.AUTO_HASHTAGS;
+      if (Array.isArray(autoHash)) {
+        autoHash.forEach((t) => {
           const n = normalizeTag(String(t));
           if (n) tags.push(n);
         });
@@ -724,6 +767,27 @@ async function fetchStationStatus(userId: string): Promise<StationLiveFields> {
   }
 }
 
+/**
+ * [FIX] 방송 제목에서 태그를 추출하는 최후 fallback
+ * 예: "[하데스] 주술회전 처음 보는 눈!!" → ["하데스"]
+ * 대괄호 안의 텍스트를 태그로 사용
+ */
+function extractTagsFromTitle(title: string | null): string[] {
+  if (!title) return [];
+  const tags: string[] = [];
+
+  // [대괄호] 안의 텍스트를 태그로 추출
+  const bracketMatches = title.matchAll(/\[([^\]]{1,20})\]/g);
+  for (const match of bracketMatches) {
+    const content = match[1]?.trim();
+    if (!content) continue;
+    const n = normalizeTag(content);
+    if (n) tags.push(n);
+  }
+
+  return Array.from(new Set(tags)).slice(0, 3);
+}
+
 function buildOfflineStatuses(nowIso: string): MemberStatus[] {
   return members.map((member) => ({
     ...member,
@@ -758,12 +822,17 @@ export async function GET() {
         const broadNoFromUrl = extractBroadNoFromLiveUrl(station.liveUrl);
         const liveImgThumb = buildLiveImageUrl(broadNoFromUrl);
 
-        // 2) 태그: player_live_api + 플레이 페이지 HTML fallback 보강
+        // 2) 태그: player_live_api → 플레이 페이지 HTML → 제목 파싱 순으로 fallback
         const playerTags = await fetchPlayerLiveTags(member.id, broadNoFromUrl);
         const playPageTags = playerTags.length > 0
           ? []
           : await fetchPlayPageTags(member.id, broadNoFromUrl);
-        const tags = mergeTags(playerTags, mergeTags(playPageTags, station.tags));
+        let tags = mergeTags(playerTags, mergeTags(playPageTags, station.tags));
+
+        // [FIX] 모든 소스에서 태그를 못 찾은 경우, 제목에서 추출 (시네티 등 특수 컨텐츠 대응)
+        if (tags.length === 0 && station.title) {
+          tags = extractTagsFromTitle(station.title);
+        }
 
         return {
           ...member,
