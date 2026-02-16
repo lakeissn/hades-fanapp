@@ -391,11 +391,9 @@ function isBootstrap(value?: string) {
 }
 
 function buildYoutubeStateId(videos: YouTubeVideo[]): string {
-  return videos
-    .map((video) => video.id)
-    .filter(Boolean)
-    .sort()
-    .join(",");
+  return buildYoutubeStateIdFromIds(
+    videos.map((video) => video.id)
+  );
 }
 
 function parseYoutubeStateIds(value?: string): Set<string> {
@@ -406,6 +404,43 @@ function parseYoutubeStateIds(value?: string): Set<string> {
       .map((item) => item.trim())
       .filter(Boolean)
   );
+}
+
+const MAX_YOUTUBE_STATE_IDS = 200;
+
+function buildYoutubeStateIdFromIds(ids: string[]): string {
+  const deduped = Array.from(
+    new Set(ids.map((id) => id.trim()).filter(Boolean))
+  ).slice(0, MAX_YOUTUBE_STATE_IDS);
+
+  return deduped.join(",");
+}
+
+function mergeYoutubeStateIds(currentIds: string[], previousIds: Set<string>): string {
+  const merged: string[] = [];
+  const seen = new Set<string>();
+
+  for (const id of currentIds) {
+    const normalized = id.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    merged.push(normalized);
+    if (merged.length >= MAX_YOUTUBE_STATE_IDS) {
+      return merged.join(",");
+    }
+  }
+
+  for (const id of previousIds) {
+    const normalized = id.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    merged.push(normalized);
+    if (merged.length >= MAX_YOUTUBE_STATE_IDS) {
+      break;
+    }
+  }
+
+  return merged.join(",");
 }
 
 export async function GET(req: Request) {
@@ -553,7 +588,7 @@ export async function GET(req: Request) {
 
         if (targets.length > 0) {
           const res = await sendFCMMessages(targets, {
-            title: "새 투표가 등록되었어요! 🗳️",
+            title: "새 투표가 등록되었요! 🗳️",
             body: latestVote.title,
             url: `/votes?open=${latestVote.id}`,
             tag: `vote-${latestVote.id}`,
@@ -577,6 +612,9 @@ export async function GET(req: Request) {
       const prevYoutubeStateId = youtubeState.lastNotifiedYoutubeId;
       const currentYoutubeStateId = buildYoutubeStateId(youtubeData);
       const prevYoutubeIds = parseYoutubeStateIds(prevYoutubeStateId);
+      const currentYoutubeIds = youtubeData
+        .map((video) => video.id)
+        .filter((id) => Boolean(id?.trim()));
 
       // Bootstrap seed 체크
       if (isBootstrap(prevYoutubeStateId)) {
@@ -589,6 +627,7 @@ export async function GET(req: Request) {
         });
       } else {
         const changedVideos = youtubeData.filter((video) => !prevYoutubeIds.has(video.id));
+        const nextYoutubeStateId = mergeYoutubeStateIds(currentYoutubeIds, prevYoutubeIds);
 
         if (changedVideos.length === 0) {
           log.push(`youtube: 변경 없음 (id=${prevYoutubeStateId})`);
@@ -604,7 +643,7 @@ export async function GET(req: Request) {
           if (targets.length > 0) {
             for (const video of changedVideos) {
               const res = await sendFCMMessages(targets, {
-                title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}이 올라왔어요! ▶️`,
+                title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}가 올라왔어요! ▶️`,
                 body: video.title,
                 url: video.url || "/",
                 tag: `yt-${video.id}`,
@@ -615,7 +654,7 @@ export async function GET(req: Request) {
         }
 
         await updateAppState("youtube", {
-          lastNotifiedYoutubeId: currentYoutubeStateId,
+          lastNotifiedYoutubeId: nextYoutubeStateId,
           lastNotifiedAt: new Date().toISOString(),
         });
       }
