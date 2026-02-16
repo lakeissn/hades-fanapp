@@ -87,6 +87,17 @@ const CHAPI_BASE_URL = "https://chapi.sooplive.co.kr/api";
 const PLAYER_LIVE_API_ENDPOINT = "https://live.sooplive.co.kr/afreeca/player_live_api.php";
 const CACHE_TTL_MS = 20_000;
 
+const BLOCKED_TAGS = new Set([
+  "soop",
+  "숲",
+  "숲live",
+  "sooplive",
+  "afreecatv",
+  "afreeca",
+  "아프리카tv",
+  "아프리카",
+]);
+
 const COMMON_HEADERS = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -215,9 +226,18 @@ function liveFlagFromUnknown(value: unknown): boolean | null {
 }
 
 function normalizeTag(raw: string): string | null {
-  const cleaned = raw.replace(/^#/, "").trim();
+  const cleaned = raw
+    .replace(/^#/, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .trim();
+
   if (!cleaned) return null;
+
+  const key = cleaned.toLowerCase().replace(/\s+/g, "");
   if (cleaned === "한국어") return null;
+  if (BLOCKED_TAGS.has(key)) return null;
   if (/^\d+$/.test(cleaned)) return null;
   if (cleaned.length > 30) return null;
   return cleaned;
@@ -285,6 +305,34 @@ function extractJsonStringArray(html: string, key: string): string[] {
   return out;
 }
 
+
+function decodeHtmlEntities(raw: string): string {
+  return raw
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function extractTagsFromHashtagWrap(html: string): string[] {
+  const blockMatch = html.match(/<div[^>]+id=["']hashtag["'][^>]*>([\s\S]*?)<\/div>/i);
+  if (!blockMatch?.[1]) return [];
+
+  const block = blockMatch[1];
+  const tags: string[] = [];
+  const anchorPattern = /<a[^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const match of block.matchAll(anchorPattern)) {
+    const text = decodeHtmlEntities(match[1].replace(/<[^>]+>/g, "")).trim();
+    const normalized = normalizeTag(text);
+    if (normalized) tags.push(normalized);
+  }
+
+  return Array.from(new Set(tags)).slice(0, 7);
+}
+
 async function fetchPlayPageTags(userId: string, broadNo: string | null): Promise<string[]> {
   const urls = [
     broadNo ? `https://play.sooplive.co.kr/${userId}/${broadNo}` : null,
@@ -306,17 +354,16 @@ async function fetchPlayPageTags(userId: string, broadNo: string | null): Promis
       const html = await res.text();
       const values = new Set<string>();
 
+      const htmlTags = extractTagsFromHashtagWrap(html);
+      if (htmlTags.length > 0) {
+        return htmlTags;
+      }
+
       const tagArrayKeys = ["hashTags", "hash_tags", "tags", "tag_list"];
       for (const key of tagArrayKeys) {
         for (const item of extractJsonStringArray(html, key)) {
           pushTagsFromFreeText(values, item);
         }
-      }
-
-      const metaKeywords = html.match(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i)
-        ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']keywords["'][^>]*>/i);
-      if (metaKeywords?.[1]) {
-        pushTagsFromFreeText(values, metaKeywords[1]);
       }
 
       const tagLikeStrings = html.match(/"(?:hashTag|hash_tag|tag|tags)"\s*:\s*"([^"\n\r]{1,300})"/g) ?? [];
