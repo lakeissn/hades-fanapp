@@ -137,16 +137,11 @@ function LiveCarousel({ children }: { children: React.ReactNode }) {
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const delta = e.touches[0].clientX - touchStartX.current;
     if ((current === 0 && delta > 0) || (current === total - 1 && delta < 0)) {
-      setDragOffset(delta * 0.35);
+      setDragOffset(delta * 0.3);
     } else {
       setDragOffset(delta);
     }
   }, [current, total]);
-
-  useEffect(() => {
-    startTimer();
-    return resetTimer;
-  }, [current, startTimer, resetTimer]);
 
   const handleTouchEnd = useCallback(() => {
     setIsTransitioning(true);
