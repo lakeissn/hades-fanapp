@@ -1207,8 +1207,8 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .youtube-info h4 { font-size: 12px; }
   .youtube-meta { font-size: 11px; }
 
-  /* 모바일: 잠시 쉬는 중 */
-  .section-offline .section-head h2 { font-size: 16px; }
+  /* 모바일: 섹션 제목 통일 (지금 방송 중인 멤버, 유튜브 최신 영상, 공식 링크, 잠시 쉬는 중) */
+  .section-head h2 { font-size: 16px; }
   .section-offline .chip-name { font-size: 12px; }
   .section-offline .chip-status { font-size: 10px; }
 
