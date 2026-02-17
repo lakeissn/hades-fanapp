@@ -54,6 +54,7 @@ function loadNotifSettings(): NotificationSettings {
 
 function saveNotifSettings(settings: NotificationSettings) {
   localStorage.setItem("hades_notif_settings", JSON.stringify(settings));
+  window.dispatchEvent(new Event("hades_prefs_changed"));
 }
 
 const Toggle = memo(function Toggle({
@@ -114,6 +115,25 @@ export default function SettingsPage() {
     return () => window.cancelAnimationFrame(raf);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncFromStorage = () => {
+      setNotif(loadNotifSettings());
+      if ("Notification" in window) {
+        setPermissionState(Notification.permission);
+      }
+    };
+
+    window.addEventListener("hades_prefs_changed", syncFromStorage);
+    window.addEventListener("focus", syncFromStorage);
+
+    return () => {
+      window.removeEventListener("hades_prefs_changed", syncFromStorage);
+      window.removeEventListener("focus", syncFromStorage);
+    };
+  }, []);
+
   const changeTheme = useCallback((t: Theme) => {
     setTheme(t);
     localStorage.setItem("hades_theme", t);
@@ -141,7 +161,13 @@ export default function SettingsPage() {
       try {
         const success = await activatePush();
         if (success) {
-          const next = { ...notif, master: true };
+          const next = {
+            ...notif,
+            master: true,
+            liveBroadcast: true,
+            newVote: true,
+            newYoutube: true,
+          };
           setNotif(next);
           saveNotifSettings(next);
           setPermissionState("granted");
