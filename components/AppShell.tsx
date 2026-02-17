@@ -82,7 +82,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const next = { ...current, master: true };
+      const next = {
+        ...current,
+        master: true,
+        liveBroadcast: true,
+        newVote: true,
+        newYoutube: true,
+      };
       localStorage.setItem("hades_notif_settings", JSON.stringify(next));
       window.dispatchEvent(new Event("hades_prefs_changed"));
 
