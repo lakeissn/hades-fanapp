@@ -12,9 +12,9 @@ type NotificationSettings = {
 function getNotifSettings(): NotificationSettings {
   try {
     const raw = localStorage.getItem("hades_notif_settings");
-    return raw ? JSON.parse(raw) : { master: false, liveBroadcast: true, newVote: true, newYoutube: true };
+    return raw ? JSON.parse(raw) : { master: false, liveBroadcast: false, newVote: false, newYoutube: false };
   } catch {
-    return { master: false, liveBroadcast: true, newVote: true, newYoutube: true };
+    return { master: false, liveBroadcast: false, newVote: false, newYoutube: false };
   }
 }
 
