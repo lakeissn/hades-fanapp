@@ -14,9 +14,9 @@ type NotificationSettings = {
 
 const DEFAULT_NOTIF: NotificationSettings = {
   master: false,
-  liveBroadcast: true,
-  newVote: true,
-  newYoutube: true,
+  liveBroadcast: false,
+  newVote: false,
+  newYoutube: false,
 };
 
 function loadTheme(): Theme {
@@ -34,7 +34,11 @@ function loadNotifSettings(): NotificationSettings {
   if (typeof window === "undefined") return DEFAULT_NOTIF;
   try {
     const raw = localStorage.getItem("hades_notif_settings");
-    return raw ? { ...DEFAULT_NOTIF, ...JSON.parse(raw) } : DEFAULT_NOTIF;
+    const merged = raw ? { ...DEFAULT_NOTIF, ...JSON.parse(raw) } : DEFAULT_NOTIF;
+    if (!("Notification" in window) || Notification.permission !== "granted") {
+      return DEFAULT_NOTIF;
+    }
+    return merged;
   } catch {
     return DEFAULT_NOTIF;
   }
