@@ -18,9 +18,9 @@ type NotificationSettings = {
 
 const DEFAULT_NOTIF_SETTINGS: NotificationSettings = {
   master: false,
-  liveBroadcast: true,
-  newVote: true,
-  newYoutube: true,
+  liveBroadcast: false,
+  newVote: false,
+  newYoutube: false,
 };
 
 const headerLinks = [
@@ -41,6 +41,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
+    const rawSettings = localStorage.getItem("hades_notif_settings");
+    if (!rawSettings) {
+      localStorage.setItem("hades_notif_settings", JSON.stringify(DEFAULT_NOTIF_SETTINGS));
+    }
     const dismissed = localStorage.getItem("hades_notice_dismissed") === "1";
     const permission = Notification.permission;
     if (permission === "granted") {
