@@ -95,10 +95,14 @@ const AUTOPLAY_MS = 5000;
 
 function LiveCarousel({ children }: { children: React.ReactNode }) {
   const [current, setCurrent] = useState(0);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const touchStartX = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const deltaX = useRef(0);
+  const locked = useRef<"x" | "y" | null>(null);
 
   const items = Children.toArray(children);
   const total = items.length;
@@ -113,7 +117,6 @@ function LiveCarousel({ children }: { children: React.ReactNode }) {
     resetTimer();
     timerRef.current = setTimeout(() => {
       setCurrent(prev => (prev + 1) % total);
-      setIsTransitioning(true);
     }, AUTOPLAY_MS);
   }, [total, resetTimer]);
 
@@ -122,72 +125,119 @@ function LiveCarousel({ children }: { children: React.ReactNode }) {
     return resetTimer;
   }, [current, startTimer, resetTimer]);
 
-  const goTo = useCallback((i: number) => {
-    setCurrent(((i % total) + total) % total);
-    setIsTransitioning(true);
-  }, [total]);
+  const setTrackTransform = useCallback((offset: number, animate: boolean) => {
+    if (!trackRef.current) return;
+    trackRef.current.style.transition = animate ? "transform 0.35s cubic-bezier(0.25,1,0.5,1)" : "none";
+    trackRef.current.style.transform = `translateX(calc(-${current * 100}% + ${offset}px))`;
+  }, [current]);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    setIsTransitioning(false);
-    setDragOffset(0);
+  const handleStart = useCallback((x: number, y: number) => {
+    dragging.current = true;
+    startX.current = x;
+    startY.current = y;
+    deltaX.current = 0;
+    locked.current = null;
     resetTimer();
+    if (trackRef.current) trackRef.current.style.transition = "none";
   }, [resetTimer]);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    const delta = e.touches[0].clientX - touchStartX.current;
-    if ((current === 0 && delta > 0) || (current === total - 1 && delta < 0)) {
-      setDragOffset(delta * 0.3);
-    } else {
-      setDragOffset(delta);
-    }
-  }, [current, total]);
+  const handleMove = useCallback((x: number, y: number) => {
+    if (!dragging.current) return;
+    const dx = x - startX.current;
+    const dy = y - startY.current;
 
-  const handleTouchEnd = useCallback(() => {
-    setIsTransitioning(true);
-    if (Math.abs(dragOffset) > 50) {
-      if (dragOffset < 0 && current < total - 1) setCurrent(current + 1);
-      else if (dragOffset > 0 && current > 0) setCurrent(current - 1);
+    if (!locked.current) {
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        locked.current = Math.abs(dx) >= Math.abs(dy) ? "x" : "y";
+      }
+      if (!locked.current) return;
     }
-    setDragOffset(0);
-  }, [dragOffset, current, total]);
+
+    if (locked.current === "y") return;
+
+    const bounded = (current === 0 && dx > 0) || (current === total - 1 && dx < 0)
+      ? dx * 0.25 : dx;
+    deltaX.current = bounded;
+    setTrackTransform(bounded, false);
+  }, [current, total, setTrackTransform]);
+
+  const handleEnd = useCallback(() => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    const d = deltaX.current;
+    const threshold = viewportRef.current ? viewportRef.current.offsetWidth * 0.15 : 50;
+
+    let next = current;
+    if (Math.abs(d) > threshold) {
+      if (d < 0 && current < total - 1) next = current + 1;
+      else if (d > 0 && current > 0) next = current - 1;
+    }
+
+    if (next !== current) {
+      setCurrent(next);
+      if (trackRef.current) {
+        trackRef.current.style.transition = "transform 0.35s cubic-bezier(0.25,1,0.5,1)";
+        trackRef.current.style.transform = `translateX(-${next * 100}%)`;
+      }
+    } else {
+      setTrackTransform(0, true);
+    }
+    deltaX.current = 0;
+  }, [current, total, setTrackTransform]);
+
+  useEffect(() => {
+    if (trackRef.current) {
+      trackRef.current.style.transition = "transform 0.35s cubic-bezier(0.25,1,0.5,1)";
+      trackRef.current.style.transform = `translateX(-${current * 100}%)`;
+    }
+  }, [current]);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => handleStart(e.touches[0].clientX, e.touches[0].clientY);
+    const onTouchMove = (e: TouchEvent) => {
+      handleMove(e.touches[0].clientX, e.touches[0].clientY);
+      if (locked.current === "x") e.preventDefault();
+    };
+    const onTouchEnd = () => handleEnd();
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [handleStart, handleMove, handleEnd]);
 
   if (total === 0) return null;
 
   return (
     <div className="live-carousel">
       <div
+        ref={viewportRef}
         className="live-carousel-viewport"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        onMouseDown={(e) => { e.preventDefault(); handleStart(e.clientX, e.clientY); }}
+        onMouseMove={(e) => { if (e.buttons === 1) handleMove(e.clientX, e.clientY); }}
+        onMouseUp={handleEnd}
+        onMouseLeave={handleEnd}
       >
-        <div
-          className="live-carousel-track"
-          style={{
-            transform: `translateX(calc(-${current * 100}% + ${dragOffset}px))`,
-            transition: isTransitioning ? 'transform 0.4s cubic-bezier(0.16,1,0.3,1)' : 'none',
-          }}
-        >
+        <div ref={trackRef} className="live-carousel-track">
           {items.map((child, i) => (
             <div key={i} className="live-carousel-slide">{child}</div>
           ))}
         </div>
       </div>
       {total > 1 && (
-        <>
-          <button className="live-carousel-btn left" onClick={() => goTo(current - 1)} aria-label="이전">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-          </button>
-          <button className="live-carousel-btn right" onClick={() => goTo(current + 1)} aria-label="다음">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-          </button>
-          <div className="live-carousel-dots">
-            {items.map((_, i) => (
-              <button key={i} className={`live-carousel-dot${i === current ? ' active' : ''}`} onClick={() => goTo(i)} aria-label={`슬라이드 ${i + 1}`} />
-            ))}
-          </div>
-        </>
+        <div className="live-carousel-dots">
+          {items.map((_, i) => (
+            <button key={i} className={`live-carousel-dot${i === current ? ' active' : ''}`} onClick={() => setCurrent(i)} aria-label={`슬라이드 ${i + 1}`} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -235,7 +285,7 @@ function YouTubeSection() {
         {videos.map(v => (
           <a key={v.id} className="youtube-card" href={v.url} target="_blank" rel="noreferrer">
             <div className="youtube-thumb">
-              <img src={v.thumbnail} alt="" loading="lazy" />
+              <img src={v.thumbnail} alt="" loading="lazy" onError={e => { const t = e.currentTarget; if (t.src.includes("maxresdefault")) t.src = `https://i.ytimg.com/vi/${v.id}/sddefault.jpg`; }} />
               <span className={`youtube-type-badge ${v.type === "shorts" ? "shorts" : "video"}`}>
                 {v.type === "shorts" ? "Shorts" : "Video"}
               </span>
@@ -312,7 +362,7 @@ export default function HomePage() {
       </section>
 
       {/* OFFLINE */}
-      <section className="section-block">
+      <section className="section-block section-offline">
         <div className="section-head"><div><p className="section-tag"></p><h2>잠시 쉬는 중</h2></div></div>
         {isLoading ? (
           <div className="chip-grid">

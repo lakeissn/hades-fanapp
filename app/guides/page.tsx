@@ -16,7 +16,9 @@ export default function GuidesPage() {
         <div className="guides-grid">
           {categories.map((cat) => (
             <Link key={cat.id} href={`/guides/${cat.id}`} className="guide-tile">
-              <span className="guide-tile-icon" aria-hidden>{cat.icon}</span>
+              <span className="guide-tile-icon" aria-hidden>
+                {cat.iconImage ? <img src={cat.iconImage} alt="" width={cat.iconSize ?? 48} height={cat.iconSize ?? 48} style={{ objectFit: "contain" }} /> : cat.icon}
+              </span>
               <h3 className="guide-tile-title">{cat.title}</h3>
               <p className="guide-tile-desc">{cat.subtitle}</p>
               <span className="guide-tile-count">{cat.items.length}개 항목</span>

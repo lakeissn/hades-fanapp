@@ -1,6 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+
+function createSongSlug(title: string): string {
+  return title
+    .trim()
+    .replace(/[^\w\u3131-\uD79D\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .toLowerCase()
+    .slice(0, 80) || "song";
+}
 
 type ChartEntry = {
   rank: number; title: string; artist: string;
@@ -88,7 +99,11 @@ function ChartSectionView({ section }: { section: ChartSection }) {
         ) : (
           <div className="chart-table-body">
             {data.entries.map(entry => (
-              <div key={`${entry.rank}-${entry.title}`} className="chart-row">
+              <Link
+                key={`${entry.rank}-${entry.title}`}
+                href={`/chart/song/${createSongSlug(entry.title)}`}
+                className="chart-row chart-row-link"
+              >
                 <div className="chart-col-rank">
                   <span className={`chart-rank-num ${entry.rank <= 3 ? "top" : ""}`}>{entry.rank}</span>
                 </div>
@@ -106,7 +121,7 @@ function ChartSectionView({ section }: { section: ChartSection }) {
                 <div className="chart-col-change">
                   <RankChange entry={entry} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

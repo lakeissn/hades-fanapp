@@ -16,6 +16,10 @@ export type GuideCategory = {
   title: string;
   subtitle: string;
   icon: string;
+  /** 이미지 경로가 있으면 이모지 대신 이미지 표시 (예: /guides/icons/streaming.png) */
+  iconImage?: string;
+  /** 아이콘 크기 (기본 48, 상세 40). 이미지가 클 때 줄이고 싶으면 예: 40 */
+  iconSize?: number;
   items: GuideItem[];
 };
 
@@ -29,6 +33,8 @@ export const guideData: Record<string, GuideCategory> = {
     title: "스트리밍 가이드",
     subtitle: "멜론/유튜브 스밍 설정법",
     icon: "🎧",
+    iconImage: "/icons/headset.png",
+    iconSize: 40,
     items: [
       {
         id: "melon-setup",
@@ -65,6 +71,7 @@ export const guideData: Record<string, GuideCategory> = {
     title: "선물하기 가이드",
     subtitle: "멜론 음원 선물하기 방법",
     icon: "🎁",
+    iconImage: "/icons/gift.webp",
     items: [
       {
         id: "melon-gift",
@@ -83,6 +90,8 @@ export const guideData: Record<string, GuideCategory> = {
     title: "다운로드 가이드",
     subtitle: "멜론 음원 다운로드 방법",
     icon: "💾",
+    iconImage: "/icons/download.png",
+    iconSize: 40,
     items: [
       {
         id: "melon-download",
@@ -101,6 +110,7 @@ export const guideData: Record<string, GuideCategory> = {
     title: "투표 가이드",
     subtitle: "투표 플랫폼별 투표 방법",
     icon: "🗳️",
+    iconImage: "/icons/vote.png",
     items: [
       {
         id: "percent-musicpro",

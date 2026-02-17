@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Card from "@/components/Card";
 import VotesAccordion, { VoteItem } from "@/components/VotesAccordion";
 
 type Vote = VoteItem;
@@ -57,25 +56,23 @@ export default function VotesPage() {
 
   return (
     <main>
-      <section className="section-block">
+      <section className="section-block vote-list-page">
         <div className="section-head page-header">
           <div>
             <h2>투표 목록</h2>
           </div>
         </div>
-        <Card className="vote-list-card">
-          {isLoading ? (
-            <div className="empty-state">
-              <p>투표 목록을 불러오는 중...</p>
-            </div>
-          ) : visibleVotes.length === 0 ? (
-            <div className="empty-state">
-              <p>현재 진행 중인 투표가 없습니다.</p>
-            </div>
-          ) : (
-            <VotesAccordion votes={visibleVotes} openVoteId={requestedOpenVoteId} />
-          )}
-        </Card>
+        {isLoading ? (
+          <div className="empty-state">
+            <p>투표 목록을 불러오는 중...</p>
+          </div>
+        ) : visibleVotes.length === 0 ? (
+          <div className="empty-state">
+            <p>현재 진행 중인 투표가 없습니다.</p>
+          </div>
+        ) : (
+          <VotesAccordion votes={visibleVotes} openVoteId={requestedOpenVoteId} />
+        )}
       </section>
     </main>
   );

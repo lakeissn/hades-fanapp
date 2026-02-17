@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function InstallPrompt({ onVisibilityChange }: Props) {
+  const router = useRouter();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -84,12 +86,10 @@ export default function InstallPrompt({ onVisibilityChange }: Props) {
         setShowPrompt(false);
       }
       setDeferredPrompt(null);
-    } else if (isIOS) {
-      alert("Safari 하단의 공유 버튼(□↑)을 누른 후\n'홈 화면에 추가'를 선택해 주세요.");
     } else {
-      alert("브라우저 메뉴에서 '앱 설치' 또는 '홈 화면에 추가'를 선택해 주세요.");
+      router.push("/add-to-home");
     }
-  }, [deferredPrompt, isIOS]);
+  }, [deferredPrompt, router]);
 
   const handleDismiss = useCallback(() => {
     localStorage.setItem("hades_install_dismissed", String(Date.now()));
@@ -109,7 +109,7 @@ export default function InstallPrompt({ onVisibilityChange }: Props) {
         <span>{isIOS ? "홈 화면에 추가하여 앱으로 보기" : "앱으로 설치하면 더 빠르게"}</span>
       </div>
       <button type="button" className="smart-banner-action" onClick={handleInstall}>
-        {isIOS ? "보기" : "열기"}
+        {deferredPrompt ? "설치" : "설치"}
       </button>
     </div>
   );

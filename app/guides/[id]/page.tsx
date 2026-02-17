@@ -40,7 +40,9 @@ export default function GuideDetailPage({
       </nav>
 
       <header className="guide-detail-header">
-        <span className="guide-detail-icon" aria-hidden>{category.icon}</span>
+        <span className="guide-detail-icon" aria-hidden>
+          {category.iconImage ? <img src={category.iconImage} alt="" width={category.iconSize ? Math.round(category.iconSize * 0.83) : 40} height={category.iconSize ? Math.round(category.iconSize * 0.83) : 40} style={{ objectFit: "contain" }} /> : category.icon}
+        </span>
         <div>
           <h1>{category.title}</h1>
           <p className="header-desc">{category.subtitle}</p>

@@ -356,7 +356,7 @@ async function fetchLatestVideo(): Promise<YouTubeVideo | null> {
     if (!videoId) return null;
 
     const title = extractTitle(html, videoId);
-    const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    const thumbnail = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
 
     return {
       id: videoId,
@@ -389,7 +389,7 @@ async function fetchLatestShort(): Promise<YouTubeVideo | null> {
       title = await fetchShortsTitleDirect(shortsId);
     }
 
-    const thumbnail = `https://i.ytimg.com/vi/${shortsId}/hqdefault.jpg`;
+    const thumbnail = `https://i.ytimg.com/vi/${shortsId}/maxresdefault.jpg`;
 
     return {
       id: shortsId,
