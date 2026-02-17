@@ -1,12 +1,12 @@
 {
-  "/votes/page": "app/votes/page.js",
-  "/chart/song/[slug]/page": "app/chart/song/[slug]/page.js",
-  "/page": "app/page.js",
-  "/icon/[[...__metadata_id__]]/route": "app/icon/[[...__metadata_id__]]/route.js",
-  "/guides/page": "app/guides/page.js",
-  "/chart/page": "app/chart/page.js",
-  "/api/chart/route": "app/api/chart/route.js",
   "/api/youtube/route": "app/api/youtube/route.js",
+  "/icon/[[...__metadata_id__]]/route": "app/icon/[[...__metadata_id__]]/route.js",
+  "/page": "app/page.js",
+  "/chart/song/[slug]/page": "app/chart/song/[slug]/page.js",
+  "/chart/page": "app/chart/page.js",
+  "/votes/page": "app/votes/page.js",
   "/api/votes/route": "app/api/votes/route.js",
-  "/api/members/status/route": "app/api/members/status/route.js"
+  "/api/chart/route": "app/api/chart/route.js",
+  "/api/members/status/route": "app/api/members/status/route.js",
+  "/guides/page": "app/guides/page.js"
 }
