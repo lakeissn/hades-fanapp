@@ -137,11 +137,16 @@ function LiveCarousel({ children }: { children: React.ReactNode }) {
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const delta = e.touches[0].clientX - touchStartX.current;
     if ((current === 0 && delta > 0) || (current === total - 1 && delta < 0)) {
-      setDragOffset(delta * 0.3);
+      setDragOffset(delta * 0.35);
     } else {
       setDragOffset(delta);
     }
   }, [current, total]);
+
+  useEffect(() => {
+    startTimer();
+    return resetTimer;
+  }, [current, startTimer, resetTimer]);
 
   const handleTouchEnd = useCallback(() => {
     setIsTransitioning(true);
@@ -236,6 +241,9 @@ function YouTubeSection() {
           <a key={v.id} className="youtube-card" href={v.url} target="_blank" rel="noreferrer">
             <div className="youtube-thumb">
               <img src={v.thumbnail} alt="" loading="lazy" />
+              <span className={`youtube-type-badge ${v.type === "shorts" ? "shorts" : "video"}`}>
+                {v.type === "shorts" ? "Shorts" : "Video"}
+              </span>
             </div>
             <div className="youtube-info">
               <h4>{v.title}</h4>
