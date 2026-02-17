@@ -19,9 +19,9 @@ type NotifSettings = {
 
 const DEFAULT_SETTINGS: NotifSettings = {
   master: false,
-  liveBroadcast: true,
-  newVote: true,
-  newYoutube: true,
+  liveBroadcast: false,
+  newVote: false,
+  newYoutube: false,
 };
 
 function getSettings(): NotifSettings {
