@@ -201,7 +201,12 @@ export default function SongDetailPage({
       <Link href="/chart" className="song-detail-back">
         ← 차트로 돌아가기
       </Link>
+      <div className="song-detail-dev-notice">
+        현재 개발중인 서비스입니다.
+      </div>
 
+      {/* 임시: 콘텐츠 숨김 */}
+      <div className="song-detail-content-hidden" aria-hidden>
       {/* 곡 상세 정보 - 이미지 카드 */}
       <section className="song-detail-hero">
         <div
@@ -302,14 +307,15 @@ export default function SongDetailPage({
                   const rank = rankHistory[dateStr]?.[h] ?? 0;
                   const color = getRankColor(rank);
                   const isLight = rank <= 9;
+                  const isEmpty = rank === 0;
                   return (
                     <span
                       key={h}
-                      className="song-rank-heatmap-cell"
-                      style={{
+                      className={`song-rank-heatmap-cell${isEmpty ? " song-rank-heatmap-cell-empty" : ""}`}
+                      style={!isEmpty ? {
                         background: color,
                         color: isLight ? "#1a1a1a" : "#fff",
-                      }}
+                      } : undefined}
                       title={`${dateStr} ${h}시: ${rank || "-"}위`}
                     >
                       {rank > 0 ? rank : ""}
@@ -322,6 +328,7 @@ export default function SongDetailPage({
           </div>
         </div>
       </section>
+      </div>
     </main>
   );
 }
