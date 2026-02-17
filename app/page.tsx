@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import LiveCard from "../components/LiveCard";
@@ -90,155 +90,53 @@ function VotePreviewPlatforms({ vote }: { vote: VoteItem }) {
   );
 }
 
-/* 라이브 캐러셀 */
-const AUTOPLAY_MS = 5000;
-
-function LiveCarousel({ children }: { children: React.ReactNode }) {
-  const [current, setCurrent] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+/* 데스크톱: 마우스 드래그, 모바일: 네이티브 터치 스크롤 */
+function LiveGridDrag({ children }: { children: React.ReactNode }) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
   const startX = useRef(0);
-  const startY = useRef(0);
-  const deltaX = useRef(0);
-  const locked = useRef<"x" | "y" | null>(null);
+  const startScrollLeft = useRef(0);
+  const dragging = useRef(false);
+  const didDrag = useRef(false);
 
-  const items = Children.toArray(children);
-  const total = items.length;
-
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = null;
-  }, []);
-
-  const startTimer = useCallback(() => {
-    if (total <= 1) return;
-    resetTimer();
-    timerRef.current = setTimeout(() => {
-      setCurrent(prev => (prev + 1) % total);
-    }, AUTOPLAY_MS);
-  }, [total, resetTimer]);
-
-  useEffect(() => {
-    startTimer();
-    return resetTimer;
-  }, [current, startTimer, resetTimer]);
-
-  const setTrackTransform = useCallback((offset: number, animate: boolean) => {
-    if (!trackRef.current) return;
-    trackRef.current.style.transition = animate ? "transform 0.35s cubic-bezier(0.25,1,0.5,1)" : "none";
-    trackRef.current.style.transform = `translateX(calc(-${current * 100}% + ${offset}px))`;
-  }, [current]);
-
-  const handleStart = useCallback((x: number, y: number) => {
-    dragging.current = true;
-    startX.current = x;
-    startY.current = y;
-    deltaX.current = 0;
-    locked.current = null;
-    resetTimer();
-    if (trackRef.current) trackRef.current.style.transition = "none";
-  }, [resetTimer]);
-
-  const handleMove = useCallback((x: number, y: number) => {
-    if (!dragging.current) return;
-    const dx = x - startX.current;
-    const dy = y - startY.current;
-
-    if (!locked.current) {
-      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-        locked.current = Math.abs(dx) >= Math.abs(dy) ? "x" : "y";
-      }
-      if (!locked.current) return;
-    }
-
-    if (locked.current === "y") return;
-
-    const bounded = (current === 0 && dx > 0) || (current === total - 1 && dx < 0)
-      ? dx * 0.25 : dx;
-    deltaX.current = bounded;
-    setTrackTransform(bounded, false);
-  }, [current, total, setTrackTransform]);
-
-  const handleEnd = useCallback(() => {
-    if (!dragging.current) return;
-    dragging.current = false;
-    const d = deltaX.current;
-    const threshold = viewportRef.current ? viewportRef.current.offsetWidth * 0.15 : 50;
-
-    let next = current;
-    if (Math.abs(d) > threshold) {
-      if (d < 0 && current < total - 1) next = current + 1;
-      else if (d > 0 && current > 0) next = current - 1;
-    }
-
-    if (next !== current) {
-      setCurrent(next);
-      if (trackRef.current) {
-        trackRef.current.style.transition = "transform 0.35s cubic-bezier(0.25,1,0.5,1)";
-        trackRef.current.style.transform = `translateX(-${next * 100}%)`;
-      }
-    } else {
-      setTrackTransform(0, true);
-    }
-    deltaX.current = 0;
-  }, [current, total, setTrackTransform]);
-
-  useEffect(() => {
-    if (trackRef.current) {
-      trackRef.current.style.transition = "transform 0.35s cubic-bezier(0.25,1,0.5,1)";
-      trackRef.current.style.transform = `translateX(-${current * 100}%)`;
-    }
-  }, [current]);
-
-  useEffect(() => {
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     const el = viewportRef.current;
     if (!el) return;
+    dragging.current = true;
+    didDrag.current = false;
+    startX.current = e.clientX;
+    startScrollLeft.current = el.scrollLeft;
+  }, []);
 
-    const onTouchStart = (e: TouchEvent) => handleStart(e.touches[0].clientX, e.touches[0].clientY);
-    const onTouchMove = (e: TouchEvent) => {
-      handleMove(e.touches[0].clientX, e.touches[0].clientY);
-      if (locked.current === "x") e.preventDefault();
-    };
-    const onTouchEnd = () => handleEnd();
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragging.current || e.buttons !== 1) return;
+    const el = viewportRef.current;
+    if (!el) return;
+    const dx = startX.current - e.clientX;
+    if (Math.abs(dx) > 3) didDrag.current = true;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    el.scrollLeft = Math.max(0, Math.min(maxScroll, startScrollLeft.current + dx));
+  }, []);
 
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    el.addEventListener("touchend", onTouchEnd, { passive: true });
+  const handleMouseEnd = useCallback(() => {
+    dragging.current = false;
+  }, []);
 
-    return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [handleStart, handleMove, handleEnd]);
-
-  if (total === 0) return null;
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (didDrag.current) e.preventDefault();
+  }, []);
 
   return (
-    <div className="live-carousel">
-      <div
-        ref={viewportRef}
-        className="live-carousel-viewport"
-        onMouseDown={(e) => { e.preventDefault(); handleStart(e.clientX, e.clientY); }}
-        onMouseMove={(e) => { if (e.buttons === 1) handleMove(e.clientX, e.clientY); }}
-        onMouseUp={handleEnd}
-        onMouseLeave={handleEnd}
-      >
-        <div ref={trackRef} className="live-carousel-track">
-          {items.map((child, i) => (
-            <div key={i} className="live-carousel-slide">{child}</div>
-          ))}
-        </div>
-      </div>
-      {total > 1 && (
-        <div className="live-carousel-dots">
-          {items.map((_, i) => (
-            <button key={i} className={`live-carousel-dot${i === current ? ' active' : ''}`} onClick={() => setCurrent(i)} aria-label={`슬라이드 ${i + 1}`} />
-          ))}
-        </div>
-      )}
+    <div
+      ref={viewportRef}
+      className="live-grid-viewport"
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseEnd}
+      onMouseLeave={handleMouseEnd}
+      onClickCapture={handleClick}
+    >
+      <div className="live-grid">{children}</div>
     </div>
   );
 }
@@ -352,12 +250,12 @@ export default function HomePage() {
         ) : liveMembers.length === 0 ? (
           <div className="empty-state"><p>현재 방송 중인 멤버가 없습니다.</p></div>
         ) : (
-          <LiveCarousel>
+          <LiveGridDrag>
             {liveMembers.map(m => (
               <LiveCard key={m.id} name={m.name} soopUrl={m.liveUrl ?? m.soopUrl} avatarUrl={m.avatarUrl}
                 coverStyle={coverStyles[m.id] ?? { background: "#1f1f1f" }} title={m.title} thumbUrl={m.thumbUrl} tags={m.tags} />
             ))}
-          </LiveCarousel>
+          </LiveGridDrag>
         )}
       </section>
 
