@@ -466,114 +466,28 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .youtube-info h4 { font-size: 14px; font-weight: 400; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .youtube-meta { margin-top: 3px; font-size: 12px; color: var(--muted); font-weight: 400; }
 
-/* ===== VOTE CARD (Home - Type Matrix) ===== */
+/* ===== VOTE CARD (Home - Todo Style) ===== */
 .vote-card { border-radius: 16px; overflow: hidden; border: 2px solid var(--border); }
+.vote-card-header { position: relative; min-height: 90px; display: flex; align-items: center; overflow: hidden; }
+.vote-card-header-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%; z-index: 0; }
+.vote-card-header-content { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; }
+.vote-card-header-top { display: flex; align-items: center; justify-content: space-between; }
+.vote-card-date { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.75); text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.vote-card-title { font-size: 18px; font-weight: 600; color: #fff; letter-spacing: -0.02em; text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.vote-card-more { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.9); white-space: nowrap; flex-shrink: 0; transition: color 0.15s ease; text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.vote-card-more:hover { color: #fff; }
 .vote-card-body { background: linear-gradient(to right, var(--bg-card), var(--link-card-end)); }
 .vote-card-body .empty-state { margin: 0; border: none; border-radius: 0; }
+.vote-todo-list { display: flex; flex-direction: column; }
+.vote-todo-item { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
+.vote-todo-item:last-child { border-bottom: none; }
+.vote-todo-num { width: 26px; height: 26px; border-radius: 8px; background: var(--accent-subtle); color: var(--text-secondary); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.vote-todo-item .vote-preview-icons { flex-shrink: 0; }
+.vote-todo-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vote-todo-deadline { font-size: 13px; color: var(--muted); font-weight: 400; white-space: nowrap; flex-shrink: 0; }
+.vote-todo-chevron { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.vote-todo-chevron svg { width: 100%; height: 100%; }
 
-.vote-matrix-body { padding: 14px; display: grid; gap: 10px; }
-.vote-manifesto {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  margin: 0;
-  font-size: 12px;
-}
-.vote-manifesto-title { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
-.vote-manifesto-date { color: var(--muted); }
-.vote-manifesto-link {
-  margin-left: auto;
-  padding: 4px 9px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-.vote-manifesto-link:hover { color: var(--text); border-color: var(--border-strong); }
-
-.vote-matrix-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-.vote-matrix-tile {
-  min-height: 108px;
-  height: 108px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--bg-card);
-  padding: 10px 12px;
-  text-decoration: none;
-  color: inherit;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  grid-template-rows: auto auto;
-  grid-template-areas:
-    "seq title deadline"
-    "seq icons arrow";
-  column-gap: 10px;
-  row-gap: 8px;
-  align-items: center;
-}
-.vote-matrix-tile-2 { background: var(--bg-elevated); }
-.vote-matrix-tile-3 { background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated)); }
-.vote-matrix-tile-4 { background: var(--bg-card); }
-.vote-matrix-seq {
-  grid-area: seq;
-  align-self: stretch;
-  min-width: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-right: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.vote-matrix-title {
-  grid-area: title;
-  min-width: 0;
-  align-self: end;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.vote-matrix-deadline {
-  grid-area: deadline;
-  align-self: end;
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.vote-matrix-tile .vote-preview-icons { grid-area: icons; align-self: start; }
-.vote-matrix-arrow {
-  grid-area: arrow;
-  justify-self: end;
-  width: 16px;
-  height: 16px;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.vote-matrix-arrow svg { width: 100%; height: 100%; }
-
-@media (max-width: 360px) {
-  .vote-matrix-grid { grid-template-columns: 1fr; }
-  .vote-matrix-tile {
-    min-height: 96px;
-    height: 96px;
-  }
-}
 /* ===== VOTE PREVIEW (legacy) ===== */
 .vote-preview-list { display: grid; gap: 8px; }
 .vote-preview-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: var(--bg-card); display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 4px 10px; align-items: center; }
@@ -692,7 +606,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 /* 다크모드 텍스트 밝기 */
 [data-theme="dark"] .chip-status { color: #888; }
 [data-theme="dark"] .youtube-meta { color: #888; }
-[data-theme="dark"] .vote-matrix-deadline { color: #888; }
+[data-theme="dark"] .vote-todo-deadline { color: #888; }
 [data-theme="dark"] .panel-meta-value { color: #b0b0b0; }
 [data-theme="dark"] .panel-meta-label:not(.accent) { color: #a0a0a0; }
 [data-theme="dark"] .vote-panel .panel-label { color: #a8a8a8; }
@@ -1406,15 +1320,13 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .section-offline .chip-status { font-size: 10px; }
 
   /* 모바일: 홈 투표 목록 카드 */
-  .vote-matrix-body { padding: 12px; gap: 8px; }
-  .vote-manifesto { gap: 5px 8px; font-size: 11px; }
-  .vote-manifesto-title { font-size: 13px; }
-  .vote-manifesto-link { font-size: 11px; padding: 3px 8px; }
-  .vote-matrix-grid { gap: 8px; }
-  .vote-matrix-tile { min-height: 96px; height: 96px; padding: 10px; column-gap: 8px; }
-  .vote-matrix-seq { min-width: 28px; font-size: 15px; }
-  .vote-matrix-title { font-size: 13px; }
-  .vote-matrix-deadline { font-size: 11px; }
+  .vote-card-header { min-height: 82px; }
+  .vote-card-header .vote-card-date { font-size: 11px; }
+  .vote-card-header .vote-card-title { font-size: 15px; }
+  .vote-card-header .vote-card-more { font-size: 12px; }
+  .vote-todo-num { font-size: 12px; }
+  .vote-todo-title { font-size: 13px; }
+  .vote-todo-deadline { font-size: 12px; }
 
   /* 모바일: 멜론 플레이리스트 모달 좌우 패딩 없음 */
   .bottomsheet-content { width: 100%; }
