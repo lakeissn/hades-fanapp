@@ -102,7 +102,7 @@ export default function AddToHomePage() {
         >
           APP 설치하기
         </button>
-        <img src="/guides/images/bottom_hero.png" alt="" className="pwa-hero-image" />
+        <img src="/guides/images/하데스_배너-removebg.png" alt="" className="pwa-hero-image" />
       </section>
 
       {/* Guide sections */}
