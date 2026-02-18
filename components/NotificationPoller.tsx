@@ -18,6 +18,16 @@ function getNotifSettings(): NotificationSettings {
   }
 }
 
+function getPushGrantedAt(): number {
+  try {
+    const raw = localStorage.getItem("hades_push_granted_at");
+    const parsed = raw ? Number(raw) : 0;
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /* ── 투표 ID를 localStorage에 영속 저장 ── */
 function getKnownVoteIds(): Set<string> {
   try {
@@ -69,6 +79,7 @@ async function sendNotification(title: string, body: string, url: string, tag: s
 export default function NotificationPoller() {
   const prevLiveIds = useRef<Set<string>>(new Set());
   const isFirstRun = useRef(true);
+  const canNotifyLiveRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -80,29 +91,43 @@ export default function NotificationPoller() {
 
     const poll = async () => {
       const settings = getNotifSettings();
-      if (!settings.master || Notification.permission !== "granted") return;
+      const canNotify = settings.master && Notification.permission === "granted";
+      if (!canNotify) {
+        canNotifyLiveRef.current = false;
+        return;
+      }
+
+      const liveEnabledNow = settings.liveBroadcast;
+      const becameLiveEnabled = liveEnabledNow && !canNotifyLiveRef.current;
+      canNotifyLiveRef.current = liveEnabledNow;
 
       /* ── 라이브 체크 (기존 in-memory 방식 유지) ── */
-      if (settings.liveBroadcast) {
+      if (liveEnabledNow) {
         try {
           const res = await fetch("/api/members/status");
           const members = await res.json();
           const liveNow = new Set<string>();
-          for (const m of members) {
-            if (m.isLive) {
-              liveNow.add(m.id);
-              if (!isFirstRun.current && !prevLiveIds.current.has(m.id)) {
-                sendNotification(
-                  `${m.name} 방송 시작! 🔴`,
-                  m.title || "지금 라이브 중이에요",
-                  m.liveUrl || m.soopUrl,
-                  `live-${m.id}`
-                );
+
+          if (Array.isArray(members)) {
+            for (const m of members) {
+              if (m.isLive) {
+                liveNow.add(m.id);
+                if (!isFirstRun.current && !becameLiveEnabled && !prevLiveIds.current.has(m.id)) {
+                  sendNotification(
+                    `${m.name} 방송 시작! 🔴`,
+                    m.title || "지금 라이브 중이에요",
+                    m.liveUrl || m.soopUrl,
+                    `live-${m.id}`
+                  );
+                }
               }
             }
           }
+
           prevLiveIds.current = liveNow;
         } catch {}
+      } else {
+        prevLiveIds.current = new Set();
       }
 
       /* ── 투표 체크 (localStorage 영속 + 장애 복구 안전) ── */
@@ -177,7 +202,20 @@ export default function NotificationPoller() {
 
     poll();
     const interval = setInterval(poll, 60_000);
-    return () => clearInterval(interval);
+
+    const repoll = () => {
+      if (getPushGrantedAt() > 0) {
+        poll();
+      }
+    };
+    window.addEventListener("hades_prefs_changed", repoll);
+    window.addEventListener("focus", repoll);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("hades_prefs_changed", repoll);
+      window.removeEventListener("focus", repoll);
+    };
   }, []);
 
   return null;
