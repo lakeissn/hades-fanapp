@@ -106,20 +106,22 @@ export default function VoteAccordionItem({
   const textRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
+    const mq = window.matchMedia("(min-width: 641px)");
+    const base = mq.matches ? 15 : 14;
     const fitText = () => {
       if (containerRef.current && textRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
         const textElement = textRef.current;
         const originalStyle = textElement.style.fontSize;
-        textElement.style.fontSize = "14px";
+        textElement.style.fontSize = `${base}px`;
         const textWidth = textElement.scrollWidth;
         textElement.style.fontSize = originalStyle;
         if (textWidth > containerWidth && containerWidth > 0) {
           const ratio = containerWidth / textWidth;
-          const newSize = Math.max(9, Math.floor(14 * ratio * 10) / 10);
+          const newSize = Math.max(9, Math.floor(base * ratio * 10) / 10);
           setFontSize(newSize);
         } else {
-          setFontSize(14);
+          setFontSize(base);
         }
       }
     };

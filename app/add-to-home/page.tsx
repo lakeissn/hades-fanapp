@@ -12,10 +12,10 @@ interface Step {
 }
 
 const iosSteps: Step[] = [
-  { num: "01", heading: "공유하기를 탭하세요", highlight: "공유하기", mockup: "" },
-  { num: "02", heading: "화면을 내리고\n홈 스크린에 추가를 탭하세요", highlight: "홈 스크린에 추가", mockup: "" },
-  { num: "03", heading: "추가를 탭하고 확인하세요", highlight: "추가", mockup: "" },
-  { num: "04", heading: "고객님의 홈 스크린에서\nHADES INFO 앱을\n즐겨보세요", highlight: "HADES INFO", mockup: "" },
+  { num: "01", heading: "공유하기를 탭하세요", highlight: "공유하기", mockup: "/guides/images/ios_setup_1.jpg" },
+  { num: "02", heading: "화면을 내리고\n홈 스크린에 추가를 탭하세요", highlight: "홈 스크린에 추가", mockup: "/guides/images/ios_setup_2.jpg" },
+  { num: "03", heading: "추가를 탭하고 확인하세요", highlight: "추가", mockup: "/guides/images/ios_setup_3.jpg" },
+  { num: "04", heading: "고객님의 홈 스크린에서\nHADES INFO 앱을\n즐겨보세요", highlight: "HADES INFO", mockup: "/guides/images/ios_setup_4.jpg" },
 ];
 
 const androidSteps: Step[] = [
@@ -57,9 +57,9 @@ function StepBlock({ step }: { step: Step }) {
   );
 }
 
-function GuideSection({ title, accent, steps }: { title: string; accent: string; steps: Step[] }) {
+function GuideSection({ title, accent, steps, id }: { title: string; accent: string; steps: Step[]; id?: string }) {
   return (
-    <section className="pwa-guide">
+    <section className="pwa-guide" id={id}>
       <h2 className="pwa-guide-title">
         <span className="pwa-guide-accent">{accent}</span>
         {title.replace(accent, "")}
@@ -90,18 +90,19 @@ export default function AddToHomePage() {
           <span className="pwa-hero-name">HADES INFO</span>
         </div>
         <h1 className="pwa-hero-title">
-          고객님의{" "}
-          <span className="pwa-accent">HADES INFO PWA</span>입니다
+          케로만의{" "}<br />
+          <span className="pwa-accent">HADES INFO APP</span>
         </h1>
-        <button type="button" className="pwa-hero-cta">PWA 설치하기</button>
-        <div className="pwa-hero-phones">
-          <div className="pwa-hero-phone pwa-hero-phone--left">
-            <div className="pwa-hero-phone-ph" />
-          </div>
-          <div className="pwa-hero-phone pwa-hero-phone--right">
-            <div className="pwa-hero-phone-ph" />
-          </div>
-        </div>
+        <button
+          type="button"
+          className="pwa-hero-cta"
+          onClick={() => {
+            document.getElementById("pwa-install-guide")?.scrollIntoView({ behavior: "smooth" });
+          }}
+        >
+          APP 설치하기
+        </button>
+        <img src="/guides/images/bottom_hero.png" alt="" className="pwa-hero-image" />
       </section>
 
       {/* Guide sections */}
@@ -110,16 +111,16 @@ export default function AddToHomePage() {
       )}
 
       {platform === "ios" && (
-        <GuideSection title="iOS용 PWA 설치 방법?" accent="iOS용 PWA" steps={iosSteps} />
+        <GuideSection id="pwa-install-guide" title="iOS용 PWA 설치 방법?" accent="iOS용 PWA" steps={iosSteps} />
       )}
 
       {platform === "android" && (
-        <GuideSection title="Android용 PWA 설치 방법?" accent="Android용 PWA" steps={androidSteps} />
+        <GuideSection id="pwa-install-guide" title="Android용 PWA 설치 방법?" accent="Android용 PWA" steps={androidSteps} />
       )}
 
       {platform === "other" && (
         <>
-          <GuideSection title="iOS용 PWA 설치 방법?" accent="iOS용 PWA" steps={iosSteps} />
+          <GuideSection id="pwa-install-guide" title="iOS용 PWA 설치 방법?" accent="iOS용 PWA" steps={iosSteps} />
           <GuideSection title="Android용 PWA 설치 방법?" accent="Android용 PWA" steps={androidSteps} />
         </>
       )}

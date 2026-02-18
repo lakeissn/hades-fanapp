@@ -214,7 +214,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </header>
       </div>
 
-      <div className="container">
+      <div className={`container ${pathname === "/add-to-home" ? "page-add-to-home" : ""}`}>
         {children}
       </div>
       <footer className="pc-footer">

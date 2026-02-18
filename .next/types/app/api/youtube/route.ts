@@ -1,4 +1,4 @@
-// File: C:\Users\pyosh\OneDrive\바탕 화면\hades-fanapp\app\api\youtube\route.ts
+// File: C:\Users\pyosh\OneDrive\Documents\hades-fanapp\app\api\youtube\route.ts
 import * as entry from '../../../../../app/api/youtube/route.js'
 import type { NextRequest } from 'next/server.js'
 
