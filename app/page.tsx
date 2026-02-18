@@ -96,8 +96,7 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
   const startX = useRef(0);
   const startScrollLeft = useRef(0);
   const dragging = useRef(false);
-  const didDrag = useRef(false);
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
+    const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
 
   const updateScrollButtons = useCallback(() => {
@@ -123,16 +122,6 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
     };
   }, [children, updateScrollButtons]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const el = viewportRef.current;
-    if (!el) return;
-    dragging.current = true;
-    didDrag.current = false;
-    startX.current = e.clientX;
-    startScrollLeft.current = el.scrollLeft;
-  }, []);
-
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging.current || e.buttons !== 1) return;
     const el = viewportRef.current;
@@ -156,13 +145,15 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
     const amount = Math.max(280, Math.round(el.clientWidth * 0.8));
     const delta = dir === "next" ? amount : -amount;
     el.scrollBy({ left: delta, behavior: "smooth" });
-  }, []);
+    requestAnimationFrame(updateScrollButtons);
+  }, [updateScrollButtons]);
+
 
   return (
-   <div className="live-grid-shell">
+  <div className="live-grid-shell">
       <button
         type="button"
-        className="live-grid-nav live-grid-nav-prev"
+        className={`live-grid-nav live-grid-nav-prev${canScrollPrev ? "" : " is-hidden"}`}
         onClick={() => scrollByCard("prev")}
         disabled={!canScrollPrev}
         aria-label="이전 라이브 카드 보기"
@@ -184,7 +175,7 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
 
       <button
         type="button"
-        className="live-grid-nav live-grid-nav-next"
+        className={`live-grid-nav live-grid-nav-next${canScrollNext ? "" : " is-hidden"}`}
         onClick={() => scrollByCard("next")}
         disabled={!canScrollNext}
         aria-label="다음 라이브 카드 보기"
