@@ -96,7 +96,8 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
   const startX = useRef(0);
   const startScrollLeft = useRef(0);
   const dragging = useRef(false);
-    const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const didDrag = useRef(false);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
 
   const updateScrollButtons = useCallback(() => {
@@ -122,6 +123,16 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
     };
   }, [children, updateScrollButtons]);
 
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = viewportRef.current;
+    if (!el) return;
+    dragging.current = true;
+    didDrag.current = false;
+    startX.current = e.clientX;
+    startScrollLeft.current = el.scrollLeft;
+  }, []);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging.current || e.buttons !== 1) return;
     const el = viewportRef.current;
@@ -139,6 +150,7 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (didDrag.current) e.preventDefault();
   }, []);
+
   const scrollByCard = useCallback((dir: "prev" | "next") => {
     const el = viewportRef.current;
     if (!el) return;
@@ -147,7 +159,6 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
     el.scrollBy({ left: delta, behavior: "smooth" });
     requestAnimationFrame(updateScrollButtons);
   }, [updateScrollButtons]);
-
 
   return (
   <div className="live-grid-shell">
