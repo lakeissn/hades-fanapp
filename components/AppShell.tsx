@@ -30,6 +30,8 @@ const headerLinks = [
   { href: "/guides", label: "가이드" },
 ];
 
+const NOTICE_REQUESTING_KEY = "hades_notice_requesting";
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -41,6 +43,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const evaluateNoticeState = useCallback(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
+
+    const isPermissionPending =
+      isNoticeRequesting ||
+      sessionStorage.getItem(NOTICE_REQUESTING_KEY) === "1";
+
+    if (isPermissionPending) {
+      setNoticeState("hidden");
+      return;
+    }
 
     const rawSettings = localStorage.getItem("hades_notif_settings");
     if (!rawSettings) {
@@ -71,7 +82,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     // 수동으로 닫은 이력은 일반 브라우저에서는 유지하되, 설치형(PWA) 첫 진입에서는 다시 노출한다.
     setNoticeState(dismissed && !isStandalone ? "hidden" : "default");
-  }, []);
+  }, [isNoticeRequesting]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -99,6 +110,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined" || isNoticeRequesting) return;
 
     setIsNoticeRequesting(true);
+    sessionStorage.setItem(NOTICE_REQUESTING_KEY, "1");
     setNoticeState("hidden");
 
     const activated = await activatePush();
@@ -121,6 +133,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       localStorage.removeItem("hades_notice_dismissed");
       localStorage.removeItem("hades_notice_declined");
+      sessionStorage.removeItem(NOTICE_REQUESTING_KEY);
       setIsNoticeRequesting(false);
       return;
     }
@@ -131,6 +144,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       localStorage.setItem("hades_notice_declined", "1");
       setNoticeState("hidden");
     }
+    sessionStorage.removeItem(NOTICE_REQUESTING_KEY);
     setIsNoticeRequesting(false);
   }, [isNoticeRequesting]);
 
@@ -242,7 +256,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="pc-footer-notice">
             <h4>서비스 안내</h4>
-            <p>본 서비스는 자발적으로 제작·운영하는 비공식 팬 사이트이며, 하데스 공식과 어떠한 제휴·연계 관계도 없습니다. 음원 차트, 투표 현황, 라이브 방송 정보 등 사이트에 표시되는 모든 데이터는 참고 목적으로 제공되며, 공식 집계 결과와 차이가 있을 수 있습니다. 콘텐츠에 대한 권리 침해나 문의 사항이 있을 경우, 운영진에게 연락 부탁드립니다.</p>
+            <p>본 서비스는 자발적으로 제작·운영하는 비공식 팬 사이트이며, 하데스 공식과 어떠한 제휴·연계 관계도 없습니다. 음원 차트, 투표 현황, 라이브 방송 정보 등 사이트에 표시되는 모든 데이터는 참고 목적으로 제공되며, 공식 집계 결과와 차이가 있을 수 있습니다. 콘텐츠에 대한 권리 침해나 문의 사항이 있을 우, 운영진에게 연락 부탁드립니다.</p>
           </div>
         </div>
       </footer>
