@@ -64,6 +64,12 @@ function getPushGrantedAt(): number {
   }
 }
 
+function isNotificationDenied(): boolean {
+  if (typeof window === "undefined") return false;
+  if (!("Notification" in window)) return false;
+  return Notification.permission === "denied";
+}
+
 // ─── 플랫폼 감지 ───
 function detectPlatform(): "ios" | "android" | "web" {
   if (typeof navigator === "undefined") return "web";
@@ -243,6 +249,7 @@ export default function NotificationManager() {
 /** 토큰 발급 + 서버 등록 (최초 알림 활성화 시) */
 export async function activatePush(): Promise<boolean> {
   if (!("Notification" in window)) return false;
+  if (isNotificationDenied()) return false;
 
   const perm = await Notification.requestPermission();
   if (perm !== "granted") return false;
