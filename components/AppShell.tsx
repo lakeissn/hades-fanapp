@@ -49,10 +49,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     const permission = Notification.permission;
     const dismissed = localStorage.getItem("hades_notice_dismissed") === "1";
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-
     if (permission === "granted") {
       setNoticeState("hidden");
       return;
@@ -64,7 +60,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setNoticeState(dismissed && !isStandalone ? "hidden" : "default");
+    setNoticeState(dismissed ? "hidden" : "default");
   }, []);
 
   useEffect(() => {
@@ -119,9 +115,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     if ("Notification" in window) {
-      const denied = Notification.permission === "denied";
-      if (denied) localStorage.setItem("hades_notice_dismissed", "1");
-      setNoticeState(denied ? "hidden" : "default");
+      // 권한 요청 후 허용되지 않은 경우(denied/default 모두) 반복 배너 노출을 막는다.
+      localStorage.setItem("hades_notice_dismissed", "1");
+      setNoticeState("hidden");
     }
     setIsNoticeRequesting(false);
   }, [isNoticeRequesting]);
