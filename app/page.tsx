@@ -290,7 +290,7 @@ export default function HomePage() {
     offlineMembers: members.filter(m => !m.isLive),
   }), [members]);
 
-  const votePreviewItems = useMemo(() => votes.filter(isVisibleVote).slice(0, 3), [votes]);
+  const votePreviewItems = useMemo(() => votes.filter(isVisibleVote).slice(0, 4), [votes]);
 
   return (
     <main>
@@ -333,7 +333,7 @@ export default function HomePage() {
       <YouTubeSection />
 
       {/* VOTES */}
-       <section className="vote-card vote-matrix" aria-label="투표 목록">
+      <section className="vote-card vote-matrix" aria-label="투표 목록">
         <div className="vote-card-body vote-matrix-body">
           <p className="vote-manifesto">
             <span className="vote-manifesto-title">투표 목록</span>
