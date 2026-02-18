@@ -338,11 +338,11 @@ export default function HomePage() {
         <div className="vote-showcase-head">
           <div>
             <p className="vote-showcase-date">{new Date().toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "long" })} 기준</p>
-            <h2 className="vote-showcase-title">투표 라운지</h2>
+            <h2 className="vote-showcase-title">투표 목룍</h2>
           </div>
           <a href="/votes" className="vote-showcase-more">전체보기</a>
         </div>
-        <p className="vote-showcase-desc">진행 중인 투표를 빠르게 확인하고, 마감 전에 참여해 주세요.</p>
+        <p className="vote-showcase-desc">진행 중인 투표 중 최신 3건을 보여드립니다. 전체 투표는 ‘전체보기’를 눌러 확인해 주세요.</p>
         <div className="vote-showcase-body">
           {isVotesLoading ? (
             <div className="vote-showcase-list">
