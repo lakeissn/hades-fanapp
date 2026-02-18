@@ -335,7 +335,7 @@ export default function HomePage() {
       {/* VOTES */}
       <section className="vote-card">
         <div className="vote-card-header">
-          <img className="vote-card-header-bg" src="/icons/planet_b_2.png" alt="" />
+          <img className="vote-card-header-bg" src="/icons/jump.png" alt="" />
           <div className="vote-card-header-content">
             <div className="vote-card-header-top">
               <p className="vote-card-date">{new Date().toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "long" })} 기준</p>
