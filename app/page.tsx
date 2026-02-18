@@ -334,6 +334,7 @@ export default function HomePage() {
 
       {/* VOTES */}
       <section className="vote-showcase">
+        <img className="vote-showcase-bg" src="/icons/jump.png" alt="" />
         <div className="vote-showcase-head">
           <div>
             <p className="vote-showcase-date">{new Date().toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "long" })} 기준</p>
@@ -360,10 +361,12 @@ export default function HomePage() {
             <div className="vote-showcase-list">
               {votePreviewItems.map((vote, idx) => (
                 <a key={vote.id} href={vote.url || "/votes"} target={vote.url ? "_blank" : undefined} rel={vote.url ? "noreferrer" : undefined} className="vote-showcase-item">
-                  <span className="vote-showcase-rank">TOP {idx + 1}</span>
+                  <span className="vote-showcase-rank">{idx + 1}</span>
                   <div className="vote-showcase-main">
-                    <span className="vote-showcase-label">{vote.title}</span>
-                    <VotePreviewPlatforms vote={vote} />
+                    <div className="vote-showcase-title-row">
+                      <VotePreviewPlatforms vote={vote} />
+                      <span className="vote-showcase-label">{vote.title}</span>
+                    </div>
                   </div>
                   <span className="vote-showcase-deadline">{formatDeadline(vote.closesAt)}</span>
                   <span className="vote-showcase-chevron" aria-hidden>
