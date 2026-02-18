@@ -97,6 +97,31 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
   const startScrollLeft = useRef(0);
   const dragging = useRef(false);
   const didDrag = useRef(false);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  const updateScrollButtons = useCallback(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const maxScrollLeft = el.scrollWidth - el.clientWidth;
+    setCanScrollPrev(el.scrollLeft > 4);
+    setCanScrollNext(el.scrollLeft < maxScrollLeft - 4);
+  }, []);
+
+  useEffect(() => {
+    updateScrollButtons();
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const handleScroll = () => updateScrollButtons();
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", updateScrollButtons);
+
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateScrollButtons);
+    };
+  }, [children, updateScrollButtons]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -125,18 +150,47 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (didDrag.current) e.preventDefault();
   }, []);
+  const scrollByCard = useCallback((dir: "prev" | "next") => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const amount = Math.max(280, Math.round(el.clientWidth * 0.8));
+    const delta = dir === "next" ? amount : -amount;
+    el.scrollBy({ left: delta, behavior: "smooth" });
+  }, []);
 
   return (
-    <div
-      ref={viewportRef}
-      className="live-grid-viewport"
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseEnd}
-      onMouseLeave={handleMouseEnd}
-      onClickCapture={handleClick}
-    >
-      <div className="live-grid">{children}</div>
+   <div className="live-grid-shell">
+      <button
+        type="button"
+        className="live-grid-nav live-grid-nav-prev"
+        onClick={() => scrollByCard("prev")}
+        disabled={!canScrollPrev}
+        aria-label="이전 라이브 카드 보기"
+      >
+        ‹
+      </button>
+
+      <div
+        ref={viewportRef}
+        className="live-grid-viewport"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseEnd}
+        onMouseLeave={handleMouseEnd}
+        onClickCapture={handleClick}
+      >
+        <div className="live-grid">{children}</div>
+      </div>
+
+      <button
+        type="button"
+        className="live-grid-nav live-grid-nav-next"
+        onClick={() => scrollByCard("next")}
+        disabled={!canScrollNext}
+        aria-label="다음 라이브 카드 보기"
+      >
+        ›
+      </button>
     </div>
   );
 }
