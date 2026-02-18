@@ -348,6 +348,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .button:hover { background: var(--bg-hover); }
 
 /* ===== LIVE GRID (방송 중인 멤버) ===== */
+.live-grid-shell { position: relative; }
 .live-grid-viewport {
   overflow-x: auto;
   overflow-y: hidden;
@@ -367,8 +368,29 @@ main { display: flex; flex-direction: column; gap: 28px; }
   gap: 12px;
 }
 .live-grid > * { flex: 0 0 380px; min-width: 0; }
+.live-grid-nav {
+  display: none;
+  position: absolute;
+  top: calc(50% - 18px);
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.live-grid-nav:hover:not(:disabled) { background: var(--bg-elevated); }
+.live-grid-nav:disabled { opacity: 0.35; cursor: default; }
+.live-grid-nav-prev { left: -18px; }
+.live-grid-nav-next { right: -18px; }
 @media (min-width: 641px) {
   .live-grid > * { flex: 0 0 calc(50% - 6px); }
+  .live-grid-nav { display: inline-flex; align-items: center; justify-content: center; }
 }
 @media (max-width: 640px) {
   .live-grid { gap: 10px; }
@@ -387,7 +409,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 @media (min-width: 641px) {
   .live-cover { aspect-ratio: 19/9; }
 }
-.live-cover-img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+.live-cover-img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; background: #0e0e10; }
 .live-cover-fallback { position: absolute; inset: 0; background: linear-gradient(135deg, #1a1a1a, #2a2a2a); }
 
 .live-badge {
@@ -1350,8 +1372,8 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .section-tag { font-size: 12px; }
 
   /* PC 라이브 캐러셀 */
-  .live-cover { aspect-ratio: 20/9; min-height: 125px; }
-  .skeleton-live-cover { aspect-ratio: 24/9; min-height: 75px; }
+.live-cover { aspect-ratio: 16/9; min-height: 125px; }
+  .skeleton-live-cover { aspect-ratio: 16/9; min-height: 75px; }
   .live-title { font-size: 14px; }
 
   /* PC 유튜브 최신 영상 썸네일 */
