@@ -56,7 +56,7 @@ function RankBadge({ entry }: { entry: ChartEntry }) {
 }
 
 export default function ChartPage() {
-  const [activeTab, setActiveTab] = useState<ChartType>("REALTIME");
+  const [activeTab, setActiveTab] = useState<ChartType>("HOT100_100");
   const [entries, setEntries] = useState<ChartEntry[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

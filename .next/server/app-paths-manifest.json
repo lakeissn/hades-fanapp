@@ -1,8 +1,11 @@
 {
+  "/api/members/status/route": "app/api/members/status/route.js",
+  "/icon/[[...__metadata_id__]]/route": "app/icon/[[...__metadata_id__]]/route.js",
   "/page": "app/page.js",
-  "/chart/page": "app/chart/page.js",
-  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
+  "/api/chart/route": "app/api/chart/route.js",
+  "/api/votes/route": "app/api/votes/route.js",
   "/votes/page": "app/votes/page.js",
-  "/guides/[id]/[itemId]/page": "app/guides/[id]/[itemId]/page.js",
-  "/add-to-home/page": "app/add-to-home/page.js"
+  "/chart/page": "app/chart/page.js",
+  "/guides/page": "app/guides/page.js",
+  "/api/youtube/route": "app/api/youtube/route.js"
 }

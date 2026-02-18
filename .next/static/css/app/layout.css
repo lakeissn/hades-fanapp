@@ -314,7 +314,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
     opacity: 0.85;
   }
   .pc-footer-privacy {
-    font-size: 11px; color: var(--muted); text-decoration: none;
+    font-size: 13px; color: var(--muted); text-decoration: none;
     font-weight: 500; transition: color 0.15s; flex-shrink: 0;
     opacity: 0.85;
   }
@@ -351,6 +351,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .button:hover { background: var(--bg-hover); }
 
 /* ===== LIVE GRID (방송 중인 멤버) ===== */
+.live-grid-shell { position: relative; }
 .live-grid-viewport {
   overflow-x: auto;
   overflow-y: hidden;
@@ -372,8 +373,30 @@ main { display: flex; flex-direction: column; gap: 28px; }
   gap: 12px;
 }
 .live-grid > * { flex: 0 0 380px; min-width: 0; }
+.live-grid-nav {
+  display: none;
+  position: absolute;
+  top: calc(50% - 18px);
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.live-grid-nav:hover:not(:disabled) { background: var(--bg-elevated); }
+.live-grid-nav:disabled { opacity: 0.35; cursor: default; }
+.live-grid-nav.is-hidden { display: none !important; }
+.live-grid-nav-prev { left: -18px; }
+.live-grid-nav-next { right: -18px; }
 @media (min-width: 641px) {
   .live-grid > * { flex-grow: 0; flex-shrink: 0; flex-basis: calc(50% - 6px); }
+  .live-grid-nav { display: inline-flex; align-items: center; justify-content: center; }
 }
 @media (max-width: 640px) {
   .live-grid { gap: 10px; }
@@ -385,14 +408,8 @@ main { display: flex; flex-direction: column; gap: 28px; }
   border: 2px solid var(--border); background: var(--bg-card);
   text-decoration: none; color: inherit;
 }
-.live-cover { aspect-ratio: 16/9; min-height: 130px; width: 100%; position: relative; overflow: hidden; background: #0e0e10; }
-@media (max-width: 640px) {
-  .live-cover { aspect-ratio: 18/9; min-height: 115px; }
-}
-@media (min-width: 641px) {
-  .live-cover { aspect-ratio: 19/9; }
-}
-.live-cover-img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+.live-cover { aspect-ratio: 16/9; min-height: 115px; width: 100%; position: relative; overflow: hidden; background: #0e0e10; }
+.live-cover-img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; background: #0e0e10; }
 .live-cover-fallback { position: absolute; inset: 0; background: linear-gradient(135deg, #1a1a1a, #2a2a2a); }
 
 .live-badge {
@@ -454,33 +471,107 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .youtube-info h4 { font-size: 14px; font-weight: 400; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .youtube-meta { margin-top: 3px; font-size: 12px; color: var(--muted); font-weight: 400; }
 
-/* ===== VOTE CARD (Home - Todo Style) ===== */
-.vote-card { border-radius: 16px; overflow: hidden; border: 2px solid var(--border); }
-.vote-card-header { position: relative; min-height: 90px; display: flex; align-items: center; overflow: hidden; }
-.vote-card-header-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%; z-index: 0; }
-.vote-card-header-content { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; }
-.vote-card-header-top { display: flex; align-items: center; justify-content: space-between; }
-.vote-card-date { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.75); text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-.vote-card-title { font-size: 18px; font-weight: 600; color: #fff; letter-spacing: -0.02em; text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-.vote-card-more { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.9); white-space: nowrap; flex-shrink: 0; transition: color 0.15s ease; text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-.vote-card-more:hover { color: #fff; }
-.vote-card-body { background: linear-gradient(to right, var(--bg-card), var(--link-card-end)); }
-.vote-card-body .empty-state { margin: 0; border: none; border-radius: 0; }
-.vote-todo-list { display: flex; flex-direction: column; }
-.vote-todo-item { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
-.vote-todo-item:last-child { border-bottom: none; }
-.vote-todo-num { width: 26px; height: 26px; border-radius: 8px; background: var(--accent-subtle); color: var(--text-secondary); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.vote-todo-item .vote-preview-icons { flex-shrink: 0; }
-.vote-todo-title { flex: 1 1; min-width: 0; font-size: 14px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vote-todo-deadline { font-size: 13px; color: var(--muted); font-weight: 400; white-space: nowrap; flex-shrink: 0; }
-.vote-todo-chevron { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-.vote-todo-chevron svg { width: 100%; height: 100%; }
+/* ===== VOTE SHOWCASE (Home) ===== */
+.vote-showcase {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  background:
+    radial-gradient(120% 100% at 0% 0%, color-mix(in oklab, var(--accent-subtle) 40%, transparent) 0%, transparent 50%),
+    linear-gradient(150deg, var(--bg-card), color-mix(in oklab, var(--bg-card) 85%, var(--bg-elevated)));
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  padding: 21px 20px 14px;
+  display: grid;
+  grid-gap: 14px;
+  gap: 14px;
+}
+.vote-showcase-bg {
+  position: absolute;
+  inset: 0 0 auto 0;
+  width: 100%;
+  height: 118px;
+  object-fit: cover;
+  object-position: center 28%;
+  opacity: 0.26;
+  pointer-events: none;
+  z-index: 0;
+}
+.vote-showcase > *:not(.vote-showcase-bg) { position: relative; z-index: 1; }
+.vote-showcase-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.vote-showcase-date { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.vote-showcase-title { margin-top: 4px; font-size: 18px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
+.vote-showcase-more {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent-subtle);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.vote-showcase-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.vote-showcase-body {
+  margin-top: 4px;
+  padding-top: 14px;
+}
+.vote-showcase-body .empty-state { margin: 0; }
+.vote-showcase-list { display: grid; grid-gap: 10px; gap: 10px; }
+.vote-showcase-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  grid-gap: 12px;
+  gap: 12px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 13px 12px;
+  text-decoration: none;
+  color: inherit;
+  background: color-mix(in oklab, var(--bg-card) 70%, transparent);
+  transition: border-color 0.2s ease;
+}
+.vote-showcase-item:hover {
+  border-color: var(--border-strong);
+}
+.vote-showcase-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  padding: 0;
+  background: color-mix(in oklab, var(--accent-subtle) 85%, var(--bg-elevated));
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.vote-showcase-main { min-width: 0; display: grid; }
+.vote-showcase-title-row { min-width: 0; display: flex; align-items: center; gap: 8px; }
+.vote-showcase-title-row .vote-preview-icons { flex-shrink: 0; }
+.vote-showcase-label {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vote-showcase-deadline { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.vote-showcase-chevron { width: 16px; height: 16px; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+.vote-showcase-chevron svg { width: 100%; height: 100%; }
 
 /* ===== VOTE PREVIEW (legacy) ===== */
 .vote-preview-list { display: grid; grid-gap: 8px; gap: 8px; }
 .vote-preview-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: var(--bg-card); display: grid; grid-template-columns: auto minmax(0,1fr) auto; grid-gap: 4px 10px; gap: 4px 10px; align-items: center; }
 .vote-preview-icons { display: inline-flex; align-items: center; }
-.vote-preview-icon { width: 22px; height: 22px; border-radius: 6px; overflow: hidden; background: var(--accent-subtle); position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.vote-preview-icon { width: 24px; height: 24px; border-radius: 7px; overflow: hidden; background: var(--accent-subtle); position: relative; display: inline-flex; align-items: center; justify-content: center; margin-top: 1px; margin-right: 2px; }
 .vote-preview-icon + .vote-preview-icon { margin-left: -4px; }
 .vote-preview-title { font-size: 14px; font-weight: 400; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vote-preview-deadline { grid-column: 1 / -1; color: var(--muted); font-size: 11px; }
@@ -492,7 +583,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .vote-item.is-open { border-color: var(--border-strong); }
 .vote-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; min-height: 50px; cursor: pointer; transition: background 0.15s ease; }
 .vote-row:hover { background: var(--bg-hover); }
-.vote-icon { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--accent-subtle); overflow: hidden; flex: 0 0 auto; position: relative; }
+.vote-icon { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--accent-subtle); overflow: hidden; flex: 0 0 auto; position: relative; margin-top: 1px; }
 .vote-icon img, .vote-preview-icon img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
 .vote-icon-fallback { font-size: 10px; font-weight: 600; color: var(--muted); }
 .vote-title { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
@@ -574,7 +665,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 [data-theme="dark"] .member-chip { border-width: 0; }
 [data-theme="dark"] .live-card { border-width: 0; }
 [data-theme="dark"] .live-title { color: #b0b0b0; }
-[data-theme="dark"] .vote-card { border-width: 0; }
+[data-theme="dark"] .vote-showcase { border-color: color-mix(in oklab, var(--border) 35%, transparent); box-shadow: 0 20px 40px rgba(0,0,0,0.32); }
 [data-theme="dark"] .youtube-card { border-width: 0; }
 [data-theme="dark"] .youtube-card:hover { border-width: 0; }
 [data-theme="dark"] .link-card { border-width: 0; }
@@ -594,7 +685,9 @@ main { display: flex; flex-direction: column; gap: 28px; }
 /* 다크모드 텍스트 밝기 */
 [data-theme="dark"] .chip-status { color: #888; }
 [data-theme="dark"] .youtube-meta { color: #888; }
-[data-theme="dark"] .vote-todo-deadline { color: #888; }
+[data-theme="dark"] .vote-showcase-desc { color: #b0b0b0; }
+[data-theme="dark"] .vote-showcase-item { border-width: 0; background: #252525; }
+[data-theme="dark"] .vote-showcase-deadline { color: #8f8f8f; }
 [data-theme="dark"] .panel-meta-value { color: #b0b0b0; }
 [data-theme="dark"] .panel-meta-label:not(.accent) { color: #a0a0a0; }
 [data-theme="dark"] .vote-panel .panel-label { color: #a8a8a8; }
@@ -886,7 +979,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
   line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .smart-banner-info span {
-  font-size: 11px; color: var(--muted); line-height: 1.3;
+  font-size: 13px; color: var(--muted); line-height: 1.3;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .smart-banner-action {
@@ -1261,7 +1354,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
   width: 100%; border-radius: 16px; overflow: hidden;
   border: 1px solid var(--border); background: var(--bg-card);
 }
-.skeleton-live-cover { width: 100%; aspect-ratio: 18/9; min-height: 115px; }
+.skeleton-live-cover { aspect-ratio: 25/9; min-height: 65px; }
 .skeleton-live-body { padding: 12px; display: flex; align-items: center; gap: 10px; }
 .skeleton-live-avatar { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; }
 .skeleton-live-lines { flex: 1 1; display: flex; flex-direction: column; gap: 6px; }
@@ -1269,7 +1362,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .skeleton-chip { width: 100%; height: 54px; border-radius: 16px; }
 .skeleton-youtube { width: 100%; aspect-ratio: 16/9; border-radius: 0; }
 .skeleton-vote-item { pointer-events: none; }
-.skeleton-vote-num { width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0; }
+.skeleton-vote-rank { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; }
 .skeleton-vote-icon { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; }
 .skeleton-vote-deadline { width: 72px; height: 14px; border-radius: 4px; flex-shrink: 0; }
 .skeleton-text { height: 14px; border-radius: 4px; }
@@ -1309,13 +1402,19 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .section-offline .chip-status { font-size: 10px; }
 
   /* 모바일: 홈 투표 목록 카드 */
-  .vote-card-header { min-height: 82px; }
-  .vote-card-header .vote-card-date { font-size: 11px; }
-  .vote-card-header .vote-card-title { font-size: 15px; }
-  .vote-card-header .vote-card-more { font-size: 12px; }
-  .vote-todo-num { font-size: 12px; }
-  .vote-todo-title { font-size: 13px; }
-  .vote-todo-deadline { font-size: 12px; }
+  .vote-showcase { padding: 17px 16px 12px; gap: 12px; border-radius: 16px; }
+  .vote-showcase-title { font-size: 16px; }
+  .vote-showcase-desc { font-size: 12px; }
+  .vote-showcase-body { margin-top: 2px; padding-top: 12px; }
+  .vote-showcase-more { font-size: 11px; padding: 6px 10px; }
+  .vote-showcase-item { gap: 7px; padding: 11px 10px; grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .vote-showcase-rank { width: 20px; height: 20px; border-radius: 6px; font-size: 10px; font-weight: 600; }
+  .vote-showcase-label { font-size: 14px; font-weight: 400; }
+  .vote-showcase-date { font-size: 11px; }
+  .vote-showcase .vote-preview-icon { width: 20px; height: 20px; border-radius: 6px; }
+  .vote-showcase-bg { height: 104px; opacity: 0.22; }
+  .vote-showcase-deadline { font-size: 10px; font-weight: 500; }
+  .vote-showcase-chevron { width: 12px; height: 12px; display: inline-flex; color: var(--muted); }
 
   /* 모바일: 멜론 플레이리스트 모달 좌우 패딩 없음 */
   .bottomsheet-content { width: 100%; }
@@ -1356,8 +1455,6 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .section-tag { font-size: 12px; }
 
   /* PC 라이브 캐러셀 */
-  .live-cover { aspect-ratio: 20/9; min-height: 125px; }
-  .skeleton-live-cover { aspect-ratio: 24/9; min-height: 75px; }
   .live-title { font-size: 14px; }
 
   /* PC 유튜브 최신 영상 썸네일 */
@@ -1369,6 +1466,10 @@ main { display: flex; flex-direction: column; gap: 28px; }
   /* PC 투표 제목 */
   .vote-title-text { font-size: 14px; }
   .vote-list-page .panel-label { font-size: 12px; }
+
+  /* PC 투표 쇼케이스 헤더 */
+  .vote-showcase-title { font-size: 20px; }
+  .vote-showcase-label { font-size: 15px; }
 
   /* PC 차트 */
   .cv2-art { width: 48px; height: 48px; }

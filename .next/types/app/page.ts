@@ -1,4 +1,4 @@
-// File: C:\Users\pyosh\OneDrive\Documents\hades-fanapp\app\page.tsx
+// File: C:\hades-fanapp\app\page.tsx
 import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

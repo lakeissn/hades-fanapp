@@ -476,7 +476,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
     radial-gradient(120% 100% at 0% 0%, color-mix(in oklab, var(--accent-subtle) 40%, transparent) 0%, transparent 50%),
     linear-gradient(150deg, var(--bg-card), color-mix(in oklab, var(--bg-card) 85%, var(--bg-elevated)));
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-  padding: 20px;
+  padding: 21px 20px 14px;
   display: grid;
   gap: 14px;
 }
@@ -493,22 +493,20 @@ main { display: flex; flex-direction: column; gap: 28px; }
 }
 .vote-showcase > *:not(.vote-showcase-bg) { position: relative; z-index: 1; }
 .vote-showcase-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.vote-showcase-date { font-size: 12px; font-weight: 600; color: var(--muted); }
-.vote-showcase-title { margin-top: 4px; font-size: 23px; font-weight: 700; line-height: 1.1; letter-spacing: -0.03em; }
+.vote-showcase-date { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.vote-showcase-title { margin-top: 4px; font-size: 18px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
 .vote-showcase-more {
   flex-shrink: 0;
   align-self: center;
-  padding: 7px 12px;
+  padding: 7px 14px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
+  border: none;
+  background: var(--accent-subtle);
+  color: var(--text);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
-  transition: transform 0.15s ease, border-color 0.2s ease;
 }
-.vote-showcase-more:hover { border-color: var(--border-strong); transform: translateY(-1px); }
 .vote-showcase-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
 .vote-showcase-body {
   margin-top: 4px;
@@ -521,27 +519,25 @@ main { display: flex; flex-direction: column; gap: 28px; }
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 14px;
-  padding: 12px;
+  padding: 13px 12px;
   text-decoration: none;
   color: inherit;
   background: color-mix(in oklab, var(--bg-card) 70%, transparent);
-  transition: border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 .vote-showcase-item:hover {
   border-color: var(--border-strong);
-  background: var(--bg-card);
-  transform: translateY(-1px);
 }
 .vote-showcase-rank {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
   padding: 0;
   background: color-mix(in oklab, var(--accent-subtle) 85%, var(--bg-elevated));
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.03em;
   display: inline-flex;
@@ -554,7 +550,8 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .vote-showcase-label {
   min-width: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -567,7 +564,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .vote-preview-list { display: grid; gap: 8px; }
 .vote-preview-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: var(--bg-card); display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 4px 10px; align-items: center; }
 .vote-preview-icons { display: inline-flex; align-items: center; }
-.vote-preview-icon { width: 22px; height: 22px; border-radius: 6px; overflow: hidden; background: var(--accent-subtle); position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.vote-preview-icon { width: 24px; height: 24px; border-radius: 7px; overflow: hidden; background: var(--accent-subtle); position: relative; display: inline-flex; align-items: center; justify-content: center; margin-top: 1px; margin-right: 2px; }
 .vote-preview-icon + .vote-preview-icon { margin-left: -4px; }
 .vote-preview-title { font-size: 14px; font-weight: 400; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vote-preview-deadline { grid-column: 1 / -1; color: var(--muted); font-size: 11px; }
@@ -579,7 +576,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .vote-item.is-open { border-color: var(--border-strong); }
 .vote-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; min-height: 50px; cursor: pointer; transition: background 0.15s ease; }
 .vote-row:hover { background: var(--bg-hover); }
-.vote-icon { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--accent-subtle); overflow: hidden; flex: 0 0 auto; position: relative; }
+.vote-icon { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--accent-subtle); overflow: hidden; flex: 0 0 auto; position: relative; margin-top: 1px; }
 .vote-icon img, .vote-preview-icon img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
 .vote-icon-fallback { font-size: 10px; font-weight: 600; color: var(--muted); }
 .vote-title { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
@@ -681,6 +678,8 @@ main { display: flex; flex-direction: column; gap: 28px; }
 /* 다크모드 텍스트 밝기 */
 [data-theme="dark"] .chip-status { color: #888; }
 [data-theme="dark"] .youtube-meta { color: #888; }
+[data-theme="dark"] .vote-showcase-desc { color: #b0b0b0; }
+[data-theme="dark"] .vote-showcase-item { border-width: 0; background: #252525; }
 [data-theme="dark"] .vote-showcase-deadline { color: #8f8f8f; }
 [data-theme="dark"] .panel-meta-value { color: #b0b0b0; }
 [data-theme="dark"] .panel-meta-label:not(.accent) { color: #a0a0a0; }
@@ -1395,14 +1394,16 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .section-offline .chip-status { font-size: 10px; }
 
   /* 모바일: 홈 투표 목록 카드 */
-  .vote-showcase { padding: 16px; gap: 12px; border-radius: 16px; }
-  .vote-showcase-title { font-size: 19px; }
+  .vote-showcase { padding: 17px 16px 12px; gap: 12px; border-radius: 16px; }
+  .vote-showcase-title { font-size: 16px; }
   .vote-showcase-desc { font-size: 12px; }
   .vote-showcase-body { margin-top: 2px; padding-top: 12px; }
   .vote-showcase-more { font-size: 11px; padding: 6px 10px; }
-  .vote-showcase-item { gap: 7px; padding: 10px; grid-template-columns: auto minmax(0, 1fr) auto auto; }
-  .vote-showcase-rank { width: 26px; height: 26px; border-radius: 8px; font-size: 11px; font-weight: 600; }
-  .vote-showcase-label { font-size: 12px; font-weight: 600; }
+  .vote-showcase-item { gap: 7px; padding: 11px 10px; grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .vote-showcase-rank { width: 20px; height: 20px; border-radius: 6px; font-size: 10px; font-weight: 600; }
+  .vote-showcase-label { font-size: 14px; font-weight: 400; }
+  .vote-showcase-date { font-size: 11px; }
+  .vote-showcase .vote-preview-icon { width: 20px; height: 20px; border-radius: 6px; }
   .vote-showcase-bg { height: 104px; opacity: 0.22; }
   .vote-showcase-deadline { font-size: 10px; font-weight: 500; }
   .vote-showcase-chevron { width: 12px; height: 12px; display: inline-flex; color: var(--muted); }
@@ -1457,6 +1458,10 @@ main { display: flex; flex-direction: column; gap: 28px; }
   /* PC 투표 제목 */
   .vote-title-text { font-size: 14px; }
   .vote-list-page .panel-label { font-size: 12px; }
+
+  /* PC 투표 쇼케이스 헤더 */
+  .vote-showcase-title { font-size: 20px; }
+  .vote-showcase-label { font-size: 15px; }
 
   /* PC 차트 */
   .cv2-art { width: 48px; height: 48px; }

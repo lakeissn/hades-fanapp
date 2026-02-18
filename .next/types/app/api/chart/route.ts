@@ -1,4 +1,4 @@
-// File: C:\Users\pyosh\OneDrive\Documents\hades-fanapp\app\api\chart\route.ts
+// File: C:\hades-fanapp\app\api\chart\route.ts
 import * as entry from '../../../../../app/api/chart/route.js'
 import type { NextRequest } from 'next/server.js'
 
