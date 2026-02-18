@@ -342,7 +342,7 @@ export default function HomePage() {
           </div>
           <a href="/votes" className="vote-showcase-more">전체보기</a>
         </div>
-        <p className="vote-showcase-desc">진행 중인 투표 중 최신 3건을 보여드립니다. 전체 투표는 ‘전체보기’를 눌러 확인해 주세요.</p>
+        <p className="vote-showcase-desc">진행 중인 모든 투표는 ‘전체보기’를 눌러 확인해 주세요.</p>
         <div className="vote-showcase-body">
           {isVotesLoading ? (
             <div className="vote-showcase-list">
