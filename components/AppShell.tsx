@@ -134,9 +134,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   const hideInstallBanner = pathname === "/add-to-home";
+  const hasSmartBanner = smartBannerVisible && !hideInstallBanner;
+
+  useEffect(() => {
+    if (hideInstallBanner && smartBannerVisible) {
+      setSmartBannerVisible(false);
+    }
+  }, [hideInstallBanner, smartBannerVisible]);
 
   return (
-    <div className={`app-shell ${smartBannerVisible ? "has-smart-banner" : ""}`}>
+    <div className={`app-shell ${hasSmartBanner ? "has-smart-banner" : ""}`}>
       {!hideInstallBanner && <InstallPrompt onVisibilityChange={setSmartBannerVisible} />}
 
       <div className="header-wrap">
