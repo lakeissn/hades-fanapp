@@ -61,9 +61,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const permission = Notification.permission;
     const dismissed = localStorage.getItem("hades_notice_dismissed") === "1";
     const declined = localStorage.getItem("hades_notice_declined") === "1";
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
     if (permission === "granted") {
       setNoticeState("hidden");
       return;
@@ -80,8 +77,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // 수동으로 닫은 이력은 일반 브라우저에서는 유지하되, 설치형(PWA) 첫 진입에서는 다시 노출한다.
-    setNoticeState(dismissed && !isStandalone ? "hidden" : "default");
+    // 한 번 수동으로 닫거나 거절한 이후에는 자동 재노출하지 않는다.
+    setNoticeState(dismissed ? "hidden" : "default");
   }, [isNoticeRequesting]);
 
   useEffect(() => {
@@ -103,6 +100,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const hideNotice = useCallback(() => {
     localStorage.setItem("hades_notice_dismissed", "1");
+    localStorage.setItem("hades_notice_declined", "1");
     setNoticeState("hidden");
   }, []);
 
