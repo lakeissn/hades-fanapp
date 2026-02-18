@@ -1,13 +1,77 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Platform = "ios" | "android" | "other" | null;
 
+interface Step {
+  num: string;
+  heading: string;
+  highlight?: string;
+  mockup: string;
+}
+
+const iosSteps: Step[] = [
+  { num: "01", heading: "공유하기를 탭하세요", highlight: "공유하기", mockup: "" },
+  { num: "02", heading: "화면을 내리고\n홈 스크린에 추가를 탭하세요", highlight: "홈 스크린에 추가", mockup: "" },
+  { num: "03", heading: "추가를 탭하고 확인하세요", highlight: "추가", mockup: "" },
+  { num: "04", heading: "고객님의 홈 스크린에서\nHADES INFO 앱을\n즐겨보세요", highlight: "HADES INFO", mockup: "" },
+];
+
+const androidSteps: Step[] = [
+  { num: "01", heading: "메뉴를 열려면\n(⋮)를 탭하세요", highlight: "(⋮)", mockup: "" },
+  { num: "02", heading: "홈 스크린에 추가를\n선택하세요", highlight: "홈 스크린에 추가", mockup: "" },
+  { num: "03", heading: "설치하기를 탭하고\n확인하세요", highlight: "설치하기", mockup: "" },
+  { num: "04", heading: "고객님의 홈 스크린에서\nHADES INFO 앱을\n즐겨보세요", highlight: "HADES INFO", mockup: "" },
+];
+
+function StepHeading({ heading, highlight }: { heading: string; highlight?: string }) {
+  if (!highlight) {
+    return <>{heading}</>;
+  }
+  const parts = heading.split(highlight);
+  return (
+    <>
+      {parts[0]}
+      <span className="pwa-step-highlight">{highlight}</span>
+      {parts.slice(1).join(highlight)}
+    </>
+  );
+}
+
+function StepBlock({ step }: { step: Step }) {
+  return (
+    <div className="pwa-step">
+      <span className="pwa-step-num">{step.num}</span>
+      <h3 className="pwa-step-heading">
+        <StepHeading heading={step.heading} highlight={step.highlight} />
+      </h3>
+      <div className="pwa-step-mockup">
+        {step.mockup ? (
+          <img src={step.mockup} alt={`Step ${step.num}`} />
+        ) : (
+          <div className="pwa-step-mockup-ph" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GuideSection({ title, accent, steps }: { title: string; accent: string; steps: Step[] }) {
+  return (
+    <section className="pwa-guide">
+      <h2 className="pwa-guide-title">
+        <span className="pwa-guide-accent">{accent}</span>
+        {title.replace(accent, "")}
+      </h2>
+      {steps.map((s) => (
+        <StepBlock key={s.num} step={s} />
+      ))}
+    </section>
+  );
+}
+
 export default function AddToHomePage() {
-  const router = useRouter();
   const [platform, setPlatform] = useState<Platform>(null);
 
   useEffect(() => {
@@ -18,118 +82,47 @@ export default function AddToHomePage() {
   }, []);
 
   return (
-    <main className="add-to-home-page">
-      <button type="button" className="add-to-home-back" onClick={() => router.back()}>
-        <ChevronLeft size={14} strokeWidth={2.5} />
-        뒤로가기
-      </button>
-
-      <div className="add-to-home-hero">
-        <div className="add-to-home-icon-wrap">
-          <img src="/icons/hades_helper.png" alt="" width={80} height={80} className="add-to-home-icon" />
+    <div className="pwa-page">
+      {/* Hero */}
+      <section className="pwa-hero">
+        <div className="pwa-hero-brand">
+          <img src="/icons/hades_helper.png" alt="" width={48} height={48} className="pwa-hero-logo" />
+          <span className="pwa-hero-name">HADES INFO</span>
         </div>
-        <h1 className="add-to-home-title">HADES INFO 앱으로 사용하기</h1>
-        <p className="add-to-home-desc">
-          홈 화면에 추가하면 앱처럼 빠르게 이용할 수 있어요
-        </p>
-      </div>
+        <h1 className="pwa-hero-title">
+          고객님의{" "}
+          <span className="pwa-accent">HADES INFO PWA</span>입니다
+        </h1>
+        <button type="button" className="pwa-hero-cta">PWA 설치하기</button>
+        <div className="pwa-hero-phones">
+          <div className="pwa-hero-phone pwa-hero-phone--left">
+            <div className="pwa-hero-phone-ph" />
+          </div>
+          <div className="pwa-hero-phone pwa-hero-phone--right">
+            <div className="pwa-hero-phone-ph" />
+          </div>
+        </div>
+      </section>
 
+      {/* Guide sections */}
       {platform === null && (
-        <div className="add-to-home-loading">
-          <span>기기 정보 확인 중...</span>
-        </div>
+        <p className="pwa-loading">기기 정보 확인 중...</p>
       )}
 
       {platform === "ios" && (
-        <div className="add-to-home-steps">
-          <h2 className="add-to-home-steps-title">Safari에서 홈 화면에 추가</h2>
-
-          <div className="add-to-home-step">
-            <div className="add-to-home-step-header">
-              <div className="add-to-home-step-num">1</div>
-              <span className="add-to-home-step-text">하단의 <strong>공유 버튼</strong>을 누르세요</span>
-            </div>
-            {/* TODO: 실제 스크린샷으로 교체 */}
-            <img className="add-to-home-step-img" src="/guide/ios-share.png" alt="Safari 공유 버튼 위치" />
-            <p className="add-to-home-step-hint">Safari 하단 중앙 또는 우측 하단에 위치해요</p>
-          </div>
-
-          <div className="add-to-home-step">
-            <div className="add-to-home-step-header">
-              <div className="add-to-home-step-num">2</div>
-              <span className="add-to-home-step-text"><strong>홈 화면에 추가</strong>를 선택하세요</span>
-            </div>
-            {/* TODO: 실제 스크린샷으로 교체 */}
-            <img className="add-to-home-step-img" src="/guide/ios-add.png" alt="홈 화면에 추가 메뉴" />
-            <p className="add-to-home-step-hint">목록을 스크롤하면 찾을 수 있어요</p>
-          </div>
-
-          <div className="add-to-home-step">
-            <div className="add-to-home-step-header">
-              <div className="add-to-home-step-num">3</div>
-              <span className="add-to-home-step-text">우측 상단 <strong>추가</strong>를 눌러 완료!</span>
-            </div>
-            {/* TODO: 실제 스크린샷으로 교체 */}
-            <img className="add-to-home-step-img" src="/guide/ios-confirm.png" alt="추가 확인 화면" />
-            <p className="add-to-home-step-hint">홈 화면에 HADES INFO 아이콘이 생성됩니다</p>
-          </div>
-        </div>
+        <GuideSection title="iOS용 PWA 설치 방법?" accent="iOS용 PWA" steps={iosSteps} />
       )}
 
       {platform === "android" && (
-        <div className="add-to-home-steps">
-          <h2 className="add-to-home-steps-title">Chrome에서 앱 설치</h2>
-
-          <div className="add-to-home-step">
-            <div className="add-to-home-step-header">
-              <div className="add-to-home-step-num">1</div>
-              <span className="add-to-home-step-text">주소창 오른쪽 <strong>⋮ 메뉴</strong>를 누르세요</span>
-            </div>
-            {/* TODO: 실제 스크린샷으로 교체 */}
-            <img className="add-to-home-step-img" src="/guide/android-menu.png" alt="Chrome 메뉴 버튼" />
-            <p className="add-to-home-step-hint">화면 우측 상단 점 3개 아이콘이에요</p>
-          </div>
-
-          <div className="add-to-home-step">
-            <div className="add-to-home-step-header">
-              <div className="add-to-home-step-num">2</div>
-              <span className="add-to-home-step-text"><strong>앱 설치</strong> 또는 <strong>홈 화면에 추가</strong> 선택</span>
-            </div>
-            {/* TODO: 실제 스크린샷으로 교체 */}
-            <img className="add-to-home-step-img" src="/guide/android-install.png" alt="앱 설치 메뉴" />
-            <p className="add-to-home-step-hint">브라우저에 따라 문구가 다를 수 있어요</p>
-          </div>
-
-          <div className="add-to-home-step">
-            <div className="add-to-home-step-header">
-              <div className="add-to-home-step-num">3</div>
-              <span className="add-to-home-step-text"><strong>설치</strong>를 눌러 완료!</span>
-            </div>
-            {/* TODO: 실제 스크린샷으로 교체 */}
-            <img className="add-to-home-step-img" src="/guide/android-confirm.png" alt="설치 확인 팝업" />
-            <p className="add-to-home-step-hint">홈 화면 또는 앱 서랍에 추가됩니다</p>
-          </div>
-        </div>
+        <GuideSection title="Android용 PWA 설치 방법?" accent="Android용 PWA" steps={androidSteps} />
       )}
 
       {platform === "other" && (
-        <div className="add-to-home-steps">
-          <h2 className="add-to-home-steps-title">모바일에서 설치하기</h2>
-          <div className="add-to-home-step">
-            <div className="add-to-home-step-header">
-              <span className="add-to-home-step-text">모바일 기기에서 이 페이지를 열어 주세요</span>
-            </div>
-            <p className="add-to-home-step-hint">
-              iPhone/iPad: Safari 공유 → 홈 화면에 추가<br />
-              Android: Chrome 메뉴 → 앱 설치 또는 홈 화면에 추가
-            </p>
-          </div>
-        </div>
+        <>
+          <GuideSection title="iOS용 PWA 설치 방법?" accent="iOS용 PWA" steps={iosSteps} />
+          <GuideSection title="Android용 PWA 설치 방법?" accent="Android용 PWA" steps={androidSteps} />
+        </>
       )}
-
-      <p className="add-to-home-footer">
-        설치 후 앱 아이콘을 눌러 바로 이용하세요
-      </p>
-    </main>
+    </div>
   );
 }
