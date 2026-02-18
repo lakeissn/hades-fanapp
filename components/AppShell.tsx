@@ -82,13 +82,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const next = {
-        ...current,
-        master: true,
-        liveBroadcast: true,
-        newVote: true,
-        newYoutube: true,
-      };
+      const next = { ...current, master: true };
       localStorage.setItem("hades_notif_settings", JSON.stringify(next));
       window.dispatchEvent(new Event("hades_prefs_changed"));
 
@@ -113,9 +107,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setSettingsOpen(false);
   }, [pathname]);
 
+  const hideInstallBanner = pathname === "/add-to-home";
+
   return (
     <div className={`app-shell ${smartBannerVisible ? "has-smart-banner" : ""}`}>
-      <InstallPrompt onVisibilityChange={setSmartBannerVisible} />
+      {!hideInstallBanner && <InstallPrompt onVisibilityChange={setSmartBannerVisible} />}
 
       <div className="header-wrap">
         <header className="header" style={{ borderTop: "none", boxShadow: "none" }}>
