@@ -647,7 +647,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .vote-more { font-size: 10px; color: var(--muted); font-weight: 600; }
 .platform-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-size: 12px; font-weight: 600; }
 .platform-pill .compact-icon { width: 22px; height: 22px; border-radius: 6px; padding: 2px; border: none; background: transparent; }
-.platform-name { white-space: nowrap; }
+.platform-name { white-space: nowrap; transform: translateY(-1px); }
 .fit-text { display: inline-block; white-space: nowrap; line-height: 1.45; }
 
 /* ===== LINKS ===== */

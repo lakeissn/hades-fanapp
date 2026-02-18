@@ -1,11 +1,4 @@
 {
-  "/api/members/status/route": "app/api/members/status/route.js",
-  "/icon/[[...__metadata_id__]]/route": "app/icon/[[...__metadata_id__]]/route.js",
   "/page": "app/page.js",
-  "/api/chart/route": "app/api/chart/route.js",
-  "/api/votes/route": "app/api/votes/route.js",
-  "/votes/page": "app/votes/page.js",
-  "/chart/page": "app/chart/page.js",
-  "/guides/page": "app/guides/page.js",
-  "/api/youtube/route": "app/api/youtube/route.js"
+  "/api/members/status/route": "app/api/members/status/route.js"
 }
