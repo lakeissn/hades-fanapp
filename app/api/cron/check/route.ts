@@ -161,7 +161,8 @@ async function getTargetTokens(
 // ─── FCM 발송 (500개 배치, 플랫폼별 우선순위 보강) ───
 async function sendFCMMessages(
   targets: PushTarget[],
-  payload: { title: string; body: string; url: string; tag: string }
+  payload: { title: string; body: string; url: string; tag: string },
+  options?: { collapse?: boolean }
 ): Promise<NotifyResult> {
   const result: NotifyResult = {
     type: payload.tag,
@@ -173,6 +174,7 @@ async function sendFCMMessages(
   if (targets.length === 0) return result;
 
   const sentAt = new Date().toISOString();
+  const useCollapse = options?.collapse ?? true;
   // Android Doze / 네트워크 변동 구간에서도 누락을 줄이기 위해 TTL을 충분히 확보
   // (환경변수로 조절 가능, 기본 24시간)
   const TTL_SECONDS = Number(process.env.FCM_TTL_SECONDS ?? "86400");
@@ -196,7 +198,7 @@ async function sendFCMMessages(
     android: {
       priority: "high" as const,
       ttl: TTL_SECONDS * 1000,
-      collapseKey: payload.tag,
+      ...(useCollapse ? { collapseKey: payload.tag } : {}),
       notification: {
         channelId: "default",
         tag: payload.tag,
@@ -229,7 +231,7 @@ async function sendFCMMessages(
         "apns-expiration": String(
           Math.floor(Date.now() / 1000) + TTL_SECONDS
         ),
-        "apns-collapse-id": payload.tag,
+        ...(useCollapse ? { "apns-collapse-id": payload.tag } : {}),
       },
       payload: {
         aps: {
@@ -531,12 +533,20 @@ export async function GET(req: Request) {
             );
 
             if (targets.length > 0) {
-              const res = await sendFCMMessages(targets, {
-                title: `${target.name} 방송 시작! 🔴`,
-                body: target.title || "지금 라이브 중이에요",
-                url: target.liveUrl || "/",
-                tag: `live-${target.id}`,
-              });
+                           const res = await sendFCMMessages(
+                targets,
+                {
+                  title: `${target.name} 방송 시작! 🔴`,
+                  body: target.title || "지금 라이브 중이에요",
+                  url: target.liveUrl || "/",
+                  tag: `live-${target.id}`,
+                },
+                {
+                  // 라이브 시작 알림은 가장 시간 민감하므로 collapse 비활성화
+                  // (기기 대기 상태에서 기존 대기 알림으로 덮어씌워져 누락되는 케이스 방지)
+                  collapse: false,
+                }
+              );
               results.push(res);
 
               liveState.lastLiveNotifyByMember = withLiveNotifyStamp(
