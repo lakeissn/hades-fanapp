@@ -15,14 +15,14 @@ const iosSteps: Step[] = [
   { num: "01", heading: "공유하기를 탭하세요", highlight: "공유하기", mockup: "/guides/images/ios_setup_1.jpg" },
   { num: "02", heading: "화면을 내리고\n홈 스크린에 추가를 탭하세요", highlight: "홈 스크린에 추가", mockup: "/guides/images/ios_setup_2.jpg" },
   { num: "03", heading: "추가를 탭하고 확인하세요", highlight: "추가", mockup: "/guides/images/ios_setup_3.jpg" },
-  { num: "04", heading: "고객님의 홈 스크린에서\nHADES INFO 앱을\n즐겨보세요", highlight: "HADES INFO", mockup: "/guides/images/ios_setup_4.jpg" },
+  { num: "04", heading: "홈 스크린에서\nHADES INFO 앱을\n즐겨보세요", highlight: "HADES INFO", mockup: "/guides/images/ios_setup_4.jpg" },
 ];
 
 const androidSteps: Step[] = [
   { num: "01", heading: "메뉴를 열려면\n(⋮)를 탭하세요", highlight: "(⋮)", mockup: "" },
   { num: "02", heading: "홈 스크린에 추가를\n선택하세요", highlight: "홈 스크린에 추가", mockup: "" },
   { num: "03", heading: "설치하기를 탭하고\n확인하세요", highlight: "설치하기", mockup: "" },
-  { num: "04", heading: "고객님의 홈 스크린에서\nHADES INFO 앱을\n즐겨보세요", highlight: "HADES INFO", mockup: "" },
+  { num: "04", heading: "홈 스크린에서\nHADES INFO 앱을\n즐겨보세요", highlight: "HADES INFO", mockup: "" },
 ];
 
 function StepHeading({ heading, highlight }: { heading: string; highlight?: string }) {
