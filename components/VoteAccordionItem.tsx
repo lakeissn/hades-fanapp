@@ -99,9 +99,9 @@ export default function VoteAccordionItem({
   const [missingIcons, setMissingIcons] = useState<Record<string, boolean>>({});
   const hasUrl = Boolean(vote.url);
 
-  const periodFit = useFitText(14, 10);
+  const periodFit = useFitText(13, 9);
 
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(14);
   const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
 
@@ -111,15 +111,15 @@ export default function VoteAccordionItem({
         const containerWidth = containerRef.current.offsetWidth;
         const textElement = textRef.current;
         const originalStyle = textElement.style.fontSize;
-        textElement.style.fontSize = "16px";
+        textElement.style.fontSize = "14px";
         const textWidth = textElement.scrollWidth;
         textElement.style.fontSize = originalStyle;
         if (textWidth > containerWidth && containerWidth > 0) {
           const ratio = containerWidth / textWidth;
-          const newSize = Math.max(10, Math.floor(16 * ratio * 10) / 10);
+          const newSize = Math.max(9, Math.floor(14 * ratio * 10) / 10);
           setFontSize(newSize);
         } else {
-          setFontSize(16);
+          setFontSize(14);
         }
       }
     };
