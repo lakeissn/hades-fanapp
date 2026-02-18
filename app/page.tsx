@@ -338,7 +338,7 @@ export default function HomePage() {
         <div className="vote-showcase-head">
           <div>
             <p className="vote-showcase-date">{new Date().toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "long" })} 기준</p>
-            <h2 className="vote-showcase-title">투표 목룍</h2>
+            <h2 className="vote-showcase-title">투표 목록</h2>
           </div>
           <a href="/votes" className="vote-showcase-more">전체보기</a>
         </div>
