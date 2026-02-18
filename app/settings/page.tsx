@@ -172,7 +172,13 @@ export default function SettingsPage() {
           saveNotifSettings(next);
           setPermissionState("granted");
         } else if ("Notification" in window) {
-          setPermissionState(Notification.permission);
+          const currentPermission = Notification.permission;
+          setPermissionState(currentPermission);
+          if (currentPermission === "denied") {
+            const next = { ...notif, master: false, liveBroadcast: false, newVote: false, newYoutube: false };
+            setNotif(next);
+            saveNotifSettings(next);
+          }
         }
       } finally {
         setIsActivating(false);
