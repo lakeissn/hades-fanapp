@@ -111,17 +111,17 @@ export default function AddToHomePage() {
       )}
 
       {platform === "ios" && (
-        <GuideSection id="pwa-install-guide" title="iOS용 PWA 설치 방법?" accent="iOS용 PWA" steps={iosSteps} />
+        <GuideSection id="pwa-install-guide" title="iOS용 APP 설치 방법?" accent="iOS용 APP" steps={iosSteps} />
       )}
 
       {platform === "android" && (
-        <GuideSection id="pwa-install-guide" title="Android용 PWA 설치 방법?" accent="Android용 PWA" steps={androidSteps} />
+        <GuideSection id="pwa-install-guide" title="Android용 APP 설치 방법?" accent="Android용 APP" steps={androidSteps} />
       )}
 
       {platform === "other" && (
         <>
-          <GuideSection id="pwa-install-guide" title="iOS용 PWA 설치 방법?" accent="iOS용 PWA" steps={iosSteps} />
-          <GuideSection title="Android용 PWA 설치 방법?" accent="Android용 PWA" steps={androidSteps} />
+          <GuideSection id="pwa-install-guide" title="iOS용 APP 설치 방법?" accent="iOS용 APP" steps={iosSteps} />
+          <GuideSection title="Android용 PWAPPA 설치 방법?" accent="Android용 APP" steps={androidSteps} />
         </>
       )}
     </div>
