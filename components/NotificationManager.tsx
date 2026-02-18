@@ -54,6 +54,16 @@ function clearToken() {
   } catch {}
 }
 
+function getPushGrantedAt(): number {
+  try {
+    const raw = localStorage.getItem("hades_push_granted_at");
+    const parsed = raw ? Number(raw) : 0;
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch {
+    return 0;
+  }
+}
+
 // ─── 플랫폼 감지 ───
 function detectPlatform(): "ios" | "android" | "web" {
   if (typeof navigator === "undefined") return "web";
@@ -111,9 +121,16 @@ async function unregisterToken(token: string) {
 }
 
 // ─── 포그라운드 알림 표시 ───
-async function showForegroundNotification(data: Record<string, string>) {
+async function showForegroundNotification(data: Record<string, string>, grantedAt: number) {
   const title = data.title || "HADES INFO";
   const body = data.body || "";
+
+  if (data.tag?.startsWith("live-")) {
+    const sentAt = data.sentAt ? new Date(data.sentAt).getTime() : 0;
+    if (sentAt > 0 && grantedAt > 0 && sentAt <= grantedAt) {
+      return;
+    }
+  }
 
   if ("serviceWorker" in navigator) {
     try {
@@ -209,7 +226,7 @@ export default function NotificationManager() {
     // 포그라운드 메시지 수신
     const unsub = onForegroundMessage((payload) => {
       const data = payload.data || {};
-      showForegroundNotification(data);
+      showForegroundNotification(data, getPushGrantedAt());
     });
 
     return () => unsub();
@@ -234,6 +251,9 @@ export async function activatePush(): Promise<boolean> {
   if (!token) return false;
 
   saveToken(token);
+  try {
+    localStorage.setItem("hades_push_granted_at", String(Date.now()));
+  } catch {}
 
   const settings = getSettings();
   await registerToken(token, toServerPrefs({ ...settings, master: true }));
