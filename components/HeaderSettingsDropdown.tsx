@@ -108,7 +108,13 @@ export default function HeaderSettingsDropdown({ isOpen, onClose, anchorRef }: P
       try {
         const success = await activatePush();
         if (success) {
-          const next = { ...notif, master: true };
+          const next = {
+            ...notif,
+            master: true,
+            liveBroadcast: true,
+            newVote: true,
+            newYoutube: true,
+          };
           setNotif(next);
           localStorage.setItem("hades_notif_settings", JSON.stringify(next));
           setPermissionState("granted");
