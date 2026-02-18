@@ -58,7 +58,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (permission === "denied") {    
+    if (permission === "denied") {
       // 사용자가 이미 알림 권한을 거절한 경우 배너를 반복 노출하지 않는다.
       setNoticeState("hidden");
       return;
@@ -70,7 +70,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     // 수동으로 닫은 이력은 일반 브라우저에서는 유지하되, 설치형(PWA) 첫 진입에서는 다시 노출한다.
-    setNoticeState(dismissed ? "hidden" : "default");
+    setNoticeState(dismissed && !isStandalone ? "hidden" : "default");
   }, []);
 
   useEffect(() => {
