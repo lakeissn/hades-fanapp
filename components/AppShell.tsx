@@ -49,17 +49,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     const permission = Notification.permission;
     const dismissed = localStorage.getItem("hades_notice_dismissed") === "1";
+    const declined = localStorage.getItem("hades_notice_declined") === "1";
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
     if (permission === "granted") {
       setNoticeState("hidden");
       return;
     }
 
-    if (permission === "denied") {      
+    if (permission === "denied") {    
       // 사용자가 이미 알림 권한을 거절한 경우 배너를 반복 노출하지 않는다.
       setNoticeState("hidden");
       return;
     }
 
+    if (declined) {
+      setNoticeState("hidden");
+      return;
+    }
+
+    // 수동으로 닫은 이력은 일반 브라우저에서는 유지하되, 설치형(PWA) 첫 진입에서는 다시 노출한다.
     setNoticeState(dismissed ? "hidden" : "default");
   }, []);
 
@@ -110,13 +120,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       window.dispatchEvent(new Event("hades_prefs_changed"));
 
       localStorage.removeItem("hades_notice_dismissed");
+      localStorage.removeItem("hades_notice_declined");
       setIsNoticeRequesting(false);
       return;
     }
 
     if ("Notification" in window) {
-      // 권한 요청 후 허용되지 않은 경우(denied/default 모두) 반복 배너 노출을 막는다.
+      // 권한 요청 후 허용되지 않은 경우(denied/default 모두) 재노출을 막는다.
       localStorage.setItem("hades_notice_dismissed", "1");
+      localStorage.setItem("hades_notice_declined", "1");
       setNoticeState("hidden");
     }
     setIsNoticeRequesting(false);
