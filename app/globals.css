@@ -513,7 +513,6 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .vote-showcase-body {
   margin-top: 4px;
   padding-top: 14px;
-  border-top: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
 }
 .vote-showcase-body .empty-state { margin: 0; }
 .vote-showcase-list { display: grid; gap: 10px; }
@@ -1401,13 +1400,12 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .vote-showcase-desc { font-size: 12px; }
   .vote-showcase-body { margin-top: 2px; padding-top: 12px; }
   .vote-showcase-more { font-size: 11px; padding: 6px 10px; }
-  .vote-showcase-item { gap: 8px; padding: 10px; grid-template-columns: auto minmax(0, 1fr) auto; }
-  .vote-showcase-rank { width: 28px; height: 28px; border-radius: 9px; font-size: 12px; }
-  .vote-showcase-label { font-size: 13px; }
+  .vote-showcase-item { gap: 7px; padding: 10px; grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .vote-showcase-rank { width: 26px; height: 26px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+  .vote-showcase-label { font-size: 12px; font-weight: 600; }
   .vote-showcase-bg { height: 104px; opacity: 0.22; }
-  .vote-showcase-deadline { font-size: 11px; }
-  .vote-showcase-chevron { display: none; }
-
+  .vote-showcase-deadline { font-size: 10px; font-weight: 500; }
+  .vote-showcase-chevron { width: 12px; height: 12px; display: inline-flex; color: var(--muted); }
 
   /* 모바일: 멜론 플레이리스트 모달 좌우 패딩 없음 */
   .bottomsheet-content { width: 100%; }
