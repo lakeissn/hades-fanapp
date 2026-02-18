@@ -290,7 +290,7 @@ export default function HomePage() {
     offlineMembers: members.filter(m => !m.isLive),
   }), [members]);
 
-  const votePreviewItems = useMemo(() => votes.filter(isVisibleVote).slice(0, 4), [votes]);
+  const votePreviewItems = useMemo(() => votes.filter(isVisibleVote).slice(0, 3), [votes]);
 
   return (
     <main>
@@ -333,41 +333,40 @@ export default function HomePage() {
       <YouTubeSection />
 
       {/* VOTES */}
-      <section className="vote-card vote-matrix" aria-label="투표 목록">
-        <div className="vote-card-body vote-matrix-body">
-          <p className="vote-manifesto">
-            <span className="vote-manifesto-title">투표 목록</span>
-            <span className="vote-manifesto-date">{new Date().toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "long" })} 기준</span>
-            <a href="/votes" className="vote-manifesto-link">전체보기 &rsaquo;</a>
-          </p>
+      <section className="vote-card">
+        <div className="vote-card-header">
+          <img className="vote-card-header-bg" src="/icons/jump.png" alt="" />
+          <div className="vote-card-header-content">
+            <div className="vote-card-header-top">
+              <p className="vote-card-date">{new Date().toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "long" })} 기준</p>
+              <a href="/votes" className="vote-card-more">전체보기 &rsaquo;</a>
+            </div>
+            <h2 className="vote-card-title">투표 목록</h2>
+          </div>
+        </div>
+        <div className="vote-card-body">
           {isVotesLoading ? (
-            <div className="vote-matrix-grid" aria-hidden>
+            <div className="vote-todo-list">
               {[0, 1, 2].map(i => (
-                <div key={i} className={`vote-matrix-tile vote-matrix-tile-${(i % 3) + 1} skeleton-vote-item`}>
+                <div key={i} className="vote-todo-item skeleton-vote-item">
                   <span className="skeleton skeleton-vote-num" />
-                  <span className="skeleton skeleton-text" style={{ height: 16, width: "70%" }} />
-                  <span className="skeleton skeleton-vote-deadline" />
                   <span className="skeleton skeleton-vote-icon" />
+                  <span className="skeleton skeleton-text" style={{ flex: 1 }} />
+                  <span className="skeleton skeleton-vote-deadline" />
                 </div>
               ))}
             </div>
           )
           : votePreviewItems.length === 0 ? <div className="empty-state"><p>진행중인 투표가 없습니다.</p></div>
           : (
-            <div className="vote-matrix-grid">
+            <div className="vote-todo-list">
               {votePreviewItems.map((vote, idx) => (
-                <a
-                  key={vote.id}
-                  href={vote.url || "/votes"}
-                  target={vote.url ? "_blank" : undefined}
-                  rel={vote.url ? "noreferrer" : undefined}
-                  className={`vote-matrix-tile vote-matrix-tile-${(idx % 3) + 1}`}
-                >
-                  <span className="vote-matrix-seq" aria-hidden>{String(idx + 1).padStart(2, "0")}</span>
-                  <span className="vote-matrix-title">{vote.title}</span>
-                  <span className="vote-matrix-deadline">{formatDeadline(vote.closesAt)}</span>
+                <a key={vote.id} href={vote.url || "/votes"} target={vote.url ? "_blank" : undefined} rel={vote.url ? "noreferrer" : undefined} className="vote-todo-item">
+                  <span className="vote-todo-num">{idx + 1}</span>
                   <VotePreviewPlatforms vote={vote} />
-                  <span className="vote-matrix-arrow" aria-hidden>
+                  <span className="vote-todo-title">{vote.title}</span>
+                  <span className="vote-todo-deadline">{formatDeadline(vote.closesAt)}</span>
+                  <span className="vote-todo-chevron" aria-hidden>
                     <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </span>
                 </a>
