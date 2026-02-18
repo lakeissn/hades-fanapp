@@ -1098,55 +1098,122 @@ main { display: flex; flex-direction: column; gap: 28px; }
   padding: 4px 0 12px;
 }
 
-/* ===== ADD TO HOME PAGE ===== */
-.add-to-home-page { display: flex; flex-direction: column; gap: 24px; padding-bottom: 32px; padding-top: 12px; }
-.add-to-home-back {
-  display: inline-flex; align-items: center; gap: 2px;
-  font-size: 11px; font-weight: 600; color: var(--muted); text-decoration: none;
-  transition: color 0.15s; background: none; border: none; cursor: pointer; padding: 0; font: inherit;
+/* ===== PWA INSTALL GUIDE PAGE ===== */
+.pwa-page {
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  padding-bottom: 24px;
 }
-.add-to-home-back:hover { color: var(--text); }
-.add-to-home-hero {
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  gap: 12px; padding: 16px 0 8px;
+
+/* PWA pink accent (로고 색상 톤) */
+.pwa-page { --pwa-accent: #ec1187; --pwa-accent-light: #f78cc4; --pwa-gradient: linear-gradient(135deg, #d81b60 0%, #ec1187 50%, #f48fb1 100%); }
+
+/* ---------- Hero ---------- */
+.pwa-hero {
+  width: 100%; max-width: 480px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 24px 24px 0;
 }
-.add-to-home-icon-wrap {
-  width: 96px; height: 96px; border-radius: 22px;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--bg-elevated); border: 2px solid var(--border); box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+.pwa-hero-brand {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 24px;
 }
-[data-theme="dark"] .add-to-home-icon-wrap { box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-.add-to-home-icon { width: 80px; height: 80px; border-radius: 16px; object-fit: cover; }
-.add-to-home-title { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.2; }
-.add-to-home-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; max-width: 280px; }
-.add-to-home-loading { text-align: center; padding: 24px; font-size: 14px; color: var(--muted); }
-.add-to-home-steps { display: flex; flex-direction: column; gap: 14px; }
-.add-to-home-steps-title { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
-.add-to-home-step {
-  display: flex; flex-direction: column; overflow: hidden;
-  background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border);
+.pwa-hero-logo {
+  border-radius: 12px;
+  filter: grayscale(100%);
 }
-[data-theme="dark"] .add-to-home-step { border-width: 0; }
-.add-to-home-step-header {
-  display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+.pwa-hero-name {
+  font-size: 22px; font-weight: 600;
+  letter-spacing: -0.02em; color: var(--text);
 }
-.add-to-home-step-num {
-  width: 26px; height: 26px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  background: var(--accent-badge); color: #fff; font-size: 12px; font-weight: 700;
+.pwa-hero-title {
+  font-size: 24px; font-weight: 600; line-height: 1.4;
+  letter-spacing: -0.02em; margin: 0 0 28px; color: var(--text);
 }
-.add-to-home-step-text { font-size: 14px; font-weight: 500; line-height: 1.35; }
-.add-to-home-step-text strong { font-weight: 650; }
-.add-to-home-step-img {
-  width: 100%; display: block; object-fit: cover;
-  border-top: 1px solid var(--border); background: var(--bg-elevated);
+.pwa-accent {
+  background: var(--pwa-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
-[data-theme="dark"] .add-to-home-step-img { border-top-color: rgba(255,255,255,0.06); }
-.add-to-home-step-hint {
-  padding: 10px 16px 14px; font-size: 12px; color: var(--muted); line-height: 1.45;
+.pwa-hero-cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 14px 48px; border: none; border-radius: 12px;
+  background: var(--pwa-gradient); color: #fff;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: opacity 0.15s;
 }
-.add-to-home-footer {
-  text-align: center; font-size: 13px; color: var(--muted); padding-top: 8px;
+.pwa-hero-cta:hover { opacity: 0.9; }
+
+/* Hero phones */
+.pwa-hero-phones {
+  position: relative; width: 100%; max-width: 360px;
+  height: 340px; margin-top: 32px;
+}
+.pwa-hero-phone {
+  position: absolute; border-radius: 24px; overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.pwa-hero-phone--left {
+  width: 200px; height: 300px;
+  left: 12%; top: 10px; z-index: 2;
+}
+.pwa-hero-phone--right {
+  width: 170px; height: 280px;
+  right: 12%; top: 30px; z-index: 1;
+}
+.pwa-hero-phone img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pwa-hero-phone-ph {
+  width: 100%; height: 100%;
+  background: var(--bg-elevated); border: 2px dashed var(--border);
+  border-radius: 24px;
+}
+
+/* ---------- Loading ---------- */
+.pwa-loading {
+  text-align: center; padding: 48px 24px; font-size: 14px; color: var(--muted);
+}
+
+/* ---------- Guide section ---------- */
+.pwa-guide {
+  width: 100%; max-width: 480px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 64px 24px 0;
+}
+.pwa-guide-title {
+  font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+  text-align: center; margin: 0 0 16px; color: var(--text);
+}
+.pwa-guide-accent { color: var(--pwa-accent); }
+
+/* ---------- Step ---------- */
+.pwa-step {
+  width: 100%; display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 48px 0;
+}
+.pwa-step-num {
+  font-size: 13px; font-weight: 600; color: var(--pwa-accent);
+  letter-spacing: 0.06em; margin-bottom: 14px;
+}
+.pwa-step-heading {
+  font-size: 20px; font-weight: 500; line-height: 1.45;
+  letter-spacing: -0.01em; white-space: pre-line;
+  margin: 0 0 32px; color: var(--muted);
+}
+.pwa-step-highlight { font-weight: 600; color: #111; }
+[data-theme="dark"] .pwa-step-highlight { color: #fff; }
+
+/* ---------- Mockup ---------- */
+.pwa-step-mockup {
+  width: 100%; max-width: 300px;
+  border-radius: 20px; overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.pwa-step-mockup img { width: 100%; display: block; }
+.pwa-step-mockup-ph {
+  width: 100%; aspect-ratio: 9/16;
+  background: var(--bg-elevated); border: 2px dashed var(--border);
+  border-radius: 0;
 }
 
 /* ===== SKELETON ===== */
