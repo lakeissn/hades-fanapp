@@ -76,11 +76,29 @@ export default function HeaderSettingsDropdown({ isOpen, onClose, anchorRef }: P
   const [permissionState, setPermissionState] = useState<string>("default");
   const [isActivating, setIsActivating] = useState(false);
 
-  useEffect(() => {
+  const syncLocalState = useCallback(() => {
     setTheme(loadTheme());
     setNotif(loadNotifSettings());
-    if ("Notification" in window) setPermissionState(Notification.permission);
-  }, [isOpen]);
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setPermissionState(Notification.permission);
+    }
+  }, []);
+
+  useEffect(() => {
+    syncLocalState();
+  }, [isOpen, syncLocalState]);
+
+  useEffect(() => {
+    const handlePrefsChanged = () => syncLocalState();
+    window.addEventListener("hades_prefs_changed", handlePrefsChanged);
+    window.addEventListener("focus", handlePrefsChanged);
+    document.addEventListener("visibilitychange", handlePrefsChanged);
+    return () => {
+      window.removeEventListener("hades_prefs_changed", handlePrefsChanged);
+      window.removeEventListener("focus", handlePrefsChanged);
+      document.removeEventListener("visibilitychange", handlePrefsChanged);
+    };
+  }, [syncLocalState]);
 
   useEffect(() => {
     if (!isOpen) return;
