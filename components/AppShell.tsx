@@ -58,8 +58,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (permission === "denied") {
-      setNoticeState(dismissed && !isStandalone ? "hidden" : "denied");
+    if (permission === "denied") {      
+      // 사용자가 이미 알림 권한을 거절한 경우 배너를 반복 노출하지 않는다.
+      setNoticeState("hidden");
       return;
     }
 
@@ -118,7 +119,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     if ("Notification" in window) {
-      setNoticeState(Notification.permission === "denied" ? "denied" : "default");
+      const denied = Notification.permission === "denied";
+      if (denied) localStorage.setItem("hades_notice_dismissed", "1");
+      setNoticeState(denied ? "hidden" : "default");
     }
     setIsNoticeRequesting(false);
   }, [isNoticeRequesting]);
