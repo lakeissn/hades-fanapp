@@ -386,6 +386,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 }
 .live-grid-nav:hover:not(:disabled) { background: var(--bg-elevated); }
 .live-grid-nav:disabled { opacity: 0.35; cursor: default; }
+.live-grid-nav.is-hidden { display: none !important; }
 .live-grid-nav-prev { left: -18px; }
 .live-grid-nav-next { right: -18px; }
 @media (min-width: 641px) {
@@ -1372,7 +1373,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
   .section-tag { font-size: 12px; }
 
   /* PC 라이브 캐러셀 */
-.live-cover { aspect-ratio: 16/9; min-height: 125px; }
+  .live-cover { aspect-ratio: 16/9; min-height: 125px; }
   .skeleton-live-cover { aspect-ratio: 16/9; min-height: 75px; }
   .live-title { font-size: 14px; }
 
