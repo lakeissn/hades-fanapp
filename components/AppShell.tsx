@@ -39,24 +39,49 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isNoticeRequesting, setIsNoticeRequesting] = useState(false);
   const [smartBannerVisible, setSmartBannerVisible] = useState(false);
 
-  useEffect(() => {
+  const evaluateNoticeState = useCallback(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
+
     const rawSettings = localStorage.getItem("hades_notif_settings");
     if (!rawSettings) {
       localStorage.setItem("hades_notif_settings", JSON.stringify(DEFAULT_NOTIF_SETTINGS));
     }
-    const dismissed = localStorage.getItem("hades_notice_dismissed") === "1";
+
     const permission = Notification.permission;
+    const dismissed = localStorage.getItem("hades_notice_dismissed") === "1";
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
     if (permission === "granted") {
       setNoticeState("hidden");
       return;
     }
+
     if (permission === "denied") {
-      setNoticeState(dismissed ? "hidden" : "denied");
+      setNoticeState(dismissed && !isStandalone ? "hidden" : "denied");
       return;
     }
-    setNoticeState(dismissed ? "hidden" : "default");
+
+    setNoticeState(dismissed && !isStandalone ? "hidden" : "default");
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+
+    evaluateNoticeState();
+
+    const refreshNoticeState = () => evaluateNoticeState();
+    window.addEventListener("focus", refreshNoticeState);
+    window.addEventListener("pageshow", refreshNoticeState);
+    document.addEventListener("visibilitychange", refreshNoticeState);
+
+    return () => {
+      window.removeEventListener("focus", refreshNoticeState);
+      window.removeEventListener("pageshow", refreshNoticeState);
+      document.removeEventListener("visibilitychange", refreshNoticeState);
+    };
+  }, [evaluateNoticeState]);
 
   const hideNotice = useCallback(() => {
     localStorage.setItem("hades_notice_dismissed", "1");
@@ -82,7 +107,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const next = { ...current, master: true };
+      const next = { ...current, master: true, liveBroadcast: true, newVote: true, newYoutube: true };
+      localStorage.setItem("hades_push_granted_at", String(Date.now()));
       localStorage.setItem("hades_notif_settings", JSON.stringify(next));
       window.dispatchEvent(new Event("hades_prefs_changed"));
 
