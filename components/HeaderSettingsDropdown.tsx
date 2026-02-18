@@ -138,7 +138,14 @@ export default function HeaderSettingsDropdown({ isOpen, onClose, anchorRef }: P
           setPermissionState("granted");
           window.dispatchEvent(new Event("hades_prefs_changed"));
         } else if ("Notification" in window) {
-          setPermissionState(Notification.permission);
+          const currentPermission = Notification.permission;
+          setPermissionState(currentPermission);
+          if (currentPermission === "denied") {
+            const next = { ...notif, master: false, liveBroadcast: false, newVote: false, newYoutube: false };
+            setNotif(next);
+            localStorage.setItem("hades_notif_settings", JSON.stringify(next));
+            window.dispatchEvent(new Event("hades_prefs_changed"));
+          }
         }
       } finally {
         setIsActivating(false);
@@ -193,7 +200,7 @@ export default function HeaderSettingsDropdown({ isOpen, onClose, anchorRef }: P
           <Toggle
             active={notif.master}
             onToggle={toggleMaster}
-            disabled={isActivating || permissionState === "denied"}
+            disabled={isActivating}
           />
         </div>
         {notif.master && (
