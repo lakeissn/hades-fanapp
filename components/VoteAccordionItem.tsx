@@ -19,6 +19,7 @@ const PLATFORM_LABELS: Record<string, string> = {
   mnetplus: "엠넷플러스",
   fannstar: "팬앤스타",
   higher: "하이어",
+  ktopstar: "K탑스타",
 };
 
 function parseKstDate(value?: string) {
