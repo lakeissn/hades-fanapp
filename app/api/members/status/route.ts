@@ -809,6 +809,7 @@ export async function GET() {
         "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
       },
     });
+  }
 
   const nowIso = new Date().toISOString();
 
