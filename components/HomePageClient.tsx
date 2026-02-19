@@ -300,8 +300,9 @@ export default function HomePageClient({ initialMembers, initialVotes }: { initi
       }
     };
 
-    // SSR에서 초기 데이터를 받았으면 즉시 재요청을 생략하고 주기 폴링부터 시작
-    if (initialMembers.length === 0) {
+    // SSR 초기값에 라이브 태그가 비어있으면 즉시 한 번 더 재요청해서 태그를 보강
+    const hasLiveWithTags = initialMembers.some((member) => member.isLive && (member.tags?.length ?? 0) > 0);
+    if (initialMembers.length === 0 || !hasLiveWithTags) {
       setIsLoading(true);
       f();
     }
