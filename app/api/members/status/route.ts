@@ -340,6 +340,14 @@ function collectTagCandidates(raw: unknown): string[] {
   return out;
 }
 
+function pickFirstNormalizedTag(raw: unknown): string | null {
+  for (const candidate of collectTagCandidates(raw)) {
+    const normalized = normalizeTag(candidate);
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
 function extractJsonStringArray(html: string, key: string): string[] {
   const pattern = new RegExp(`"${key}"\\s*:\\s*\\[(.*?)\\]`, "gs");
   const out: string[] = [];
@@ -475,6 +483,37 @@ function prioritizeTags(rawTags: string[]): string[] {
 }
 
 function collectTagsFromStation(source: JsonObject): string[] {
+    const primaryCategory = pickFirstNormalizedTag(
+    pickByPaths(source, [
+      ["station", "category_tags"],
+      ["channel", "category_tags"],
+      ["broad", "category_tags"],
+      ["category_tags"],
+      ["station", "CATEGORY_TAGS"],
+      ["channel", "CATEGORY_TAGS"],
+      ["broad", "CATEGORY_TAGS"],
+      ["CATEGORY_TAGS"],
+    ])
+  ) ??
+    normalizeTag(
+      toNonEmptyString(
+        pickByPaths(source, [
+          ["station", "broad_cate_name"],
+          ["channel", "broad_cate_name"],
+          ["broad", "broad_cate_name"],
+          ["station", "cate_name"],
+          ["channel", "cate_name"],
+          ["broad", "cate_name"],
+          ["broad_cate_name"],
+          ["cate_name"],
+        ])
+      ) ?? ""
+    );
+
+  if (primaryCategory) {
+    return [primaryCategory];
+  }
+
   const values = new Set<string>();
 
   const stringTagPaths: string[][] = [
@@ -536,7 +575,7 @@ function collectTagsFromStation(source: JsonObject): string[] {
 
   const fallback: string[] = [];
 
-  const primaryCategory = toNonEmptyString(
+  const fallbackPrimaryCategory = toNonEmptyString(
     pickByPaths(source, [
       ["station", "broad_cate_name"],
       ["channel", "broad_cate_name"],
@@ -548,7 +587,7 @@ function collectTagsFromStation(source: JsonObject): string[] {
       ["cate_name"],
     ])
   );
-  if (primaryCategory) fallback.push(primaryCategory);
+  if (fallbackPrimaryCategory) fallback.push(fallbackPrimaryCategory);
 
   const language = toNonEmptyString(
     pickByPaths(source, [
@@ -651,11 +690,14 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
 
       const tags: string[] = [];
 
-      // [FIX] CATEGORY_TAGS 파싱 추가
-      const categoryTags = json.CHANNEL?.CATEGORY_TAGS;
-      for (const token of collectTagCandidates(categoryTags)) {
-        const n = normalizeTag(token);
-        if (n) tags.push(n);
+      const categoryTag = pickFirstNormalizedTag(json.CHANNEL?.CATEGORY_TAGS);
+      if (categoryTag) {
+        return [categoryTag];
+      }
+
+      const cateName = normalizeTag(json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE ?? "");
+      if (cateName) {
+        return [cateName];
       }
 
       const csv = json.CHANNEL?.TAG;
@@ -683,11 +725,6 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
       for (const token of collectTagCandidates(afTags)) {
         const n = normalizeTag(token);
         if (n) tags.push(n);
-      }
-
-      const cateName = json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE;
-      if (typeof cateName === "string") {
-        tags.push(cateName);
       }
 
       const out = prioritizeTags(tags);
@@ -915,21 +952,13 @@ export async function GET() {
         const broadNoFromUrl = extractBroadNoFromLiveUrl(station.liveUrl);
         const liveImgThumb = buildLiveImageUrl(broadNoFromUrl);
 
-        // 2) 태그: 제목 > player_live_api > 플레이 페이지 HTML > station 순으로 병합
+        // 2) 태그: 카테고리 태그를 최우선으로 단일 노출
         const titleTags = extractTagsFromTitle(station.title);
         const playerTags = await fetchPlayerLiveTags(member.id, broadNoFromUrl);
         const playPageTags = playerTags.length > 0
           ? []
           : await fetchPlayPageTags(member.id, broadNoFromUrl);
-                const mergedTags = prioritizeTags(
-          mergeTags(titleTags, mergeTags(playerTags, mergeTags(playPageTags, station.tags)))
-        );
-        const primaryCategoryTag = normalizeTag(station.tags[0] ?? null);
-        const tags = primaryCategoryTag
-          ? [primaryCategoryTag]
-          : mergedTags.length > 0
-            ? [mergedTags[0]]
-            : [];
+        const tags = mergeTags(playerTags, mergeTags(station.tags, mergeTags(playPageTags, titleTags))).slice(0, 1);
 
         return {
           ...member,
