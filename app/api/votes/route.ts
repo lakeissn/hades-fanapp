@@ -15,6 +15,7 @@ type VotePlatform =
   | "mnetplus"
   | "fannstar"
   | "higher";
+  | "ktopstar";
 
 type VoteRow = {
   enabled: string;
@@ -57,6 +58,7 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
   mnetplus: "엠넷플러스",
   fannstar: "팬앤스타",
   higher: "하이어",
+  higher: "K탑스타",
 };
 
 const CACHE_TTL_MS = 5 * 60_000;
