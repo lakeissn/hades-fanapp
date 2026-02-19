@@ -837,6 +837,12 @@ function extractTagsFromTitle(title: string | null): string[] {
     if (n) tags.push(n);
   }
 
+    const hashMatches = title.match(/#[^#\s,|/]{1,30}/g) ?? [];
+  for (const token of hashMatches) {
+    const n = normalizeTag(token);
+    if (n) tags.push(n);
+  }
+
   return Array.from(new Set(tags)).slice(0, 3);
 }
 
