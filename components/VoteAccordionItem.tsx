@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
+import { parseKstDate } from "@/lib/parseKstDate";
 import { VoteItem } from "./VotesAccordion";
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -21,22 +22,6 @@ const PLATFORM_LABELS: Record<string, string> = {
   higher: "하이어",
   ktopstar: "K탑스타",
 };
-
-function parseKstDate(value?: string) {
-  if (!value) return null;
-  const raw = value.trim();
-  if (!raw) return null;
-  const direct = new Date(raw);
-  if (!Number.isNaN(direct.getTime())) return direct;
-  const normalized = raw.replace(/\./g, "-").replace(/\//g, "-").replace(/\s+/g, " ").trim();
-  const withSeconds = /\d{2}:\d{2}:\d{2}$/.test(normalized)
-    ? normalized
-    : /\d{2}:\d{2}$/.test(normalized)
-      ? `${normalized}:00`
-      : `${normalized} 00:00:00`;
-  const parsed = new Date(`${withSeconds.replace(" ", "T")}+09:00`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
 
 function isInProgressKeyword(value?: string) {
   return Boolean(value && value.replace(/\s+/g, "") === "진행중");
