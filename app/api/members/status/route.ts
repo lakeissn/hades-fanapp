@@ -850,33 +850,6 @@ async function fetchStationStatus(userId: string): Promise<StationLiveFields> {
   }
 }
 
-/**
- * [FIX] 방송 제목에서 태그를 추출하는 최후 fallback
- * 예: "[하데스] 주술회전 처음 보는 눈!!" → ["하데스"]
- * 대괄호 안의 텍스트를 그로 사용
- */
-function extractTagsFromTitle(title: string | null): string[] {
-  if (!title) return [];
-  const tags: string[] = [];
-
-  // [대괄호] 안의 텍스트를 태그로 추출
-  const bracketMatches = title.matchAll(/\[([^\]]{1,20})\]/g);
-  for (const match of bracketMatches) {
-    const content = match[1]?.trim();
-    if (!content) continue;
-    const n = normalizeTag(content);
-    if (n) tags.push(n);
-  }
-
-  const hashMatches = title.match(/#[^#\s,|/]{1,30}/g) ?? [];
-  for (const token of hashMatches) {
-    const n = normalizeTag(token);
-    if (n) tags.push(n);
-  }
-
-  return Array.from(new Set(tags)).slice(0, 4);
-}
-
 function buildOfflineStatuses(nowIso: string): MemberStatus[] {
   return members.map((member) => ({
     ...member,
@@ -915,14 +888,13 @@ export async function GET() {
         const broadNoFromUrl = extractBroadNoFromLiveUrl(station.liveUrl);
         const liveImgThumb = buildLiveImageUrl(broadNoFromUrl);
 
-        // 2) 태그: 제목 > player_live_api > 플레이 페이지 HTML > station 순으로 병합
-        const titleTags = extractTagsFromTitle(station.title);
+        // 2) 태그: player_live_api > 플레이 페이지 HTML > station 순으로 병합
         const playerTags = await fetchPlayerLiveTags(member.id, broadNoFromUrl);
         const playPageTags = playerTags.length > 0
           ? []
           : await fetchPlayPageTags(member.id, broadNoFromUrl);
         const tags = prioritizeTags(
-          mergeTags(titleTags, mergeTags(playerTags, mergeTags(playPageTags, station.tags)))
+          mergeTags(playerTags, mergeTags(playPageTags, station.tags))
         );
 
         return {
