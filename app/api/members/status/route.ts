@@ -80,7 +80,7 @@ type PlayerLiveApiResponse = {
     TITLE?: string;
     CATE_NAME?: string;
     BROAD_CATE?: string;
-    TAG?: string; // "봉준,무수,하데스,보라,종겜" 같이 올 수 있음
+    TAG?: string; // "봉,무수,하데스,보라,종겜" 같이 올 수 있음
     HASH_TAGS?: string[]; // ["버추얼","노래","하데스"] 같이 올 수 있음
     CATEGORY_TAGS?: string[]; // ["VRChat"] 같이 카테고리 태그
     AUTO_HASHTAGS?: string[]; // 자동 생성 해시태그
@@ -287,6 +287,31 @@ function pushTagsFromFreeText(set: Set<string>, raw: unknown) {
     });
 }
 
+function collectTagCandidates(raw: unknown): string[] {
+  if (typeof raw === "string") {
+    return raw
+      .split(/[|,]/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+
+  if (Array.isArray(raw)) {
+    return raw.flatMap((item) => collectTagCandidates(item));
+  }
+
+  const obj = asObject(raw);
+  if (!obj) return [];
+
+  const out: string[] = [];
+  const knownTagKeys = ["af_tag", "tag", "name", "label", "value", "text"];
+  for (const key of knownTagKeys) {
+    if (!(key in obj)) continue;
+    out.push(...collectTagCandidates(obj[key]));
+  }
+
+  return out;
+}
+
 function extractJsonStringArray(html: string, key: string): string[] {
   const pattern = new RegExp(`"${key}"\\s*:\\s*\\[(.*?)\\]`, "gs");
   const out: string[] = [];
@@ -308,7 +333,6 @@ function extractJsonStringArray(html: string, key: string): string[] {
 
   return out;
 }
-
 
 function decodeHtmlEntities(raw: string): string {
   return raw
@@ -470,13 +494,9 @@ function collectTagsFromStation(source: JsonObject): string[] {
 
   for (const path of arrayTagPaths) {
     const candidate = pickByPaths(source, [path]);
-    if (!Array.isArray(candidate)) continue;
-
-    for (const item of candidate) {
-      if (typeof item === "string") {
-        const n = normalizeTag(item);
-        if (n) values.add(n);
-      }
+    for (const token of collectTagCandidates(candidate)) {
+      const n = normalizeTag(token);
+      if (n) values.add(n);
     }
   }
 
@@ -575,11 +595,9 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
 
       // [FIX] CATEGORY_TAGS 파싱 추가
       const categoryTags = json.CHANNEL?.CATEGORY_TAGS;
-      if (Array.isArray(categoryTags)) {
-        categoryTags.forEach((t) => {
-          const n = normalizeTag(String(t));
-          if (n) tags.push(n);
-        });
+      for (const token of collectTagCandidates(categoryTags)) {
+        const n = normalizeTag(token);
+        if (n) tags.push(n);
       }
 
       const csv = json.CHANNEL?.TAG;
@@ -591,20 +609,16 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
       }
 
       const hash = json.CHANNEL?.HASH_TAGS;
-      if (Array.isArray(hash)) {
-        hash.forEach((t) => {
-          const n = normalizeTag(String(t));
-          if (n) tags.push(n);
-        });
+      for (const token of collectTagCandidates(hash)) {
+        const n = normalizeTag(token);
+        if (n) tags.push(n);
       }
 
       // [FIX] AUTO_HASHTAGS 파싱 추가
       const autoHash = json.CHANNEL?.AUTO_HASHTAGS;
-      if (Array.isArray(autoHash)) {
-        autoHash.forEach((t) => {
-          const n = normalizeTag(String(t));
-          if (n) tags.push(n);
-        });
+      for (const token of collectTagCandidates(autoHash)) {
+        const n = normalizeTag(token);
+        if (n) tags.push(n);
       }
 
       const out = Array.from(new Set(tags)).slice(0, 7);
@@ -770,7 +784,7 @@ async function fetchStationStatus(userId: string): Promise<StationLiveFields> {
 /**
  * [FIX] 방송 제목에서 태그를 추출하는 최후 fallback
  * 예: "[하데스] 주술회전 처음 보는 눈!!" → ["하데스"]
- * 대괄호 안의 텍스트를 태그로 사용
+ * 대괄호 안의 텍스트를 그로 사용
  */
 function extractTagsFromTitle(title: string | null): string[] {
   if (!title) return [];
@@ -804,7 +818,11 @@ function buildOfflineStatuses(nowIso: string): MemberStatus[] {
 export async function GET() {
   const now = Date.now();
   if (cached && cached.expiresAt > now) {
-    return NextResponse.json(cached.data);
+    return NextResponse.json(cached.data, {
+      headers: {
+        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+      },
+    });
   }
 
   const nowIso = new Date().toISOString();
@@ -850,7 +868,11 @@ export async function GET() {
       expiresAt: now + CACHE_TTL_MS,
     };
 
-    return NextResponse.json(statuses);
+    return NextResponse.json(statuses, {
+      headers: {
+        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+      },
+    });
   } catch (error) {
     console.error("[members/status] unexpected error:", error);
 
@@ -860,6 +882,10 @@ export async function GET() {
       expiresAt: now + CACHE_TTL_MS,
     };
 
-    return NextResponse.json(fallback);
+    return NextResponse.json(fallback, {
+      headers: {
+        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+      },
+    });
   }
 }
