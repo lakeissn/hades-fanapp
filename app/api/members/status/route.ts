@@ -874,7 +874,7 @@ function extractTagsFromTitle(title: string | null): string[] {
     if (n) tags.push(n);
   }
 
-  return Array.from(new Set(tags)).slice(0, 3);
+  return Array.from(new Set(tags)).slice(0, 4);
 }
 
 function buildOfflineStatuses(nowIso: string): MemberStatus[] {
