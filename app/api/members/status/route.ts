@@ -282,43 +282,14 @@ function mergeTags(primary: string[], secondary: string[]): string[] {
   return Array.from(set).slice(0, 7);
 }
 
-function filterTitleDerivedTags(rawTags: string[], title: string | null): string[] {
-  if (!title) return rawTags;
-
-  const normalizedTitle = title
-    .toLowerCase()
-    .replace(/&amp;/g, "&")
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, "")
-    .replace(/[!！.,·\-_/|:;~`"'()\[\]{}]+/g, "")
-    .trim();
-
-  return rawTags.filter((tag) => {
-    const normalizedTag = tag
-      .toLowerCase()
-      .replace(/&amp;/g, "&")
-      .replace(/&#39;/g, "'")
-      .replace(/&quot;/g, '"')
-      .replace(/\s+/g, "")
-      .replace(/[!！.,·\-_/|:;~`"'()\[\]{}]+/g, "")
-      .trim();
-
-    if (!normalizedTag) return false;
-    if (normalizedTag === normalizedTitle) return false;
-
-    const hasHangul = /[가-힣]/.test(tag);
-    const words = tag.split(/\s+/).filter(Boolean).length;
-
-    // 방송 제목에 포함된 긴 문장형 태그(한글)를 제거
-    if (hasHangul && words >= 3 && tag.length >= 10 && title.includes(tag)) return false;
-
-    // 제목 정규화 문자열에 거의 그대로 포함되는 긴 한글 토큰 제거
-    if (hasHangul && normalizedTag.length >= 8 && normalizedTitle.includes(normalizedTag)) return false;
-
-    return true;
-  });
+function normalizeCompactTag(raw: string): string | null {
+  const n = normalizeTag(raw);
+  if (!n) return null;
+  // 해시태그/별칭성 태그만 허용 (문장형 공백 태그 제외)
+  if (/\s/.test(n)) return null;
+  return n;
 }
+
 
 function pushTag(set: Set<string>, raw: unknown) {
   if (typeof raw !== "string") return;
@@ -719,48 +690,60 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
       const result = json.CHANNEL?.RESULT ?? json.RESULT;
       if (result === 0 || result === "0") continue;
 
-      const tags: string[] = [];
+      const category = typeof (json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE) === "string"
+        ? (json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE) as string
+        : null;
 
-      // [FIX] CATEGORY_TAGS 파싱 추가
-      const categoryTags = json.CHANNEL?.CATEGORY_TAGS;
-      for (const token of collectTagCandidates(categoryTags)) {
-        const n = normalizeTag(token);
-        if (n) tags.push(n);
-      }
-
+      const csvTags: string[] = [];
       const csv = json.CHANNEL?.TAG;
       if (typeof csv === "string" && csv.trim()) {
         csv.split(",").forEach((t) => {
-          const n = normalizeTag(t);
-          if (n) tags.push(n);
+          const n = normalizeCompactTag(t);
+          if (n) csvTags.push(n);
         });
+      }
+
+      const extraTags: string[] = [];
+
+      const categoryTags = json.CHANNEL?.CATEGORY_TAGS;
+      for (const token of collectTagCandidates(categoryTags)) {
+        const n = normalizeCompactTag(token);
+        if (n) extraTags.push(n);
       }
 
       const hash = json.CHANNEL?.HASH_TAGS;
       for (const token of collectTagCandidates(hash)) {
-        const n = normalizeTag(token);
-        if (n) tags.push(n);
+        const n = normalizeCompactTag(token);
+        if (n) extraTags.push(n);
       }
 
-      // [FIX] AUTO_HASHTAGS 파싱 추가
       const autoHash = json.CHANNEL?.AUTO_HASHTAGS;
       for (const token of collectTagCandidates(autoHash)) {
-        const n = normalizeTag(token);
-        if (n) tags.push(n);
+        const n = normalizeCompactTag(token);
+        if (n) extraTags.push(n);
       }
 
       const afTags = json.CHANNEL?.AF_TAGS;
       for (const token of collectTagCandidates(afTags)) {
-        const n = normalizeTag(token);
-        if (n) tags.push(n);
+        const n = normalizeCompactTag(token);
+        if (n) extraTags.push(n);
       }
 
-      const cateName = json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE;
-      if (typeof cateName === "string") {
-        tags.push(cateName);
+      const categoryTag = category ? normalizeTag(category) : null;
+
+      // TAG(csv) 우선: 실제 방송 해시태그 순서를 유지하고, 카테고리는 항상 1순위로 배치
+      if (csvTags.length > 0) {
+        const ordered = categoryTag
+          ? [categoryTag, ...csvTags, ...extraTags]
+          : [...csvTags, ...extraTags];
+        const out = prioritizeTags(ordered);
+        if (out.length > 0) return out;
       }
 
-      const out = prioritizeTags(tags);
+      const fallbackOrdered = categoryTag
+        ? [categoryTag, ...extraTags]
+        : [...extraTags];
+      const out = prioritizeTags(fallbackOrdered);
       if (out.length > 0) return out;
     } catch {
       // ignore and try next payload
@@ -963,8 +946,9 @@ export async function GET() {
         const playPageTags = playerTags.length > 0
           ? []
           : await fetchPlayPageTags(member.id, broadNoFromUrl);
-        const mergedTags = mergeTags(playerTags, mergeTags(playPageTags, station.tags));
-        const tags = prioritizeTags(filterTitleDerivedTags(mergedTags, station.title));
+        const tags = prioritizeTags(
+          mergeTags(playerTags, mergeTags(playPageTags, station.tags))
+        );
 
         return {
           ...member,
