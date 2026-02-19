@@ -39,7 +39,7 @@ function getBaseUrl() {
 async function loadMembers(baseUrl: string): Promise<MemberStatus[]> {
   try {
     const res = await fetch(`${baseUrl}/api/members/status`, {
-      next: { revalidate: 20 },
+      cache: "no-store",
     });
     if (!res.ok) return [];
     const data = await res.json();
