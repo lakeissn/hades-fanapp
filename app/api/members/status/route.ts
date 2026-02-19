@@ -264,6 +264,12 @@ function normalizeTag(raw: string): string | null {
   if (BLOCKED_TAG_PATTERNS.some((pattern) => pattern.test(normalizedSentence))) return null;
   if (/^\d+$/.test(cleaned)) return null;
   if (cleaned.length > 30) return null;
+
+  // 방송 제목 문장성 텍스트가 태그로 들어오는 케이스 차단
+  const hasHangul = /[가-힣]/.test(cleaned);
+  const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+  if (hasHangul && wordCount >= 3 && cleaned.length >= 12) return null;
+
   return cleaned;
 }
 
@@ -274,6 +280,44 @@ function mergeTags(primary: string[], secondary: string[]): string[] {
     if (n) set.add(n);
   }
   return Array.from(set).slice(0, 7);
+}
+
+function filterTitleDerivedTags(rawTags: string[], title: string | null): string[] {
+  if (!title) return rawTags;
+
+  const normalizedTitle = title
+    .toLowerCase()
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, "")
+    .replace(/[!！.,·\-_/|:;~`"'()\[\]{}]+/g, "")
+    .trim();
+
+  return rawTags.filter((tag) => {
+    const normalizedTag = tag
+      .toLowerCase()
+      .replace(/&amp;/g, "&")
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, "")
+      .replace(/[!！.,·\-_/|:;~`"'()\[\]{}]+/g, "")
+      .trim();
+
+    if (!normalizedTag) return false;
+    if (normalizedTag === normalizedTitle) return false;
+
+    const hasHangul = /[가-힣]/.test(tag);
+    const words = tag.split(/\s+/).filter(Boolean).length;
+
+    // 방송 제목에 포함된 긴 문장형 태그(한글)를 제거
+    if (hasHangul && words >= 3 && tag.length >= 10 && title.includes(tag)) return false;
+
+    // 제목 정규화 문자열에 거의 그대로 포함되는 긴 한글 토큰 제거
+    if (hasHangul && normalizedTag.length >= 8 && normalizedTitle.includes(normalizedTag)) return false;
+
+    return true;
+  });
 }
 
 function pushTag(set: Set<string>, raw: unknown) {
@@ -389,6 +433,36 @@ function extractTagsFromHashtagWrap(html: string): string[] {
   return Array.from(new Set(tags)).slice(0, 7);
 }
 
+function extractHashTagsFromRawHtml(html: string): string[] {
+  const tags: string[] = [];
+
+  const inlineHashMatches = html.match(/#[^#\s,|/"'<>]{1,30}/g) ?? [];
+  for (const token of inlineHashMatches) {
+    const n = normalizeTag(token);
+    if (n) tags.push(n);
+  }
+
+  const encodedHashMatches = html.match(/(?:hashtag|hashTag|hash_tag)[=:"]+([^"&\s<>{}]{1,80})/gi) ?? [];
+  for (const raw of encodedHashMatches) {
+    const m = raw.match(/(?:hashtag|hashTag|hash_tag)[=:"]+([^"&\s<>{}]{1,80})/i);
+    const value = m?.[1];
+    if (!value) continue;
+    try {
+      const decoded = decodeURIComponent(value.replace(/\+/g, "%20"));
+      const parsed = new Set<string>();
+      pushTagsFromFreeText(parsed, decoded);
+      for (const item of parsed) tags.push(item);
+      const n = normalizeTag(decoded);
+      if (n) tags.push(n);
+    } catch {
+      const n = normalizeTag(value);
+      if (n) tags.push(n);
+    }
+  }
+
+  return Array.from(new Set(tags)).slice(0, 7);
+}
+
 function extractMetaContent(html: string, key: string): string[] {
   const pattern = new RegExp(
     `<meta[^>]+(?:name|property)=["']${key}["'][^>]*content=["']([^"']+)["'][^>]*>`,
@@ -423,11 +497,13 @@ async function fetchPlayPageTags(userId: string, broadNo: string | null): Promis
         return htmlTags;
       }
 
+      const rawHashTags = extractHashTagsFromRawHtml(html);
+      if (rawHashTags.length > 0) {
+        return rawHashTags;
+      }
+
       for (const content of [
         ...extractMetaContent(html, "keywords"),
-        ...extractMetaContent(html, "description"),
-        ...extractMetaContent(html, "og:description"),
-        ...extractMetaContent(html, "og:title"),
       ]) {
         pushTagsFromFreeText(values, content);
       }
@@ -437,12 +513,6 @@ async function fetchPlayPageTags(userId: string, broadNo: string | null): Promis
         for (const item of extractJsonStringArray(html, key)) {
           pushTagsFromFreeText(values, item);
         }
-      }
-
-      const tagLikeStrings = html.match(/"(?:hashTag|hash_tag|tag|tags)"\s*:\s*"([^"\n\r]{1,300})"/g) ?? [];
-      for (const raw of tagLikeStrings) {
-        const m = raw.match(/:\s*"([^"\n\r]{1,300})"/);
-        if (m?.[1]) pushTagsFromFreeText(values, m[1]);
       }
 
       const out = Array.from(values).slice(0, 7);
@@ -893,7 +963,8 @@ export async function GET() {
         const playPageTags = playerTags.length > 0
           ? []
           : await fetchPlayPageTags(member.id, broadNoFromUrl);
-        const tags = prioritizeTags(mergeTags(playerTags, mergeTags(playPageTags, station.tags)));
+        const mergedTags = mergeTags(playerTags, mergeTags(playPageTags, station.tags));
+        const tags = prioritizeTags(filterTitleDerivedTags(mergedTags, station.title));
 
         return {
           ...member,
