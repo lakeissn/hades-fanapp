@@ -921,9 +921,15 @@ export async function GET() {
         const playPageTags = playerTags.length > 0
           ? []
           : await fetchPlayPageTags(member.id, broadNoFromUrl);
-        const tags = prioritizeTags(
+                const mergedTags = prioritizeTags(
           mergeTags(titleTags, mergeTags(playerTags, mergeTags(playPageTags, station.tags)))
         );
+        const primaryCategoryTag = normalizeTag(station.tags[0] ?? null);
+        const tags = primaryCategoryTag
+          ? [primaryCategoryTag]
+          : mergedTags.length > 0
+            ? [mergedTags[0]]
+            : [];
 
         return {
           ...member,
