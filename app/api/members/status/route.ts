@@ -81,9 +81,10 @@ type PlayerLiveApiResponse = {
     CATE_NAME?: string;
     BROAD_CATE?: string;
     TAG?: string; // "봉,무수,하데스,보라,종겜" 같이 올 수 있음
-    HASH_TAGS?: string[]; // ["버추얼","노래","하데스"] 같이 올 수 있음
-    CATEGORY_TAGS?: string[]; // ["VRChat"] 같이 카테고리 태그
-    AUTO_HASHTAGS?: string[]; // 자동 생성 해시태그
+    HASH_TAGS?: unknown; // ["버추얼","노래","하데스"] 같이 올 수 있음
+    CATEGORY_TAGS?: unknown; // ["VRChat"] 같이 카테고리 태그
+    AUTO_HASHTAGS?: unknown; // 자동 생성 해시태그
+    AF_TAGS?: unknown; // [{ af_tag, af_score }] 형태 포함 가능
   };
 };
 
@@ -303,10 +304,18 @@ function collectTagCandidates(raw: unknown): string[] {
   if (!obj) return [];
 
   const out: string[] = [];
-  const knownTagKeys = ["af_tag", "tag", "name", "label", "value", "text"];
+  const knownTagKeys = ["af_tag", "afTag", "tag", "name", "label", "value", "text", "keyword"];
   for (const key of knownTagKeys) {
     if (!(key in obj)) continue;
     out.push(...collectTagCandidates(obj[key]));
+  }
+
+  // 응답 형태가 바뀌더라도 tag가 포함된 key면 최대한 수집
+  for (const [key, value] of Object.entries(obj)) {
+    const lower = key.toLowerCase();
+    if (!lower.includes("tag")) continue;
+    if (knownTagKeys.includes(key)) continue;
+    out.push(...collectTagCandidates(value));
   }
 
   return out;
@@ -474,12 +483,16 @@ function collectTagsFromStation(source: JsonObject): string[] {
     ["station", "tag_list"],
     ["station", "category_tags"],
     ["station", "auto_hashtags"],
+    ["station", "af_tags"],
+    ["station", "AF_TAGS"],
     ["channel", "hash_tags"],
     ["channel", "tag_list"],
     ["channel", "category_tags"],
     ["channel", "auto_hashtags"],
     ["channel", "CATEGORY_TAGS"],
     ["channel", "AUTO_HASHTAGS"],
+    ["channel", "af_tags"],
+    ["channel", "AF_TAGS"],
     ["broad", "hash_tags"],
     ["broad", "tag_list"],
     ["broad", "category_tags"],
@@ -488,6 +501,8 @@ function collectTagsFromStation(source: JsonObject): string[] {
     ["tag_list"],
     ["category_tags"],
     ["auto_hashtags"],
+    ["af_tags"],
+    ["AF_TAGS"],
     ["CATEGORY_TAGS"],
     ["AUTO_HASHTAGS"],
   ];
@@ -617,6 +632,12 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
       // [FIX] AUTO_HASHTAGS 파싱 추가
       const autoHash = json.CHANNEL?.AUTO_HASHTAGS;
       for (const token of collectTagCandidates(autoHash)) {
+        const n = normalizeTag(token);
+        if (n) tags.push(n);
+      }
+
+      const afTags = json.CHANNEL?.AF_TAGS;
+      for (const token of collectTagCandidates(afTags)) {
         const n = normalizeTag(token);
         if (n) tags.push(n);
       }
