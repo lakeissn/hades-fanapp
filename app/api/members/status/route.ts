@@ -370,6 +370,14 @@ function extractTagsFromHashtagWrap(html: string): string[] {
   return Array.from(new Set(tags)).slice(0, 7);
 }
 
+function extractMetaContent(html: string, key: string): string[] {
+  const pattern = new RegExp(
+    `<meta[^>]+(?:name|property)=["']${key}["'][^>]*content=["']([^"']+)["'][^>]*>`,
+    "gi"
+  );
+  return Array.from(html.matchAll(pattern)).map((m) => decodeHtmlEntities((m[1] ?? "").trim())).filter(Boolean);
+}
+
 async function fetchPlayPageTags(userId: string, broadNo: string | null): Promise<string[]> {
   const urls = [
     broadNo ? `https://play.sooplive.co.kr/${userId}/${broadNo}` : null,
@@ -394,6 +402,15 @@ async function fetchPlayPageTags(userId: string, broadNo: string | null): Promis
       const htmlTags = extractTagsFromHashtagWrap(html);
       if (htmlTags.length > 0) {
         return htmlTags;
+      }
+      
+      for (const content of [
+        ...extractMetaContent(html, "keywords"),
+        ...extractMetaContent(html, "description"),
+        ...extractMetaContent(html, "og:description"),
+        ...extractMetaContent(html, "og:title"),
+      ]) {
+        pushTagsFromFreeText(values, content);
       }
 
       const tagArrayKeys = ["hashTags", "hash_tags", "tags", "tag_list", "HASH_TAGS", "CATEGORY_TAGS", "AUTO_HASHTAGS", "category_tags", "auto_hashtags"];
