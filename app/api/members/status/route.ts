@@ -804,8 +804,11 @@ function buildOfflineStatuses(nowIso: string): MemberStatus[] {
 export async function GET() {
   const now = Date.now();
   if (cached && cached.expiresAt > now) {
-    return NextResponse.json(cached.data);
-  }
+    return NextResponse.json(cached.data, {
+      headers: {
+        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+      },
+    });
 
   const nowIso = new Date().toISOString();
 
@@ -850,7 +853,11 @@ export async function GET() {
       expiresAt: now + CACHE_TTL_MS,
     };
 
-    return NextResponse.json(statuses);
+    return NextResponse.json(statuses, {
+      headers: {
+        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+      },
+    });
   } catch (error) {
     console.error("[members/status] unexpected error:", error);
 
@@ -860,6 +867,10 @@ export async function GET() {
       expiresAt: now + CACHE_TTL_MS,
     };
 
-    return NextResponse.json(fallback);
+    return NextResponse.json(fallback, {
+      headers: {
+        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+      },
+    });
   }
 }
