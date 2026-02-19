@@ -143,10 +143,22 @@ function LiveGridDrag({ children }: { children: React.ReactNode }) {
   const scrollByCard = useCallback((dir: "prev" | "next") => {
     const el = viewportRef.current;
     if (!el) return;
-    const amount = Math.max(280, Math.round(el.clientWidth * 0.8));
-    const delta = dir === "next" ? amount : -amount;
-    el.scrollBy({ left: delta, behavior: "smooth" });
+    
+    const gridEl = el.querySelector<HTMLElement>(":scope > .live-grid");
+    const firstCard = gridEl?.querySelector<HTMLElement>(":scope > *") ?? null;
+    const gap = gridEl ? Number.parseFloat(getComputedStyle(gridEl).columnGap || "0") || 0 : 0;
+    const fallbackAmount = Math.max(280, Math.round(el.clientWidth * 0.8));
+    const cardStep = firstCard ? Math.round(firstCard.getBoundingClientRect().width + gap) : fallbackAmount;
+    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+    const target = dir === "next"
+      ? Math.min(maxScroll, el.scrollLeft + cardStep)
+      : Math.max(0, el.scrollLeft - cardStep);
+
+    el.scrollTo({ left: target, behavior: "smooth" });
+
+    // Safari PWA 환경에서 smooth scroll 종료 후 상태 갱신이 늦는 경우를 대비해 재확인
     requestAnimationFrame(updateScrollButtons);
+    window.setTimeout(updateScrollButtons, 240);
   }, [updateScrollButtons]);
 
   return (
