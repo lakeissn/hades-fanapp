@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { parseKstDate } from "@/lib/parseKstDate";
 
 type VotePlatform =
   | "idolchamp"
@@ -63,7 +64,6 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
 
 const CACHE_TTL_MS = 5 * 60_000;
 const REQUEST_TIMEOUT_MS = 4_500;
-const KST_SUFFIX = "+09:00";
 
 let memoryCache:
   | {
@@ -117,31 +117,7 @@ function parseDateKst(rawValue: string | undefined) {
   if (!rawValue) return null;
   const value = rawValue.trim();
   if (!value || isInProgressKeyword(value)) return null;
-
-  const direct = new Date(value);
-  if (!Number.isNaN(direct.getTime())) {
-    return direct;
-  }
-
-  const normalized = value
-    .replace(/\./g, "-")
-    .replace(/\//g, "-")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const withSeconds = /\d{2}:\d{2}:\d{2}$/.test(normalized)
-    ? normalized
-    : /\d{2}:\d{2}$/.test(normalized)
-      ? `${normalized}:00`
-      : `${normalized} 00:00:00`;
-
-  const isoLike = withSeconds.replace(" ", "T");
-  const kstDate = new Date(`${isoLike}${KST_SUFFIX}`);
-  if (!Number.isNaN(kstDate.getTime())) {
-    return kstDate;
-  }
-
-  return null;
+  return parseKstDate(value);
 }
 
 function isExpired(closesAt: string) {
