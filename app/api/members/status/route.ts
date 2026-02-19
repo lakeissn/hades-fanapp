@@ -51,7 +51,6 @@ type MemberStatus = {
   liveStartedAt: string | null;
   tags: string[];
   fetchedAt: string;
-  hash_tags: string[];
 };
 
 type JsonObject = Record<string, unknown>;
