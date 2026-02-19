@@ -39,6 +39,28 @@ const officialLinks = [
   { id: "x", label: "X", href: "https://x.com/hades_offi", iconSrc: "https://cdn.simpleicons.org/x/000000", iconSrcDark: "https://upload.wikimedia.org/wikipedia/commons/5/57/X_logo_2023_%28white%29.png" },
 ];
 
+function mergeMembersPreserveTags(prev: MemberStatus[], next: MemberStatus[]): MemberStatus[] {
+  if (!Array.isArray(next) || next.length === 0) return [];
+
+  const prevById = new Map(prev.map((member) => [member.id, member]));
+
+  return next.map((member) => {
+    const prevMember = prevById.get(member.id);
+    const nextTags = Array.isArray(member.tags) ? member.tags : [];
+
+    if (nextTags.length > 0) {
+      return member;
+    }
+
+    const prevTags = prevMember?.tags ?? [];
+    const shouldKeepPreviousTags = member.isLive && prevTags.length > 0;
+
+    return shouldKeepPreviousTags
+      ? { ...member, tags: prevTags }
+      : member;
+  });
+}
+
 function resolveStatus(opensAt?: string, closesAt?: string) {
   const now = Date.now();
   const o = parseKstDate(opensAt)?.getTime() ?? null;
@@ -263,14 +285,30 @@ export default function HomePageClient({ initialMembers, initialVotes }: { initi
   useEffect(() => {
     let m = true;
     const f = async () => {
-      try { const r = await fetch("/api/members/status"); const d = await r.json(); if (m) setMembers(d); }
-      catch { if (m) setMembers([]); }
-      finally { if (m) setIsLoading(false); }
+      try {
+        const r = await fetch("/api/members/status");
+        const d = await r.json();
+        if (m) {
+          setMembers((prev) => mergeMembersPreserveTags(prev, Array.isArray(d) ? d : []));
+        }
+      }
+      catch {
+        if (m) setMembers([]);
+      }
+      finally {
+        if (m) setIsLoading(false);
+      }
     };
-    f();
+
+    // SSR에서 초기 데이터를 받았으면 즉시 재요청을 생략하고 주기 폴링부터 시작
+    if (initialMembers.length === 0) {
+      setIsLoading(true);
+      f();
+    }
+
     const i = setInterval(f, 30_000);
     return () => { m = false; clearInterval(i); };
-  }, []);
+  }, [initialMembers.length]);
 
   useEffect(() => {
     let m = true;
