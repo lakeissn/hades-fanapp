@@ -60,6 +60,33 @@ type StationLiveFields = Omit<
   "id" | "name" | "soopUrl" | "avatarUrl" | "fetchedAt"
 >;
 
+type PlayerLiveApiResponse = {
+  RESULT?: number | string;
+  CHANNEL_STATUS?: string | number;
+  channel_status?: string | number;
+  BNO?: number | string;
+  bno?: number | string;
+  broad_no?: number | string;
+  broadNo?: number | string;
+  nBroadNo?: number | string;
+  CHANNEL?: {
+    BNO?: number | string;
+    bno?: number | string;
+    broad_no?: number | string;
+    broadNo?: number | string;
+    nBroadNo?: number | string;
+    RESULT?: number | string;
+    TITLE?: string;
+    CATE_NAME?: string;
+    BROAD_CATE?: string;
+    TAG?: string;
+    HASH_TAGS?: unknown;
+    CATEGORY_TAGS?: unknown;
+    AUTO_HASHTAGS?: unknown;
+    AF_TAGS?: unknown;
+  };
+};
+
 const CHAPI_BASE_URL = "https://chapi.sooplive.co.kr/api";
 const PLAYER_LIVE_API_ENDPOINT = "https://live.sooplive.co.kr/afreeca/player_live_api.php";
 const CACHE_TTL_MS = 20_000;
@@ -73,26 +100,7 @@ const BLOCKED_TAGS = new Set([
   "afreeca",
   "아프리카tv",
   "아프리카",
-  "한국어",
 ]);
-
-const GENERIC_TAGS = new Set(["보라", "종겜", "종합게임", "방송", "live", "onair"]);
-
-const TAG_ALIASES: Record<string, string> = {
-  봉: "봉준",
-};
-
-type PlayerLiveApiResponse = {
-  RESULT?: number | string;
-  CHANNEL?: {
-    RESULT?: number | string;
-    TAG?: string;
-    HASH_TAGS?: unknown;
-    CATEGORY_TAGS?: unknown;
-    AUTO_HASHTAGS?: unknown;
-    AF_TAGS?: unknown;
-  };
-};
 
 const COMMON_HEADERS = {
   "User-Agent":
@@ -101,6 +109,52 @@ const COMMON_HEADERS = {
 };
 
 let cached: { data: MemberStatus[]; expiresAt: number } | null = null;
+
+function normalizeThumbUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const value = raw.trim();
+  if (!value) return null;
+
+  if (value.startsWith("//")) return `https:${value}`;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith("/")) return `https://chapi.sooplive.co.kr${value}`;
+  return `https://${value}`;
+}
+
+function parseBroadNo(raw: unknown): string | null {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return String(Math.trunc(raw));
+  }
+
+  if (typeof raw === "string") {
+    const normalized = raw.trim();
+    if (!normalized) return null;
+
+    const directDigits = normalized.match(/^\d+$/)?.[0];
+    if (directDigits) return directDigits;
+
+    const embeddedDigits = normalized.match(/(\d{6,})/);
+    if (embeddedDigits?.[1]) return embeddedDigits[1];
+  }
+
+  return null;
+}
+
+function extractBroadNoFromLiveUrl(liveUrl: string | null): string | null {
+  if (!liveUrl) return null;
+  const match = liveUrl.match(/\/([0-9]{6,})(?:\?.*)?$/);
+  return match?.[1] ?? null;
+}
+
+function buildLiveUrl(userId: string, broadNo: string | null): string {
+  if (!broadNo) return `https://play.sooplive.co.kr/${userId}`;
+  return `https://play.sooplive.co.kr/${userId}/${broadNo}`;
+}
+
+function buildLiveImageUrl(broadNo: string | null): string | null {
+  if (!broadNo) return null;
+  return `https://liveimg.sooplive.co.kr/m/${broadNo}`;
+}
 
 function asObject(value: unknown): JsonObject | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -130,79 +184,6 @@ function toNonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
-}
-
-function normalizeTag(raw: string): string | null {
-  const cleaned = raw
-    .replace(/^#/, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .trim();
-
-  if (!cleaned) return null;
-
-  const key = cleaned.toLowerCase().replace(/\s+/g, "");
-  if (BLOCKED_TAGS.has(key)) return null;
-  if (/^\d+$/.test(cleaned)) return null;
-  if (cleaned.length > 40) return null;
-
-  return TAG_ALIASES[cleaned] ?? cleaned;
-}
-
-function normalizeSupplementalTag(raw: string): string | null {
-  const normalized = normalizeTag(raw);
-  if (!normalized) return null;
-
-  const key = normalized.toLowerCase().replace(/\s+/g, "");
-  if (GENERIC_TAGS.has(key)) return null;
-
-  // 카테고리 태그는 별도로 넣기 때문에 보조 태그는 짧은 키워드만 허용
-  if (/\s/.test(normalized)) return null;
-  if (normalized.length > 12) return null;
-
-  return normalized;
-}
-
-function parseBroadNo(raw: unknown): string | null {
-  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
-    return String(Math.trunc(raw));
-  }
-
-  if (typeof raw === "string") {
-    const normalized = raw.trim();
-    if (!normalized) return null;
-
-    const directDigits = normalized.match(/^\d+$/)?.[0];
-    if (directDigits) return directDigits;
-
-    const embeddedDigits = normalized.match(/(\d{6,})/);
-    if (embeddedDigits?.[1]) return embeddedDigits[1];
-  }
-
-  return null;
-}
-
-function extractBroadNoFromLiveUrl(liveUrl: string | null): string | null {
-  if (!liveUrl) return null;
-  const match = liveUrl.match(/\/(\d{6,})(?:\?.*)?$/);
-  return match?.[1] ?? null;
-}
-
-function buildLiveUrl(userId: string, broadNo: string | null): string {
-  if (!broadNo) return `https://play.sooplive.co.kr/${userId}`;
-  return `https://play.sooplive.co.kr/${userId}/${broadNo}`;
-}
-
-function normalizeThumbUrl(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  const value = raw.trim();
-  if (!value) return null;
-
-  if (value.startsWith("//")) return `https:${value}`;
-  if (/^https?:\/\//i.test(value)) return value;
-  if (value.startsWith("/")) return `https://chapi.sooplive.co.kr${value}`;
-  return `https://${value}`;
 }
 
 function normalizeDateTime(value: unknown): string | null {
@@ -248,24 +229,62 @@ function liveFlagFromUnknown(value: unknown): boolean | null {
   return null;
 }
 
-function pickPrimaryCategoryTag(source: JsonObject): string[] {
-  const category = toNonEmptyString(
-    pickByPaths(source, [
-      ["station", "broad_cate_name"],
-      ["channel", "broad_cate_name"],
-      ["broad", "broad_cate_name"],
-      ["station", "cate_name"],
-      ["channel", "cate_name"],
-      ["broad", "cate_name"],
-      ["broad_cate_name"],
-      ["cate_name"],
-      ["channel", "CATE_NAME"],
-      ["channel", "BROAD_CATE"],
-    ])
-  );
+function normalizeTag(raw: string): string | null {
+  const cleaned = raw
+    .replace(/^#/, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .trim();
 
-  const normalized = category ? normalizeTag(category) : null;
-  return normalized ? [normalized] : [];
+  if (!cleaned) return null;
+
+  const key = cleaned.toLowerCase().replace(/\s+/g, "");
+  if (cleaned === "한국어") return null;
+  if (BLOCKED_TAGS.has(key)) return null;
+  if (/^\d+$/.test(cleaned)) return null;
+  if (cleaned.length > 30) return null;
+  return cleaned;
+}
+
+function mergeTags(primary: string[], secondary: string[]): string[] {
+  const set = new Set<string>();
+  for (const tag of [...primary, ...secondary]) {
+    const n = normalizeTag(tag);
+    if (n) set.add(n);
+  }
+  return Array.from(set).slice(0, 7);
+}
+
+function pushTag(set: Set<string>, raw: unknown) {
+  if (typeof raw !== "string") return;
+
+  raw
+    .split(/[|,]/)
+    .map((part) => normalizeTag(part))
+    .filter((part): part is string => !!part)
+    .forEach((part) => set.add(part));
+}
+
+function pushTagsFromFreeText(set: Set<string>, raw: unknown) {
+  if (typeof raw !== "string") return;
+
+  const normalized = raw.replace(/\u0023/g, "#").replace(/&quot;/g, '"');
+
+  const hashtagMatches = normalized.match(/#[^#\s,|/]{1,30}/g) ?? [];
+  for (const token of hashtagMatches) {
+    const n = normalizeTag(token);
+    if (n) set.add(n);
+  }
+
+  normalized
+    .split(/[|,/\n\r\t]/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .forEach((part) => {
+      const n = normalizeTag(part);
+      if (n) set.add(n);
+    });
 }
 
 function collectTagCandidates(raw: unknown): string[] {
@@ -284,11 +303,233 @@ function collectTagCandidates(raw: unknown): string[] {
   if (!obj) return [];
 
   const out: string[] = [];
-  for (const key of ["af_tag", "afTag", "tag", "name", "label", "value", "text", "keyword"]) {
-    if (key in obj) out.push(...collectTagCandidates(obj[key]));
+  const knownTagKeys = ["af_tag", "afTag", "tag", "name", "label", "value", "text", "keyword"];
+  for (const key of knownTagKeys) {
+    if (!(key in obj)) continue;
+    out.push(...collectTagCandidates(obj[key]));
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    const lower = key.toLowerCase();
+    if (!lower.includes("tag")) continue;
+    if (knownTagKeys.includes(key)) continue;
+    out.push(...collectTagCandidates(value));
   }
 
   return out;
+}
+
+function extractJsonStringArray(html: string, key: string): string[] {
+  const pattern = new RegExp(`"${key}"\\s*:\\s*\\[(.*?)\\]`, "gs");
+  const out: string[] = [];
+
+  for (const match of html.matchAll(pattern)) {
+    const body = match[1] ?? "";
+    const itemPattern = /"([^"\\]*(?:\\.[^"\\]*)*)"/g;
+
+    for (const item of body.matchAll(itemPattern)) {
+      const raw = item[1];
+      if (!raw) continue;
+      const decoded = raw
+        .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+        .replace(/\\\"/g, '"')
+        .replace(/\\\//g, "/");
+      out.push(decoded);
+    }
+  }
+
+  return out;
+}
+
+function decodeHtmlEntities(raw: string): string {
+  return raw
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function extractTagsFromHashtagWrap(html: string): string[] {
+  const blockMatch = html.match(/<div[^>]+id=["']hashtag["'][^>]*>([\s\S]*?)<\/div>/i);
+  if (!blockMatch?.[1]) return [];
+
+  const block = blockMatch[1];
+  const tags: string[] = [];
+  const anchorPattern = /<a[^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const match of block.matchAll(anchorPattern)) {
+    const text = decodeHtmlEntities(match[1].replace(/<[^>]+>/g, "")).trim();
+    const normalized = normalizeTag(text);
+    if (normalized) tags.push(normalized);
+  }
+
+  return Array.from(new Set(tags)).slice(0, 7);
+}
+
+function extractMetaContent(html: string, key: string): string[] {
+  const pattern = new RegExp(
+    `<meta[^>]+(?:name|property)=["']${key}["'][^>]*content=["']([^"']+)["'][^>]*>`,
+    "gi"
+  );
+  return Array.from(html.matchAll(pattern)).map((m) => decodeHtmlEntities((m[1] ?? "").trim())).filter(Boolean);
+}
+
+async function fetchPlayPageTags(userId: string, broadNo: string | null): Promise<string[]> {
+  const urls = [
+    broadNo ? `https://play.sooplive.co.kr/${userId}/${broadNo}` : null,
+    `https://play.sooplive.co.kr/${userId}`,
+  ].filter((url): url is string => !!url);
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          ...COMMON_HEADERS,
+          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+        cache: "no-store",
+      });
+
+      if (!res.ok) continue;
+
+      const html = await res.text();
+      const values = new Set<string>();
+
+      const htmlTags = extractTagsFromHashtagWrap(html);
+      if (htmlTags.length > 0) {
+        return htmlTags;
+      }
+      
+      for (const content of [
+        ...extractMetaContent(html, "keywords"),
+        ...extractMetaContent(html, "description"),
+        ...extractMetaContent(html, "og:description"),
+        ...extractMetaContent(html, "og:title"),
+      ]) {
+        pushTagsFromFreeText(values, content);
+      }
+
+      const tagArrayKeys = ["hashTags", "hash_tags", "tags", "tag_list", "HASH_TAGS", "CATEGORY_TAGS", "AUTO_HASHTAGS", "category_tags", "auto_hashtags"];
+      for (const key of tagArrayKeys) {
+        for (const item of extractJsonStringArray(html, key)) {
+          pushTagsFromFreeText(values, item);
+        }
+      }
+
+      const tagLikeStrings = html.match(/"(?:hashTag|hash_tag|tag|tags)"\s*:\s*"([^"\n\r]{1,300})"/g) ?? [];
+      for (const raw of tagLikeStrings) {
+        const m = raw.match(/:\s*"([^"\n\r]{1,300})"/);
+        if (m?.[1]) pushTagsFromFreeText(values, m[1]);
+      }
+
+      const out = Array.from(values).slice(0, 7);
+      if (out.length > 0) return out;
+    } catch {
+      // ignore and fallback
+    }
+  }
+
+  return [];
+}
+
+function collectTagsFromStation(source: JsonObject): string[] {
+  const values = new Set<string>();
+
+  const primaryCategory = toNonEmptyString(
+    pickByPaths(source, [
+      ["station", "broad_cate_name"],
+      ["channel", "broad_cate_name"],
+      ["broad", "broad_cate_name"],
+      ["station", "cate_name"],
+      ["channel", "cate_name"],
+      ["broad", "cate_name"],
+      ["broad_cate_name"],
+      ["cate_name"],
+    ])
+  );
+
+  if (primaryCategory) {
+    const n = normalizeTag(primaryCategory);
+    if (n) values.add(n);
+  }
+
+  const language = toNonEmptyString(
+    pickByPaths(source, [
+      ["station", "lang"],
+      ["station", "lang_name"],
+      ["channel", "lang"],
+      ["channel", "lang_name"],
+      ["broad", "lang"],
+      ["broad", "lang_name"],
+      ["lang"],
+      ["lang_name"],
+    ])
+  );
+
+  if (language) {
+    const n = normalizeTag(language);
+    if (n) values.add(n);
+  }
+
+  const stringTagPaths: string[][] = [
+    ["station", "broad_tag"],
+    ["station", "tags"],
+    ["station", "hash_tag"],
+    ["channel", "broad_tag"],
+    ["channel", "tags"],
+    ["channel", "hash_tag"],
+    ["broad", "broad_tag"],
+    ["broad", "tags"],
+    ["broad", "hash_tag"],
+    ["broad_tag"],
+    ["tags"],
+    ["hash_tag"],
+  ];
+
+  for (const path of stringTagPaths) {
+    pushTag(values, pickByPaths(source, [path]));
+  }
+
+  const arrayTagPaths: string[][] = [
+    ["station", "hash_tags"],
+    ["station", "tag_list"],
+    ["station", "category_tags"],
+    ["station", "auto_hashtags"],
+    ["station", "af_tags"],
+    ["station", "AF_TAGS"],
+    ["channel", "hash_tags"],
+    ["channel", "tag_list"],
+    ["channel", "category_tags"],
+    ["channel", "auto_hashtags"],
+    ["channel", "CATEGORY_TAGS"],
+    ["channel", "AUTO_HASHTAGS"],
+    ["channel", "af_tags"],
+    ["channel", "AF_TAGS"],
+    ["broad", "hash_tags"],
+    ["broad", "tag_list"],
+    ["broad", "category_tags"],
+    ["broad", "auto_hashtags"],
+    ["hash_tags"],
+    ["tag_list"],
+    ["category_tags"],
+    ["auto_hashtags"],
+    ["af_tags"],
+    ["AF_TAGS"],
+    ["CATEGORY_TAGS"],
+    ["AUTO_HASHTAGS"],
+  ];
+
+  for (const path of arrayTagPaths) {
+    const candidate = pickByPaths(source, [path]);
+    for (const token of collectTagCandidates(candidate)) {
+      const n = normalizeTag(token);
+      if (n) values.add(n);
+    }
+  }
+
+  return Array.from(values).slice(0, 7);
 }
 
 function safeJsonParse<T>(raw: string): T | null {
@@ -300,77 +541,129 @@ function safeJsonParse<T>(raw: string): T | null {
     candidates.push(trimmed.replace(/^\)\]\}'\s*/, ""));
   }
 
-  for (const candidate of candidates) {
-    try {
-      return JSON.parse(candidate) as T;
-    } catch {
-      // ignore
-    }
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.push(trimmed.slice(firstBrace, lastBrace + 1));
   }
 
+  for (const c of candidates) {
+    try {
+      return JSON.parse(c) as T;
+    } catch {
+      // continue
+    }
+  }
   return null;
 }
 
-async function fetchPlayerLiveTags(userId: string, broadNo: string | null): Promise<string[]> {
-  const payload = {
-    bid: userId,
-    bno: broadNo ?? "",
-    type: "live",
-    pwd: "",
-    player_type: "html5",
-    stream_type: "common",
-    quality: "HD",
-    mode: "landing",
-    from_api: "0",
-    is_revive: "false",
-  };
+async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promise<string[]> {
+  const streamTypes = ["common", "cineti"];
+  const payloads: Record<string, string>[] = [];
 
-  try {
-    const res = await fetch(PLAYER_LIVE_API_ENDPOINT, {
-      method: "POST",
-      headers: {
-        ...COMMON_HEADERS,
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        origin: "https://play.sooplive.co.kr",
-        referer: `https://play.sooplive.co.kr/${userId}`,
-      },
-      body: new URLSearchParams(payload).toString(),
-      cache: "no-store",
+  for (const st of streamTypes) {
+    payloads.push({
+      bid: bjid,
+      bno: broadNo ?? "null",
+      type: "live",
+      pwd: "",
+      player_type: "html5",
+      stream_type: st,
+      quality: "HD",
+      mode: "landing",
+      from_api: "0",
+      is_revive: "false",
     });
-
-    if (!res.ok) return [];
-
-    const raw = await res.text();
-    const json = safeJsonParse<PlayerLiveApiResponse>(raw);
-    if (!json) return [];
-
-    const result = json.CHANNEL?.RESULT ?? json.RESULT;
-    if (result === 0 || result === "0") return [];
-
-    const candidates = [
-      ...collectTagCandidates(json.CHANNEL?.TAG),
-      ...collectTagCandidates(json.CHANNEL?.HASH_TAGS),
-      ...collectTagCandidates(json.CHANNEL?.CATEGORY_TAGS),
-      ...collectTagCandidates(json.CHANNEL?.AUTO_HASHTAGS),
-      ...collectTagCandidates(json.CHANNEL?.AF_TAGS),
-    ];
-
-    return Array.from(new Set(candidates.map(normalizeSupplementalTag).filter((tag): tag is string => !!tag))).slice(0, 6);
-  } catch {
-    return [];
-  }
-}
-
-function mergeLiveTags(categoryTags: string[], supplementalTags: string[]): string[] {
-  const [category] = categoryTags;
-  const deduped = new Set<string>();
-
-  if (category) deduped.add(category);
-  for (const tag of supplementalTags) {
-    if (!deduped.has(tag)) deduped.add(tag);
+    payloads.push({
+      bid: bjid,
+      bno: broadNo ?? "",
+      type: "live",
+      pwd: "",
+      player_type: "html5",
+      stream_type: st,
+      quality: "HD",
+      mode: "watch",
+      from_api: "1",
+      is_revive: "false",
+    });
   }
 
-  return Array.from(deduped).slice(0, 7);
+  // 데이터 누적을 위한 외부 배열 선언
+  let aggregatedTags: string[] = [];
+
+  for (const payload of payloads) {
+    try {
+      const res = await fetch(PLAYER_LIVE_API_ENDPOINT, {
+        method: "POST",
+        headers: {
+          ...COMMON_HEADERS,
+          "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+          origin: "https://play.sooplive.co.kr",
+          referer: `https://play.sooplive.co.kr/${bjid}`,
+        },
+        body: new URLSearchParams(payload).toString(),
+        cache: "no-store",
+      });
+
+      if (!res.ok) continue;
+
+      const raw = await res.text();
+      const json = safeJsonParse<PlayerLiveApiResponse>(raw);
+      if (!json) continue;
+
+      const result = json.CHANNEL?.RESULT ?? json.RESULT;
+      if (result === 0 || result === "0") continue;
+
+      const tags: string[] = [];
+
+      const cateName = json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE;
+      if (typeof cateName === "string") {
+        const n = normalizeTag(cateName);
+        if (n) tags.push(n);
+      }
+
+      const categoryTags = json.CHANNEL?.CATEGORY_TAGS;
+      for (const token of collectTagCandidates(categoryTags)) {
+        const n = normalizeTag(token);
+        if (n) tags.push(n);
+      }
+
+      const csv = json.CHANNEL?.TAG;
+      if (typeof csv === "string" && csv.trim()) {
+        csv.split(",").forEach((t) => {
+          const n = normalizeTag(t);
+          if (n) tags.push(n);
+        });
+      }
+
+      const hash = json.CHANNEL?.HASH_TAGS;
+      for (const token of collectTagCandidates(hash)) {
+        const n = normalizeTag(token);
+        if (n) tags.push(n);
+      }
+
+      const autoHash = json.CHANNEL?.AUTO_HASHTAGS;
+      for (const token of collectTagCandidates(autoHash)) {
+        const n = normalizeTag(token);
+        if (n) tags.push(n);
+      }
+
+      const afTags = json.CHANNEL?.AF_TAGS;
+      for (const token of collectTagCandidates(afTags)) {
+        const n = normalizeTag(token);
+        if (n) tags.push(n);
+      }
+
+      // 조기 종료 로직 제거 및 추출된 태그를 누적 배열에 푸시
+      const validTags = Array.from(new Set(tags));
+      aggregatedTags.push(...validTags);
+    } catch {
+      // ignore and try next payload
+    }
+  }
+
+  // 중복 제거 후 최대 7개 반환
+  return Array.from(new Set(aggregatedTags)).slice(0, 7);
 }
 
 function parseStationStatus(userId: string, payload: unknown): StationLiveFields {
@@ -463,6 +756,7 @@ function parseStationStatus(userId: string, payload: unknown): StationLiveFields
     ])
   );
 
+  const liveUrl = isLive ? buildLiveUrl(userId, broadNo) : null;
   const liveStartedAt = normalizeDateTime(
     pickByPaths(root, [
       ["station", "broad_start"],
@@ -491,12 +785,11 @@ function parseStationStatus(userId: string, payload: unknown): StationLiveFields
 
   return {
     isLive,
-    liveUrl: isLive ? buildLiveUrl(userId, broadNo) : null,
+    liveUrl,
     title: isLive ? title : null,
     thumbUrl: isLive ? thumbUrl : null,
     liveStartedAt: isLive ? liveStartedAt : null,
-    // 요구사항: 첫 카테고리 태그만 유지, 나머지는 제거
-    tags: isLive ? pickPrimaryCategoryTag(root) : [],
+    tags: isLive ? collectTagsFromStation(root) : [],
   };
 }
 
@@ -521,6 +814,27 @@ async function fetchStationStatus(userId: string): Promise<StationLiveFields> {
     console.warn(`[members/status] station api error for ${userId}:`, error);
     return { isLive: false, liveUrl: null, title: null, thumbUrl: null, liveStartedAt: null, tags: [] };
   }
+}
+
+function extractTagsFromTitle(title: string | null): string[] {
+  if (!title) return [];
+  const tags: string[] = [];
+
+  const bracketMatches = title.matchAll(/\[([^\]]{1,20})\]/g);
+  for (const match of bracketMatches) {
+    const content = match[1]?.trim();
+    if (!content) continue;
+    const n = normalizeTag(content);
+    if (n) tags.push(n);
+  }
+
+  const hashMatches = title.match(/#[^#\s,|/]{1,30}/g) ?? [];
+  for (const token of hashMatches) {
+    const n = normalizeTag(token);
+    if (n) tags.push(n);
+  }
+
+  return Array.from(new Set(tags)).slice(0, 3);
 }
 
 function buildOfflineStatuses(nowIso: string): MemberStatus[] {
@@ -552,15 +866,33 @@ export async function GET() {
     const statuses = await Promise.all(
       members.map(async (member) => {
         const station = await fetchStationStatus(member.id);
+
         if (!station.isLive) {
           return { ...member, ...station, fetchedAt: nowIso };
         }
 
-        const broadNo = extractBroadNoFromLiveUrl(station.liveUrl);
-        const playerTags = await fetchPlayerLiveTags(member.id, broadNo);
-        const tags = mergeLiveTags(station.tags, playerTags);
+        const broadNoFromUrl = extractBroadNoFromLiveUrl(station.liveUrl);
+        const liveImgThumb = buildLiveImageUrl(broadNoFromUrl);
 
-        return { ...member, ...station, tags, fetchedAt: nowIso };
+        // API 태그 추출 및 PlayPage HTML 태그 무조건 동시 실행
+        const playerTags = await fetchPlayerLiveTags(member.id, broadNoFromUrl);
+        const playPageTags = await fetchPlayPageTags(member.id, broadNoFromUrl);
+        
+        // 우선순위 할당: PlayPage (HTML) -> PlayerAPI -> Station
+        let tags = mergeTags(playPageTags, mergeTags(playerTags, station.tags));
+
+        if (tags.length === 0 && station.title) {
+          tags = extractTagsFromTitle(station.title);
+        }
+
+        return {
+          ...member,
+          ...station,
+          thumbUrl: liveImgThumb ?? station.thumbUrl ?? member.avatarUrl,
+          liveStartedAt: station.liveStartedAt,
+          tags,
+          fetchedAt: nowIso,
+        };
       })
     );
 
