@@ -103,6 +103,22 @@ const BLOCKED_TAGS = new Set([
   "아프리카",
 ]);
 
+const GENERIC_LIVE_TAGS = new Set([
+  "보이는라디오",
+  "보라",
+  "종합게임",
+  "종겜",
+  "게임",
+  "live",
+  "onair",
+  "방송",
+]);
+
+const BLOCKED_TAG_PATTERNS = [
+  /현재\s*스트리밍\s*중.*모두의\s*live\s*생태계/i,
+  /모두의\s*live\s*생태계/i,
+];
+
 const COMMON_HEADERS = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -240,9 +256,12 @@ function normalizeTag(raw: string): string | null {
 
   if (!cleaned) return null;
 
-  const key = cleaned.toLowerCase().replace(/\s+/g, "");
+  const lower = cleaned.toLowerCase();
+  const key = lower.replace(/\s+/g, "");
+  const normalizedSentence = lower.replace(/[!！.,·\-_/|]+/g, " ").replace(/\s+/g, " ").trim();
   if (cleaned === "한국어") return null;
   if (BLOCKED_TAGS.has(key)) return null;
+  if (BLOCKED_TAG_PATTERNS.some((pattern) => pattern.test(normalizedSentence))) return null;
   if (/^\d+$/.test(cleaned)) return null;
   if (cleaned.length > 30) return null;
   return cleaned;
@@ -403,7 +422,7 @@ async function fetchPlayPageTags(userId: string, broadNo: string | null): Promis
       if (htmlTags.length > 0) {
         return htmlTags;
       }
-      
+
       for (const content of [
         ...extractMetaContent(html, "keywords"),
         ...extractMetaContent(html, "description"),
@@ -436,44 +455,27 @@ async function fetchPlayPageTags(userId: string, broadNo: string | null): Promis
   return [];
 }
 
+function prioritizeTags(rawTags: string[]): string[] {
+  const explicit: string[] = [];
+  const generic: string[] = [];
+
+  for (const tag of rawTags) {
+    const n = normalizeTag(tag);
+    if (!n) continue;
+
+    const key = n.toLowerCase().replace(/\s+/g, "");
+    if (GENERIC_LIVE_TAGS.has(key)) {
+      generic.push(n);
+    } else {
+      explicit.push(n);
+    }
+  }
+
+  return Array.from(new Set([...explicit, ...generic])).slice(0, 7);
+}
+
 function collectTagsFromStation(source: JsonObject): string[] {
   const values = new Set<string>();
-
-  const primaryCategory = toNonEmptyString(
-    pickByPaths(source, [
-      ["station", "broad_cate_name"],
-      ["channel", "broad_cate_name"],
-      ["broad", "broad_cate_name"],
-      ["station", "cate_name"],
-      ["channel", "cate_name"],
-      ["broad", "cate_name"],
-      ["broad_cate_name"],
-      ["cate_name"],
-    ])
-  );
-
-  if (primaryCategory) {
-    const n = normalizeTag(primaryCategory);
-    if (n) values.add(n);
-  }
-
-  const language = toNonEmptyString(
-    pickByPaths(source, [
-      ["station", "lang"],
-      ["station", "lang_name"],
-      ["channel", "lang"],
-      ["channel", "lang_name"],
-      ["broad", "lang"],
-      ["broad", "lang_name"],
-      ["lang"],
-      ["lang_name"],
-    ])
-  );
-
-  if (language) {
-    const n = normalizeTag(language);
-    if (n) values.add(n);
-  }
 
   const stringTagPaths: string[][] = [
     ["station", "broad_tag"],
@@ -532,7 +534,37 @@ function collectTagsFromStation(source: JsonObject): string[] {
     }
   }
 
-  return Array.from(values).slice(0, 7);
+  const fallback: string[] = [];
+
+  const primaryCategory = toNonEmptyString(
+    pickByPaths(source, [
+      ["station", "broad_cate_name"],
+      ["channel", "broad_cate_name"],
+      ["broad", "broad_cate_name"],
+      ["station", "cate_name"],
+      ["channel", "cate_name"],
+      ["broad", "cate_name"],
+      ["broad_cate_name"],
+      ["cate_name"],
+    ])
+  );
+  if (primaryCategory) fallback.push(primaryCategory);
+
+  const language = toNonEmptyString(
+    pickByPaths(source, [
+      ["station", "lang"],
+      ["station", "lang_name"],
+      ["channel", "lang"],
+      ["channel", "lang_name"],
+      ["broad", "lang"],
+      ["broad", "lang_name"],
+      ["lang"],
+      ["lang_name"],
+    ])
+  );
+  if (language) fallback.push(language);
+
+  return prioritizeTags([...values, ...fallback]);
 }
 
 function safeJsonParse<T>(raw: string): T | null {
@@ -619,12 +651,6 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
 
       const tags: string[] = [];
 
-      const cateName = json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE;
-      if (typeof cateName === "string") {
-        const n = normalizeTag(cateName);
-        if (n) tags.push(n);
-      }
-
       // [FIX] CATEGORY_TAGS 파싱 추가
       const categoryTags = json.CHANNEL?.CATEGORY_TAGS;
       for (const token of collectTagCandidates(categoryTags)) {
@@ -659,7 +685,12 @@ async function fetchPlayerLiveTags(bjid: string, broadNo: string | null): Promis
         if (n) tags.push(n);
       }
 
-      const out = Array.from(new Set(tags)).slice(0, 7);
+      const cateName = json.CHANNEL?.CATE_NAME ?? json.CHANNEL?.BROAD_CATE;
+      if (typeof cateName === "string") {
+        tags.push(cateName);
+      }
+
+      const out = prioritizeTags(tags);
       if (out.length > 0) return out;
     } catch {
       // ignore and try next payload
@@ -837,7 +868,7 @@ function extractTagsFromTitle(title: string | null): string[] {
     if (n) tags.push(n);
   }
 
-    const hashMatches = title.match(/#[^#\s,|/]{1,30}/g) ?? [];
+  const hashMatches = title.match(/#[^#\s,|/]{1,30}/g) ?? [];
   for (const token of hashMatches) {
     const n = normalizeTag(token);
     if (n) tags.push(n);
@@ -884,17 +915,15 @@ export async function GET() {
         const broadNoFromUrl = extractBroadNoFromLiveUrl(station.liveUrl);
         const liveImgThumb = buildLiveImageUrl(broadNoFromUrl);
 
-        // 2) 태그: player_live_api → 플레이 페이지 HTML → 제목 파싱 순으로 fallback
+        // 2) 태그: 제목 > player_live_api > 플레이 페이지 HTML > station 순으로 병합
+        const titleTags = extractTagsFromTitle(station.title);
         const playerTags = await fetchPlayerLiveTags(member.id, broadNoFromUrl);
         const playPageTags = playerTags.length > 0
           ? []
           : await fetchPlayPageTags(member.id, broadNoFromUrl);
-        let tags = mergeTags(playerTags, mergeTags(playPageTags, station.tags));
-
-        // [FIX] 모든 소스에서 태그를 못 찾은 경우, 제목에서 추출 (시네티 등 특수 컨텐츠 대응)
-        if (tags.length === 0 && station.title) {
-          tags = extractTagsFromTitle(station.title);
-        }
+        const tags = prioritizeTags(
+          mergeTags(titleTags, mergeTags(playerTags, mergeTags(playPageTags, station.tags)))
+        );
 
         return {
           ...member,
