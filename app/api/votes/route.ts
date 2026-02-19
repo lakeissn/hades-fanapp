@@ -14,7 +14,7 @@ type VotePlatform =
   | "my1pick"
   | "mnetplus"
   | "fannstar"
-  | "higher";
+  | "higher"
   | "ktopstar";
 
 type VoteRow = {
