@@ -80,7 +80,7 @@ type PlayerLiveApiResponse = {
     TITLE?: string;
     CATE_NAME?: string;
     BROAD_CATE?: string;
-    TAG?: string; // "봉,무수,하데스,보라,종겜" 같이 올 수 있음
+    TAG?: string; // "봉준,무수,하데스,보라,종겜" 같이 올 수 있음
     HASH_TAGS?: string[]; // ["버추얼","노래","하데스"] 같이 올 수 있음
     CATEGORY_TAGS?: string[]; // ["VRChat"] 같이 카테고리 태그
     AUTO_HASHTAGS?: string[]; // 자동 생성 해시태그
@@ -308,6 +308,7 @@ function extractJsonStringArray(html: string, key: string): string[] {
 
   return out;
 }
+
 
 function decodeHtmlEntities(raw: string): string {
   return raw
@@ -769,7 +770,7 @@ async function fetchStationStatus(userId: string): Promise<StationLiveFields> {
 /**
  * [FIX] 방송 제목에서 태그를 추출하는 최후 fallback
  * 예: "[하데스] 주술회전 처음 보는 눈!!" → ["하데스"]
- * 대괄호 안의 텍스트를 그로 사용
+ * 대괄호 안의 텍스트를 태그로 사용
  */
 function extractTagsFromTitle(title: string | null): string[] {
   if (!title) return [];
@@ -803,11 +804,7 @@ function buildOfflineStatuses(nowIso: string): MemberStatus[] {
 export async function GET() {
   const now = Date.now();
   if (cached && cached.expiresAt > now) {
-    return NextResponse.json(cached.data, {
-      headers: {
-        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
-      },
-    });
+    return NextResponse.json(cached.data);
   }
 
   const nowIso = new Date().toISOString();
@@ -853,11 +850,7 @@ export async function GET() {
       expiresAt: now + CACHE_TTL_MS,
     };
 
-    return NextResponse.json(statuses, {
-      headers: {
-        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
-      },
-    });
+    return NextResponse.json(statuses);
   } catch (error) {
     console.error("[members/status] unexpected error:", error);
 
@@ -867,10 +860,6 @@ export async function GET() {
       expiresAt: now + CACHE_TTL_MS,
     };
 
-    return NextResponse.json(fallback, {
-      headers: {
-        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
-      },
-    });
+    return NextResponse.json(fallback);
   }
 }
