@@ -6,6 +6,7 @@ import Card from "../components/Card";
 import LiveCard from "../components/LiveCard";
 import MemberChip from "../components/MemberChip";
 import MelonPlaylist from "../components/MelonPlaylist";
+import { parseKstDate } from "@/lib/parseKstDate";
 
 type MemberStatus = {
   id: string; name: string; soopUrl: string; avatarUrl: string;
@@ -39,18 +40,6 @@ const officialLinks = [
   { id: "instagram", label: "Instagram", href: "https://www.instagram.com/hades_offi/", iconSrc: "https://static.xx.fbcdn.net/assets/?set=help_center_about_page_illustrations&name=desktop-instagram-gradient-logo&density=1" },
   { id: "x", label: "X", href: "https://x.com/hades_offi", iconSrc: "https://cdn.simpleicons.org/x/000000", iconSrcDark: "https://upload.wikimedia.org/wikipedia/commons/5/57/X_logo_2023_%28white%29.png" },
 ];
-
-function parseKstDate(value?: string) {
-  if (!value) return null;
-  const raw = value.trim();
-  if (!raw || raw.replace(/\s+/g, "") === "진행중") return null;
-  const d = new Date(raw);
-  if (!Number.isNaN(d.getTime())) return d;
-  const norm = raw.replace(/\./g, "-").replace(/\//g, "-").replace(/\s+/g, " ").trim();
-  const ws = /\d{2}:\d{2}:\d{2}$/.test(norm) ? norm : /\d{2}:\d{2}$/.test(norm) ? `${norm}:00` : `${norm} 00:00:00`;
-  const p = new Date(`${ws.replace(" ", "T")}+09:00`);
-  return Number.isNaN(p.getTime()) ? null : p;
-}
 
 function resolveStatus(opensAt?: string, closesAt?: string) {
   const now = Date.now();
