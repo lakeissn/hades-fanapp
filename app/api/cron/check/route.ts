@@ -202,11 +202,6 @@ async function sendFCMMessages(
       priority: "high" as const,
       ttl: TTL_SECONDS * 1000,
       ...(useCollapse ? { collapseKey: payload.tag } : {}),
-      notification: {
-        channelId: "default",
-        tag: payload.tag,
-        defaultSound: true,
-      },
     },
     // Web Push (PWA/Chrome 등): urgency high + TTL + notification payload
     webpush: {
