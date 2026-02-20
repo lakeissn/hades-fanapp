@@ -206,19 +206,6 @@ function uniqueVotes(votes: VoteItem[]) {
   });
 }
 
-function sortVotes(votes: VoteItem[]) {
-  return [...votes].sort((a, b) => {
-    const aClose = a.closesAt ? new Date(a.closesAt).getTime() : Number.MAX_SAFE_INTEGER;
-    const bClose = b.closesAt ? new Date(b.closesAt).getTime() : Number.MAX_SAFE_INTEGER;
-
-    if (aClose !== bClose) {
-      return aClose - bClose;
-    }
-
-    return a.title.localeCompare(b.title, "ko-KR");
-  });
-}
-
 async function fetchVotesCsv(csvUrl: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -274,7 +261,7 @@ async function fetchLatestVotes() {
     })
     .filter((vote) => vote.title && vote.url);
 
-  return sortVotes(uniqueVotes(fetchedVotes));
+  return uniqueVotes(fetchedVotes);
 }
 
 async function loadVotesFromSheet() {
