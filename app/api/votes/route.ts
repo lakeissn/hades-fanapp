@@ -45,10 +45,6 @@ type VoteItem = {
   note?: string;
 };
 
-type VoteSnapshotCache = {
-  data: VoteItem[];
-  fetchedAt: number;
-};
 
 const FALLBACK_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPX-EvmCuv7Dk_ozK2PhR0VmxW94s3-bZkY5Kou8FMXBR7f4indzBJ5GayAwv_VurZa0Dsp7SsrnBL/pub?gid=0&single=true&output=csv";
@@ -72,10 +68,7 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
 };
 
 const REQUEST_TIMEOUT_MS = 4_500;
-const SNAPSHOT_TTL_MS = Math.max(0, Number(process.env.VOTES_SNAPSHOT_TTL_MS ?? "0"));
-
 let inFlightRequest: Promise<VoteItem[]> | null = null;
-let snapshotCache: VoteSnapshotCache | null = null;
 
 function normalizeBoolean(value: string) {
   const normalized = value.trim().toLowerCase();
@@ -282,28 +275,14 @@ async function fetchLatestVotes() {
 }
 
 async function loadVotesFromSheet() {
-  const now = Date.now();
-  if (snapshotCache && now - snapshotCache.fetchedAt < SNAPSHOT_TTL_MS) {
-    return snapshotCache.data;
-  }
-
   if (inFlightRequest) {
     return inFlightRequest;
   }
 
-  inFlightRequest = (async () => {
-    const data = await fetchLatestVotes();
-    snapshotCache = { data, fetchedAt: Date.now() };
-    return data;
-  })();
+  inFlightRequest = fetchLatestVotes();
 
   try {
     return await inFlightRequest;
-  } catch (error) {
-    if (snapshotCache) {
-      return snapshotCache.data;
-    }
-    throw error;
   } finally {
     inFlightRequest = null;
   }
