@@ -62,7 +62,7 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
   ktopstar: "K탑스타",
 };
 
-const CACHE_TTL_MS = Number(process.env.VOTES_CACHE_TTL_MS ?? "10000");
+const CACHE_TTL_MS = Math.max(0, Number(process.env.VOTES_CACHE_TTL_MS ?? "0"));
 const REQUEST_TIMEOUT_MS = 4_500;
 
 let memoryCache:
