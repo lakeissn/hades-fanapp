@@ -45,8 +45,32 @@ function extractLatestVideoId(text: string): string | null {
 }
 
 function extractShortsId(text: string): string | null {
-  const match = text.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
-  return match?.[1] ?? null;
+  const candidates: string[] = [];
+
+  // Shorts 탭에서 최신 순 정렬이 잘 반영되는 renderer 우선 탐색
+  const rendererPatterns = [
+    /"reelItemRenderer"\s*:\s*\{[\s\S]{0,180}?"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/g,
+    /"richItemRenderer"\s*:\s*\{[\s\S]{0,300}?"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/g,
+  ];
+
+  for (const pattern of rendererPatterns) {
+    for (const match of text.matchAll(pattern)) {
+      const id = match[1];
+      if (id) candidates.push(id);
+    }
+
+    if (candidates.length > 0) {
+      return Array.from(new Set(candidates))[0] ?? null;
+    }
+  }
+
+  // 폴백: /shorts/ID 링크를 모두 수집 후 첫 ID 사용
+  for (const match of text.matchAll(/\/shorts\/([a-zA-Z0-9_-]{11})/g)) {
+    const id = match[1];
+    if (id) candidates.push(id);
+  }
+
+  return Array.from(new Set(candidates))[0] ?? null;
 }
 
 function decodeUnicode(str: string): string {
