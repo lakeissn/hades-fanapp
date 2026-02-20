@@ -361,12 +361,9 @@ async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
         const openDate = parseDateKst(row.opens_at ?? "");
         const closeDate = parseDateKst(row.closes_at ?? "");
         const rawOpensAt = row.opens_at?.trim() ?? "";
-        // Supabase UUID를 기본 ID로 사용 — 고유하고 수정해도 불변
-        // legacyId에 기존 해시를 넣어 이전 cron 상태와 호환
-        const legacyHash = hashToVoteId(`${row.platform ?? ""}|${row.url ?? ""}`);
         return {
-          id: String(row.id),
-          legacyId: legacyHash,
+          id: hashToVoteId(`${row.platform}|${row.url}`),
+          legacyId: String(row.id),
           title: row.title?.trim() ?? "",
           platform: platforms[0],
           platformLabel: labelForPlatform(platforms[0]),
