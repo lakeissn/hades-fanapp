@@ -42,6 +42,7 @@ type MemberStatus = {
 
 type VoteItem = {
   id: string;
+  legacyId?: string;
   title: string;
   url: string;
 };
@@ -642,7 +643,11 @@ export async function GET(req: Request) {
           lastNotifiedAt: new Date().toISOString(),
         });
       } else {
-        const changedVotes = voteData.filter((vote) => !prevVoteIds.has(vote.id));
+        const changedVotes = voteData.filter((vote) => {
+          if (prevVoteIds.has(vote.id)) return false;
+          if (vote.legacyId && prevVoteIds.has(vote.legacyId)) return false;
+          return true;
+        });
         const nextVoteStateId = mergeVoteStateIds(currentVoteIds, prevVoteIds);
 
         if (changedVotes.length === 0) {
