@@ -341,12 +341,10 @@ async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
     const { data, error } = await supabaseAdmin
       .from("votes")
       .select("*")
-      .eq("enabled", true)
-      .order("created_at", { ascending: false });
+      .eq("enabled", true);
 
     if (error || !data) return null;
-    // 활성 투표 0건은 정상 상태 — null(=Sheet 폴백) 대신 빈 배열 반환
-    if (data.length === 0) return [];
+    if (data.length === 0) return null;
 
     const now = Date.now();
     const items = data
@@ -363,7 +361,7 @@ async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
         const rawOpensAt = row.opens_at?.trim() ?? "";
         return {
           id: hashToVoteId(`${row.platform}|${row.url}`),
-          legacyId: String(row.id),
+          legacyId: row.id,
           title: row.title?.trim() ?? "",
           platform: platforms[0],
           platformLabel: labelForPlatform(platforms[0]),
@@ -395,8 +393,11 @@ export async function GET() {
   };
 
   try {
-    const votes = await loadVotesFromSupabase();
-    return NextResponse.json(votes ?? [], { headers: NO_CACHE });
+    const supabaseVotes = await loadVotesFromSupabase();
+    if (supabaseVotes !== null) {
+      return NextResponse.json(supabaseVotes, { headers: NO_CACHE });
+    }
+    return NextResponse.json([], { headers: NO_CACHE });
   } catch {
     return NextResponse.json([], { status: 200, headers: NO_CACHE });
   }

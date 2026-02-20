@@ -1,9 +1,6 @@
 {
-  "/page": "app/page.js",
-  "/icon/[[...__metadata_id__]]/route": "app/icon/[[...__metadata_id__]]/route.js",
   "/(admin)/admin-hades/page": "app/(admin)/admin-hades/page.js",
+  "/page": "app/page.js",
   "/api/members/status/route": "app/api/members/status/route.js",
-  "/votes/page": "app/votes/page.js",
-  "/api/youtube/route": "app/api/youtube/route.js",
-  "/api/votes/route": "app/api/votes/route.js"
+  "/votes/page": "app/votes/page.js"
 }
