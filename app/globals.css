@@ -1861,8 +1861,21 @@ main { display: flex; flex-direction: column; gap: 28px; }
   outline: none; transition: border-color 0.15s;
 }
 .admin-input:focus { border-color: var(--muted); }
-.admin-label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-.admin-toggle-label { flex-direction: row; align-items: center; gap: 10px; }
+.admin-label { display: flex; flex-direction: column; gap: 5px; }
+.admin-label-text { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.admin-toggle-label { flex-direction: row; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.admin-platform-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+.admin-platform-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  border: 1.5px solid var(--border); background: var(--bg-elevated);
+  color: var(--text-secondary); cursor: pointer; transition: all 0.12s;
+}
+.admin-platform-chip.selected {
+  border-color: var(--tab-active-bg); background: var(--tab-active-bg);
+  color: var(--tab-active-text);
+}
+.admin-platform-chip-icon { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; }
 .admin-required { color: #ef4444; }
 .admin-error { font-size: 13px; color: #ef4444; }
 .admin-form { display: flex; flex-direction: column; gap: 14px; }

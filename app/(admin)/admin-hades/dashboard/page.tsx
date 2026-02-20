@@ -1,6 +1,51 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+
+const PLATFORMS = [
+  { key: "idolchamp", label: "아이돌챔프" },
+  { key: "mubeat", label: "뮤빗" },
+  { key: "upick", label: "유픽" },
+  { key: "fancast", label: "팬캐스트" },
+  { key: "fanplus", label: "팬플러스" },
+  { key: "podoal", label: "포도알" },
+  { key: "whosfan", label: "후즈팬" },
+  { key: "duckad", label: "덕애드" },
+  { key: "10asia", label: "텐아시아" },
+  { key: "muniverse", label: "뮤니버스" },
+  { key: "my1pick", label: "마이원픽" },
+  { key: "mnetplus", label: "엠넷플러스" },
+  { key: "fannstar", label: "팬앤스타" },
+  { key: "higher", label: "하이어" },
+  { key: "ktopstar", label: "K탑스타" },
+];
+
+function parsePlatformKeys(str: string): string[] {
+  return str.split(/[\s,|/]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+
+function PlatformPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const selected = parsePlatformKeys(value);
+  const toggle = (key: string) => {
+    const next = selected.includes(key) ? selected.filter(k => k !== key) : [...selected, key];
+    onChange(next.join(" "));
+  };
+  return (
+    <div className="admin-platform-grid">
+      {PLATFORMS.map(({ key, label }) => (
+        <button
+          key={key}
+          type="button"
+          className={`admin-platform-chip ${selected.includes(key) ? "selected" : ""}`}
+          onClick={() => toggle(key)}
+        >
+          <img src={`/icons/${key}.png`} alt="" className="admin-platform-chip-icon" onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 import { useRouter } from "next/navigation";
 
 type Vote = {
@@ -177,32 +222,32 @@ export default function AdminDashboard() {
               <button className="admin-modal-close" onClick={() => setModalOpen(false)}>✕</button>
             </div>
             <form className="admin-form" onSubmit={handleSave}>
-              <label className="admin-label">
-                제목 <span className="admin-required">*</span>
+              <div className="admin-label">
+                <span className="admin-label-text">제목 <span className="admin-required">*</span></span>
                 <input className="admin-input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="투표 제목" required />
-              </label>
-              <label className="admin-label">
-                플랫폼 <span className="admin-required">*</span>
-                <input className="admin-input" value={form.platform} onChange={(e) => setForm({ ...form, platform: e.target.value })} placeholder="idolchamp, mubeat, ktopstar ..." required />
-              </label>
-              <label className="admin-label">
-                URL
-                <input className="admin-input" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://... 또는 앱 링크" />
-              </label>
-              <div className="admin-form-row">
-                <label className="admin-label">
-                  시작 시간
-                  <input className="admin-input" value={form.opens_at} onChange={(e) => setForm({ ...form, opens_at: e.target.value })} placeholder="2026-02-21 18:00 또는 진행중" />
-                </label>
-                <label className="admin-label">
-                  마감 시간
-                  <input className="admin-input" value={form.closes_at} onChange={(e) => setForm({ ...form, closes_at: e.target.value })} placeholder="2026-03-01 23:59" />
-                </label>
               </div>
-              <label className="admin-label">
-                리워드
+              <div className="admin-label">
+                <span className="admin-label-text">플랫폼 <span className="admin-required">*</span></span>
+                <PlatformPicker value={form.platform} onChange={(v) => setForm({ ...form, platform: v })} />
+              </div>
+              <div className="admin-label">
+                <span className="admin-label-text">URL</span>
+                <input className="admin-input" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://... 또는 앱 링크" />
+              </div>
+              <div className="admin-form-row">
+                <div className="admin-label">
+                  <span className="admin-label-text">시작 시간</span>
+                  <input className="admin-input" value={form.opens_at} onChange={(e) => setForm({ ...form, opens_at: e.target.value })} placeholder="2026-02-21 18:00 또는 진행중" />
+                </div>
+                <div className="admin-label">
+                  <span className="admin-label-text">마감 시간</span>
+                  <input className="admin-input" value={form.closes_at} onChange={(e) => setForm({ ...form, closes_at: e.target.value })} placeholder="2026-03-01 23:59" />
+                </div>
+              </div>
+              <div className="admin-label">
+                <span className="admin-label-text">리워드</span>
                 <input className="admin-input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="예) 포인트 적립" />
-              </label>
+              </div>
               {editingId && (
                 <label className="admin-label admin-toggle-label">
                   <span>활성화</span>
