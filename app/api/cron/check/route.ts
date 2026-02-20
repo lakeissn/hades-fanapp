@@ -576,27 +576,32 @@ export async function GET(req: Request) {
             );
 
             if (targets.length > 0) {
-              for (const target of guardFiltered) {
-                const res = await sendFCMMessages(
-                  targets,
-                  {
-                    title: `${target.name} 방송 시작! 🔴`,
-                    body: target.title || "지금 라이브 중이에요",
-                    url: target.liveUrl || "/",
-                    tag: `live-${target.id}`,
-                  },
-                  {
-                    // 라이브 시작 알림은 가장 시간 민감하므로 collapse 비활성화
-                    // (기기 대기 상태에서 기존 대기 알림으로 덮어씌워져 누락되는 케이스 방지)
-                    collapse: false,
-                  }
-                );
-                results.push(res);
+              const sentAt = new Date().toISOString();
+              const liveResults = await Promise.all(
+                guardFiltered.map((target) =>
+                  sendFCMMessages(
+                    targets,
+                    {
+                      title: `${target.name} 방송 시작! 🔴`,
+                      body: target.title || "지금 라이브 중이에요",
+                      url: target.liveUrl || "/",
+                      tag: `live-${target.id}`,
+                    },
+                    {
+                      // 라이브 시작 알림은 가장 시간 민감하므로 collapse 비활성화
+                      // (기기 대기 상태에서 기존 대기 알림으로 덮어씌워져 누락되는 케이스 방지)
+                      collapse: false,
+                    }
+                  )
+                )
+              );
+              results.push(...liveResults);
 
+              for (const target of guardFiltered) {
                 liveState.lastLiveNotifyByMember = withLiveNotifyStamp(
                   liveState,
                   target.id,
-                  new Date().toISOString()
+                  sentAt
                 );
               }
             }
@@ -656,15 +661,24 @@ export async function GET(req: Request) {
           );
 
           if (targets.length > 0) {
-            for (const vote of changedVotes) {
-              const res = await sendFCMMessages(targets, {
-                title: "새 투표가 등록되었어요! 🗳️",
-                body: vote.title,
-                url: `/votes?open=${vote.id}`,
-                tag: `vote-${vote.id}`,
-              });
-              results.push(res);
-            }
+            const voteResults = await Promise.all(
+              changedVotes.map((vote) =>
+                sendFCMMessages(
+                  targets,
+                  {
+                    title: "새 투표가 등록되었어요! 🗳️",
+                    body: vote.title,
+                    url: `/votes?open=${vote.id}`,
+                    tag: `vote-${vote.id}`,
+                  },
+                  {
+                    // 여러 투표가 동시에 추가되면 각 알림이 독립 전달되도록 collapse 비활성화
+                    collapse: false,
+                  }
+                )
+              )
+            );
+            results.push(...voteResults);
           }
           await updateAppState("vote", {
             lastNotifiedVoteId: nextVoteStateId,
@@ -676,7 +690,7 @@ export async function GET(req: Request) {
 
     // ════════════════════════════════════════
     // 5-C) YOUTUBE 체크
-    // ════════════════════════════════════════
+    // ═══════════════════════════════════════
     if (youtubeData === null || youtubeData.length === 0) {
       log.push("youtube: SKIP (fetch 실패/빈 데이터)");
     } else {
@@ -712,15 +726,23 @@ export async function GET(req: Request) {
           );
 
           if (targets.length > 0) {
-            for (const video of changedVideos) {
-              const res = await sendFCMMessages(targets, {
-                title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}가 올라왔어요! ▶️`,
-                body: video.title,
-                url: video.url || "/",
-                tag: `yt-${video.id}`,
-              });
-              results.push(res);
-            }
+            const youtubeResults = await Promise.all(
+              changedVideos.map((video) =>
+                sendFCMMessages(
+                  targets,
+                  {
+                    title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}가 올라왔어요! ▶️`,
+                    body: video.title,
+                    url: video.url || "/",
+                    tag: `yt-${video.id}`,
+                  },
+                  {
+                    collapse: false,
+                  }
+                )
+              )
+            );
+            results.push(...youtubeResults);
           }
         }
 
