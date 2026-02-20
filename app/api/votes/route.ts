@@ -68,16 +68,27 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
 
 const REQUEST_TIMEOUT_MS = 4_500;
 
-// ✅ 동시 요청 1회로 합치기
+// 동시 요청 1회로 합치기
 let inFlightRequest: Promise<VoteItem[]> | null = null;
 
-// ✅ 30초 스냅샷 고정용 상태
+// CSV polling 간격(기존 30초 유지)
 const MIN_REFRESH_MS = 30_000;
+
+// 새 목록 반영 지연(약 2~3분) - 전파 흔들림 구간에서 이전 목록 유지
+const ADOPTION_DELAY_MS = 150_000;
+
+// 현재 API가 노출하는 정 스냅샷
 let lastGoodVotes: VoteItem[] | null = null;
+let lastGoodVotesSig = "";
 let lastFetchedAt = 0;
 
+// 후보 스냅샷(아직 반영 전)
+let pendingVotes: VoteItem[] | null = null;
+let pendingVotesSig = "";
+let pendingSince = 0;
+
 function withCacheBusting(url: string) {
-  // ✅ (추천) 30초 동안은 같은 _cb 값 사용 → 광클 시 구글/프록시 경로 흔들림 감소
+  // 30초 동안은 같은 _cb 값 사용 → 광클 시 구글/프록시 경로 흔들림 감소
   const bucket = Math.floor(Date.now() / MIN_REFRESH_MS);
 
   try {
@@ -235,6 +246,32 @@ function uniqueVotes(votes: VoteItem[]) {
   });
 }
 
+function createVotesSignature(votes: VoteItem[]) {
+  return votes
+    .map((vote) => ({
+      id: vote.id,
+      title: vote.title,
+      url: vote.url,
+      opensAt: vote.opensAt ?? "",
+      closesAt: vote.closesAt ?? "",
+      note: vote.note ?? "",
+      platforms: vote.platforms.join(","),
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((vote) =>
+      [
+        vote.id,
+        vote.title,
+        vote.url,
+        vote.opensAt,
+        vote.closesAt,
+        vote.note,
+        vote.platforms,
+      ].join("|")
+    )
+    .join("\n");
+}
+
 async function fetchVotesCsv(csvUrl: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -299,31 +336,67 @@ async function fetchLatestVotes() {
   return uniqueVotes(fetchedVotes);
 }
 
-// ✅ 딱 하나만 남긴 loadVotesFromSheet (30초 스냅샷 + inFlight + 폴백)
+// 30초 polling + inFlight 공유 + 실패 폴백 + 2.5분 지연 반영
 async function loadVotesFromSheet() {
   const now = Date.now();
 
-  // 30초 이내면 마지막 성공 결과 반환
   if (lastGoodVotes && now - lastFetchedAt < MIN_REFRESH_MS) {
     return lastGoodVotes;
   }
 
-  // 이미 요청 중이면 공유
   if (inFlightRequest) {
     return inFlightRequest;
   }
 
   inFlightRequest = (async () => {
-    const votes = await fetchLatestVotes();
-    lastGoodVotes = votes;
+    const fetchedVotes = await fetchLatestVotes();
+    const fetchedSig = createVotesSignature(fetchedVotes);
+
+    // 최초 부팅은 즉시 반영
+    if (!lastGoodVotes) {
+      lastGoodVotes = fetchedVotes;
+      lastGoodVotesSig = fetchedSig;
+      lastFetchedAt = Date.now();
+      pendingVotes = null;
+      pendingVotesSig = "";
+      pendingSince = 0;
+      return fetchedVotes;
+    }
+
+    // 현재 스냅샷과 같으면 안정 상태 유지
+    if (fetchedSig === lastGoodVotesSig) {
+      lastFetchedAt = Date.now();
+      pendingVotes = null;
+      pendingVotesSig = "";
+      pendingSince = 0;
+      return lastGoodVotes;
+    }
+
+    // 후보가 바뀌면 지연 타이머 리셋 (전파 흔들림 흡수)
+    if (!pendingVotes || pendingVotesSig !== fetchedSig) {
+      pendingVotes = fetchedVotes;
+      pendingVotesSig = fetchedSig;
+      pendingSince = Date.now();
+      lastFetchedAt = Date.now();
+      return lastGoodVotes;
+    }
+
+    // 같은 후보가 일정 시간 유지되면 한 번에 반영
+    if (Date.now() - pendingSince >= ADOPTION_DELAY_MS) {
+      lastGoodVotes = pendingVotes;
+      lastGoodVotesSig = pendingVotesSig;
+      pendingVotes = null;
+      pendingVotesSig = "";
+      pendingSince = 0;
+    }
+
     lastFetchedAt = Date.now();
-    return votes;
+    return lastGoodVotes;
   })();
 
   try {
     return await inFlightRequest;
   } catch {
-    // 실패하면 마지막 성공값으로 폴백
     if (lastGoodVotes) return lastGoodVotes;
     return [];
   } finally {
@@ -342,7 +415,6 @@ export async function GET() {
       },
     });
   } catch {
-    // 혹시라도 여기로 떨어져도 사용자 경험을 위해 200 + 빈 배열 (기존 정책 유지)
     return NextResponse.json([], {
       status: 200,
       headers: {
