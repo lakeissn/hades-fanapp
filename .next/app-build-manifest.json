@@ -16,6 +16,26 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/loading.js"
+    ],
+    "/votes/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/votes/page.js"
+    ],
+    "/chart/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/chart/page.js"
+    ],
+    "/guides/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/guides/page.js"
+    ],
+    "/votes/unavailable/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/votes/unavailable/page.js"
     ]
   }
 }

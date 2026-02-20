@@ -20,24 +20,22 @@ type VotesAccordionProps = {
 };
 
 export default function VotesAccordion({ votes, openVoteId = null }: VotesAccordionProps) {
-  const [openId, setOpenId] = useState<string | null>(openVoteId);
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   useEffect(() => {
     if (!openVoteId) return;
-    const exists = votes.some((vote) => vote.id === openVoteId);
-    if (exists) {
-      setOpenId(openVoteId);
-    }
+    const idx = votes.findIndex((vote) => vote.id === openVoteId);
+    if (idx !== -1) setOpenIdx(idx);
   }, [openVoteId, votes]);
 
   return (
     <div className="votes-accordion">
-      {votes.map((vote) => (
+      {votes.map((vote, idx) => (
         <VoteAccordionItem
-          key={vote.id}
+          key={`${vote.id}-${idx}`}
           vote={vote}
-          isOpen={openId === vote.id}
-          onToggle={() => setOpenId(openId === vote.id ? null : vote.id)}
+          isOpen={openIdx === idx}
+          onToggle={() => setOpenIdx(openIdx === idx ? null : idx)}
         />
       ))}
     </div>

@@ -1,4 +1,7 @@
 {
   "/page": "app/page.js",
-  "/api/members/status/route": "app/api/members/status/route.js"
+  "/votes/page": "app/votes/page.js",
+  "/votes/unavailable/page": "app/votes/unavailable/page.js",
+  "/chart/page": "app/chart/page.js",
+  "/api/votes/route": "app/api/votes/route.js"
 }

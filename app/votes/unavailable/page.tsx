@@ -1,5 +1,27 @@
 import Link from "next/link";
 
+const LABEL_TO_KEY: Record<string, string> = {
+  "아이돌챔프": "idolchamp",
+  "뮤빗": "mubeat",
+  "유픽": "upick",
+  "팬캐스트": "fancast",
+  "팬플러스": "fanplus",
+  "포도알": "podoal",
+  "후즈팬": "whosfan",
+  "덕애드": "duckad",
+  "텐아시아": "10asia",
+  "뮤니버스": "muniverse",
+  "마이원픽": "my1pick",
+  "엠넷플러스": "mnetplus",
+  "팬앤스타": "fannstar",
+  "하이어": "higher",
+  "K탑스타": "ktopstar",
+};
+
+function platformKey(label: string) {
+  return LABEL_TO_KEY[label] ?? label.toLowerCase();
+}
+
 type UnavailablePageProps = {
   searchParams?: {
     title?: string;
@@ -10,38 +32,40 @@ type UnavailablePageProps = {
 export default function VoteUnavailablePage({ searchParams }: UnavailablePageProps) {
   const voteTitle = searchParams?.title?.trim() || "해당 투표";
   const platform = searchParams?.platform?.trim();
+  const iconKey = platform ? platformKey(platform) : null;
 
   return (
     <main>
-      <section className="section-block vote-unavailable-page">
-        <article className="vote-unavailable-card">
-          <div className="vote-unavailable-top-glow" aria-hidden />
-          <div className="vote-unavailable-badge">HADES VOTE NOTICE</div>
-          <h1>
-            <span>앗, 이 투표는</span>
-            <span>앱 내부 링크 공유가 불가능해요</span>
-          </h1>
-          <p className="vote-unavailable-description">
-            <strong>{voteTitle}</strong>
-            {platform ? ` (${platform})` : ""}는 플랫폼 정책으로 인해 외부 URL로 직접 이동할 수 없습니다.
-            <br />
-            앱에서 안내된 투표처를 직접 열어 참여해 주세요.
-          </p>
-
-          <div className="vote-unavailable-hero" role="img" aria-label="하데스 안내 일러스트">
-            <img src="/icons/hades_helper.png" alt="하데스 마스코트" />
-            <div className="vote-unavailable-hero-text">
-              링크 공유가 불가능한 앱이에요
-              <small>검색 또는 앱 내부 이동으로 접속해 주세요</small>
+      <section className="section-block vu-page">
+        <div className="vu-banner">
+          <img className="vu-banner-bg" src="/icons/IMG_1897.png" alt="" aria-hidden />
+          <div className="vu-banner-inner">
+            <div className="vu-banner-text">
+              <span className="vu-tag">안내</span>
+              <h2 className="vu-title">앱 내부 링크 공유가<br />불가능한 투표예요</h2>
             </div>
+            <img className="vu-mascot" src="/icons/hades_helper.png" alt="" />
           </div>
+        </div>
 
-          <div className="vote-unavailable-actions">
-            <Link href="/votes" className="vote-unavailable-btn primary">
-              투표 목록으로 돌아가기
-            </Link>
+        <div className="vu-detail">
+          <div className="vu-vote-name">
+            {iconKey && (
+              <span className="vu-platform-icon">
+                <img src={`/icons/${iconKey}.png`} alt="" />
+              </span>
+            )}
+            <span>{voteTitle}{platform ? <span className="vu-platform"> · {platform}</span> : null}</span>
           </div>
-        </article>
+          <p className="vu-desc">
+            플랫폼 정책으로 인해 외부 URL로 직접 이동할 수 없어요.<br />
+            해당 앱을 직접 열어 투표에 참여해 주세요.
+          </p>
+        </div>
+
+        <Link href="/votes" className="vote-action-btn">
+          투표 목록으로 돌아가기
+        </Link>
       </section>
     </main>
   );
