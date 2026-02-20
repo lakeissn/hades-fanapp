@@ -60,7 +60,20 @@ type Vote = {
   created_at: string;
 };
 
-const EMPTY_FORM = { title: "", platform: "", url: "", opens_at: "", closes_at: "", note: "", enabled: true };
+type FormState = {
+  title: string; platform: string; url: string;
+  opens_at: string; closes_at: string; note: string;
+  enabled: boolean; is_ongoing: boolean;
+};
+
+const EMPTY_FORM = { title: "", platform: "", url: "", opens_at: "", closes_at: "", note: "", enabled: true, is_ongoing: false };
+
+const PLATFORM_MAP = Object.fromEntries(PLATFORMS.map(p => [p.key, p.label]));
+
+function platformDisplay(platform: string) {
+  const keys = parsePlatformKeys(platform);
+  return keys.map(k => ({ key: k, label: PLATFORM_MAP[k] ?? k }));
+}
 
 function isExpired(vote: Vote) {
   if (!vote.closes_at) return false;
@@ -75,9 +88,19 @@ function statusLabel(vote: Vote) {
 
 function fmtDate(val: string | null) {
   if (!val) return "-";
+  if (val.replace(/\s/g, "") === "진행중") return "진행중";
   const d = new Date(val);
   if (isNaN(d.getTime())) return val;
   return d.toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+// "2026-02-21T18:00" ↔ "2026-02-21 18:00"
+function toDatetimeLocal(val: string): string {
+  if (!val || val.replace(/\s/g, "") === "진행중") return "";
+  return val.trim().replace(" ", "T").slice(0, 16);
+}
+function fromDatetimeLocal(val: string): string {
+  return val ? val.replace("T", " ") : "";
 }
 
 export default function AdminDashboard() {
@@ -86,7 +109,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -111,12 +134,15 @@ export default function AdminDashboard() {
 
   const openEdit = (vote: Vote) => {
     setEditingId(vote.id);
+    const rawOpen = vote.opens_at ?? "";
+    const isOngoing = rawOpen.replace(/\s/g, "") === "진행중";
     setForm({
       title: vote.title,
       platform: vote.platform,
       url: vote.url ?? "",
-      opens_at: vote.opens_at ?? "",
-      closes_at: vote.closes_at ?? "",
+      opens_at: isOngoing ? "" : toDatetimeLocal(rawOpen),
+      is_ongoing: isOngoing,
+      closes_at: toDatetimeLocal(vote.closes_at ?? ""),
       note: vote.note ?? "",
       enabled: vote.enabled,
     });
@@ -134,7 +160,11 @@ export default function AdminDashboard() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          opens_at: form.is_ongoing ? "진행중" : fromDatetimeLocal(form.opens_at),
+          closes_at: fromDatetimeLocal(form.closes_at),
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setFormError(data.error ?? "저장 실패"); return; }
@@ -157,22 +187,37 @@ export default function AdminDashboard() {
     router.push("/admin-hades");
   };
 
+  const sorted = [...votes].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const countOn = votes.filter(v => v.enabled && !isExpired(v)).length;
+  const countExpired = votes.filter(v => isExpired(v)).length;
+  const countOff = votes.filter(v => !v.enabled).length;
+
   return (
     <div className="admin-wrap">
-      <header className="admin-header">
-        <div className="admin-header-inner">
-          <span className="admin-header-title">
-            <img src="/icons/hades_helper.png" alt="" width={24} height={24} />
-            HADES 관리자
-          </span>
-          <button className="admin-btn-ghost" onClick={handleLogout}>로그아웃</button>
+      <header className="admin-topbar">
+        <div className="admin-topbar-inner">
+          <div className="admin-topbar-brand">
+            <img src="/icons/hades_helper.png" alt="" width={20} height={20} />
+            <span>HADES Admin</span>
+          </div>
+          <button className="admin-topbar-logout" onClick={handleLogout}>로그아웃</button>
         </div>
       </header>
 
       <main className="admin-main">
-        <div className="admin-section-head">
-          <h2>투표 관리</h2>
-          <button className="admin-btn-primary" onClick={openCreate}>+ 투표 추가</button>
+        <div className="admin-page-head">
+          <div>
+            <h1 className="admin-page-title">투표 관리</h1>
+            <div className="admin-stats-row">
+              <span className="admin-stat on"><span className="admin-stat-dot" />진행중 {countOn}</span>
+              <span className="admin-stat expired"><span className="admin-stat-dot" />만료 {countExpired}</span>
+              <span className="admin-stat off"><span className="admin-stat-dot" />비활성 {countOff}</span>
+            </div>
+          </div>
+          <button className="admin-add-btn" onClick={openCreate}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            투표 추가
+          </button>
         </div>
 
         {loading ? (
@@ -181,30 +226,37 @@ export default function AdminDashboard() {
           <div className="admin-empty">등록된 투표가 없습니다.</div>
         ) : (
           <div className="admin-vote-list">
-            {votes.map((vote) => {
+            {sorted.map((vote) => {
               const st = statusLabel(vote);
+              const platforms = platformDisplay(vote.platform);
               return (
-                <div key={vote.id} className="admin-vote-row">
-                  <div className="admin-vote-main">
-                    <div className="admin-vote-top">
-                      <span className={`admin-status-badge ${st.cls}`}>{st.text}</span>
-                      <span className="admin-vote-platform">{vote.platform}</span>
+                <div key={vote.id} className={`admin-vote-card avs-${st.cls.replace("vst-", "")}`}>
+                  <div className="admin-vote-card-body">
+                    <div className="admin-vote-card-top">
+                      <h3 className="admin-vote-card-title">{vote.title}</h3>
+                      <div className="admin-vote-card-actions">
+                        <button className="admin-action-btn" onClick={() => openEdit(vote)}>수정</button>
+                        <button className="admin-action-btn danger" onClick={() => setDeleteConfirmId(vote.id)}>삭제</button>
+                      </div>
                     </div>
-                    <p className="admin-vote-title">{vote.title}</p>
-                    <div className="admin-vote-meta">
+                    <div className="admin-vote-card-chips">
+                      {platforms.map(p => (
+                        <span key={p.key} className="admin-platform-tag">
+                          <img src={`/icons/${p.key}.png`} alt="" width={13} height={13} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                          {p.label}
+                        </span>
+                      ))}
+                      <span className={`admin-vote-status ${st.cls}`}>{st.text}</span>
+                    </div>
+                    <div className="admin-vote-card-meta">
                       <span>오픈 {fmtDate(vote.opens_at)}</span>
+                      <span className="admin-meta-sep">·</span>
                       <span>마감 {fmtDate(vote.closes_at)}</span>
-                      {vote.note && <span>리워드 {vote.note}</span>}
+                      {vote.note && <><span className="admin-meta-sep">·</span><span>{vote.note}</span></>}
                     </div>
                     {vote.url && (
-                      <a className="admin-vote-url" href={vote.url} target="_blank" rel="noreferrer">
-                        {vote.url}
-                      </a>
+                      <a className="admin-vote-card-url" href={vote.url} target="_blank" rel="noreferrer">{vote.url}</a>
                     )}
-                  </div>
-                  <div className="admin-vote-actions">
-                    <button className="admin-btn-sm" onClick={() => openEdit(vote)}>수정</button>
-                    <button className="admin-btn-sm danger" onClick={() => setDeleteConfirmId(vote.id)}>삭제</button>
                   </div>
                 </div>
               );
@@ -234,15 +286,29 @@ export default function AdminDashboard() {
                 <span className="admin-label-text">URL</span>
                 <input className="admin-input" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://... 또는 앱 링크" />
               </div>
-              <div className="admin-form-row">
-                <div className="admin-label">
-                  <span className="admin-label-text">시작 시간</span>
-                  <input className="admin-input" value={form.opens_at} onChange={(e) => setForm({ ...form, opens_at: e.target.value })} placeholder="2026-02-21 18:00 또는 진행중" />
-                </div>
-                <div className="admin-label">
-                  <span className="admin-label-text">마감 시간</span>
-                  <input className="admin-input" value={form.closes_at} onChange={(e) => setForm({ ...form, closes_at: e.target.value })} placeholder="2026-03-01 23:59" />
-                </div>
+              <div className="admin-label">
+                <span className="admin-label-text">시작 시간</span>
+                <label className="admin-ongoing-row">
+                  <input type="checkbox" checked={form.is_ongoing} onChange={(e) => setForm({ ...form, is_ongoing: e.target.checked, opens_at: "" })} />
+                  <span>이미 진행중 (날짜 없음)</span>
+                </label>
+                {!form.is_ongoing && (
+                  <input
+                    type="datetime-local"
+                    className="admin-input admin-input-dt"
+                    value={form.opens_at}
+                    onChange={(e) => setForm({ ...form, opens_at: e.target.value })}
+                  />
+                )}
+              </div>
+              <div className="admin-label">
+                <span className="admin-label-text">마감 시간</span>
+                <input
+                  type="datetime-local"
+                  className="admin-input admin-input-dt"
+                  value={form.closes_at}
+                  onChange={(e) => setForm({ ...form, closes_at: e.target.value })}
+                />
               </div>
               <div className="admin-label">
                 <span className="admin-label-text">리워드</span>

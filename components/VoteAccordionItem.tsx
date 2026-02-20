@@ -41,7 +41,7 @@ function formatLongDate(value?: string) {
   if (!date) return null;
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric", month: "numeric", day: "numeric", weekday: "short",
-    hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true,
+    hour: "numeric", minute: "2-digit", hour12: true,
     timeZone: "Asia/Seoul",
   }).format(date);
 }
