@@ -341,7 +341,8 @@ async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
     const { data, error } = await supabaseAdmin
       .from("votes")
       .select("*")
-      .eq("enabled", true);
+      .eq("enabled", true)
+      .order("created_at", { ascending: false });
 
     if (error || !data) return null;
     // 활성 투표 0건은 정상 상태 — null(=Sheet 폴백) 대신 빈 배열 반환
