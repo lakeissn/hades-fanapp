@@ -658,7 +658,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 [data-theme="dark"] .member-chip { border-width: 0; }
 [data-theme="dark"] .live-card { border-width: 0; }
 [data-theme="dark"] .live-title { color: #b0b0b0; }
-[data-theme="dark"] .vote-showcase { border-color: color-mix(in oklab, var(--border) 35%, transparent); box-shadow: 0 20px 40px rgba(0,0,0,0.32); }
+[data-theme="dark"] .vote-showcase { border-color: color-mix(in oklab, var(--border) 35%, transparent); box-shadow: none; }
 [data-theme="dark"] .youtube-card { border-width: 0; }
 [data-theme="dark"] .youtube-card:hover { border-width: 0; }
 [data-theme="dark"] .link-card { border-width: 0; }
