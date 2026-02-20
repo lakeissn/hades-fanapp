@@ -109,21 +109,22 @@ export default function VoteAccordionItem({
         rel: "noreferrer",
       };
     }
+    const params = new URLSearchParams({
+      title: vote.title,
+      platform: vote.platformLabel || vote.platform,
+    });
 
     if (isUnshareableAppText(vote.url)) {
-      const params = new URLSearchParams({
-        title: vote.title,
-        platform: vote.platformLabel || vote.platform,
-      });
-      return {
-        hasUrl: true,
-        href: `/votes/unavailable?${params.toString()}`,
-      };
+      params.set("reason", "unshareable");
+    } else if (vote.url?.trim()) {
+      params.set("reason", "invalid-url");
+    } else {
+      params.set("reason", "missing-url");
     }
 
     return {
-      hasUrl: false,
-      href: "#",
+      hasUrl: true,
+      href: `/votes/unavailable?${params.toString()}`,
     };
   }, [vote.platform, vote.platformLabel, vote.title, vote.url]);
 
