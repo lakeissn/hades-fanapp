@@ -2,7 +2,7 @@
  * app/api/cron/check/route.ts
  * GET /api/cron/check
  *
- * 10분마다 GitHub Actions에서 호출
+ * 1분마다 Cloudflare에서 호출
  * 1) 보안 체크 (CRON_SECRET)
  * 2) app_state 로드
  * 3) 외부 데이터 Fetch (live/vote/youtube)
