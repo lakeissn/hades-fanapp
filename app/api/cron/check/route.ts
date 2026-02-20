@@ -74,51 +74,9 @@ const LIVE_DUPLICATE_GUARD_MINUTES = Number(
 const LIVE_DUPLICATE_GUARD_MS = LIVE_DUPLICATE_GUARD_MINUTES * 60 * 1000;
 
 const VOTE_NOTIFY_STABLE_MINUTES = Number(
-  process.env.VOTE_NOTIFY_STABLE_MINUTES ?? "1"
+  process.env.VOTE_NOTIFY_STABLE_MINUTES ?? "2"
 );
 const VOTE_NOTIFY_STABLE_MS = VOTE_NOTIFY_STABLE_MINUTES * 60 * 1000;
-
-
-async function sendVoteNotifications(
-  targets: PushTarget[],
-  votes: VoteItem[]
-): Promise<NotifyResult[]> {
-  if (votes.length === 0 || targets.length === 0) return [];
-
-  if (votes.length === 1) {
-    const vote = votes[0];
-    const result = await sendFCMMessages(
-      targets,
-      {
-        title: "새 투표가 등록되었어요! 🗳️",
-        body: vote.title,
-        url: `/votes?open=${vote.id}`,
-        tag: `vote-${vote.id}`,
-      },
-      {
-        collapse: false,
-      }
-    );
-    return [result];
-  }
-
-  const firstTitle = votes[0]?.title ?? "새 투표";
-  const summaryBody = `${firstTitle} 외 ${votes.length - 1}건`;
-  const result = await sendFCMMessages(
-    targets,
-    {
-      title: `새 투표 ${votes.length}건이 등록되었어요! 🗳️`,
-      body: summaryBody,
-      url: "/votes",
-      tag: "vote-batch",
-    },
-    {
-      collapse: true,
-    }
-  );
-
-  return [result];
-}
 
 function isRecentlyNotified(memberId: string, map: Record<string, string> | undefined) {
   if (!map?.[memberId]) return false;
@@ -633,7 +591,7 @@ export async function GET(req: Request) {
                       tag: `live-${target.id}`,
                     },
                     {
-                      // 라이브 시작 알림은 가장 시 민감하므로 collapse 비활성화
+                      // 라이브 시작 알림은 가장 시간 민감하므로 collapse 비활성화
                       // (기기 대기 상태에서 기존 대기 알림으로 덮어씌워져 누락되는 케이스 방지)
                       collapse: false,
                     }
@@ -756,7 +714,22 @@ export async function GET(req: Request) {
           );
 
           if (targets.length > 0) {
-            const voteResults = await sendVoteNotifications(targets, readyVotes);
+            const voteResults = await Promise.all(
+              readyVotes.map((vote) =>
+                sendFCMMessages(
+                  targets,
+                  {
+                    title: "새 투표가 등록되었어요! 🗳️",
+                    body: vote.title,
+                    url: `/votes?open=${vote.id}`,
+                    tag: `vote-${vote.id}`,
+                  },
+                  {
+                    collapse: false,
+                  }
+                )
+              )
+            );
             results.push(...voteResults);
           }
 
