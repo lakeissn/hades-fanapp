@@ -1,4 +1,6 @@
 /* ===== FONTS ===== */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+
 @font-face {
   font-family: "A2지체";
   font-weight: 100;
@@ -551,9 +553,16 @@ main { display: flex; flex-direction: column; gap: 28px; }
   align-items: center;
   justify-content: center;
 }
-.vote-showcase-main { min-width: 0; display: grid; }
-.vote-showcase-title-row { min-width: 0; display: flex; align-items: center; gap: 8px; }
-.vote-showcase-title-row .vote-preview-icons { flex-shrink: 0; }
+.vote-showcase-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; align-self: start; }
+.vote-showcase-badges {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.vote-showcase-badges .vote-preview-icons { flex-shrink: 0; }
+.vote-showcase-ongoing-badge {
+  flex-shrink: 0; padding: 2px 6px; border-radius: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  background: rgba(22,163,74,0.12); color: #16a34a;
+}
 .vote-showcase-label {
   min-width: 0;
   font-size: 14px;
@@ -1807,6 +1816,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .al-root {
   min-height: 100dvh; display: flex; align-items: center; justify-content: center;
   background: var(--bg); padding: 24px;
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 .al-card {
   width: 100%; max-width: 380px;
@@ -1823,7 +1833,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .al-form { display: flex; flex-direction: column; gap: 10px; }
 .al-submit { width: 100%; }
 /* ── Admin Dashboard ── */
-.admin-wrap { min-height: 100dvh; background: var(--bg); }
+.admin-wrap { min-height: 100dvh; background: var(--bg); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
 
 .admin-topbar {
   position: sticky; top: 0; z-index: 50;
@@ -1831,43 +1841,43 @@ main { display: flex; flex-direction: column; gap: 28px; }
   border-bottom: 1px solid var(--border);
 }
 .admin-topbar-inner {
-  max-width: 600px; margin: 0 auto;
-  padding: 0 20px; height: 48px;
+  max-width: 800px; margin: 0 auto;
+  padding: 0 20px; height: 52px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .admin-topbar-brand {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 14px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 700; color: var(--text);
 }
 .admin-topbar-logout {
-  font-size: 12px; color: var(--muted); background: none; border: none;
+  font-size: 13px; color: var(--muted); background: none; border: none;
   cursor: pointer; font-weight: 500;
 }
 .admin-topbar-logout:hover { text-decoration: underline; }
 
-.admin-main { max-width: 600px; margin: 0 auto; padding: 20px 20px 40px; display: flex; flex-direction: column; gap: 14px; }
+.admin-main { max-width: 800px; margin: 0 auto; padding: 24px 20px 48px; display: flex; flex-direction: column; gap: 18px; }
 
 .admin-page-head {
   display: flex; align-items: center; justify-content: space-between;
 }
-.admin-page-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.admin-page-title { font-size: 18px; font-weight: 700; color: var(--text); }
 
 .admin-add-btn {
-  padding: 7px 14px; border-radius: 9px; border: 1.5px solid var(--border);
+  padding: 9px 16px; border-radius: 10px; border: 1.5px solid var(--border);
   background: var(--bg-elevated); color: var(--text);
-  font-size: 12px; font-weight: 600; cursor: pointer;
+  font-size: 13px; font-weight: 600; cursor: pointer;
   transition: border-color 0.15s; flex-shrink: 0;
 }
 .admin-add-btn:hover { border-color: var(--border-strong); }
 
-.admin-empty { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
+.admin-empty { padding: 48px; text-align: center; color: var(--muted); font-size: 14px; }
 
 /* vote list */
-.admin-vote-list { display: flex; flex-direction: column; gap: 8px; }
+.admin-vote-list { display: flex; flex-direction: column; gap: 10px; }
 
 .admin-vote-card {
-  background: var(--bg-elevated); border-radius: 12px;
-  padding: 14px; display: flex; flex-direction: column; gap: 8px;
+  background: var(--bg-elevated); border-radius: 14px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;
   border: 1.5px solid var(--border);
   transition: border-color 0.15s;
 }
@@ -1875,34 +1885,35 @@ main { display: flex; flex-direction: column; gap: 28px; }
 [data-theme="dark"] .admin-vote-card { border-color: transparent; }
 
 .admin-vote-card-top {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
 }
-.admin-vote-card-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; flex: 1; min-width: 0; }
+.admin-vote-card-title { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.4; flex: 1; min-width: 0; }
 
-.admin-vote-card-actions { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
+.admin-vote-card-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .admin-action-btn {
-  padding: 3px 8px; border: none; background: none;
-  font-size: 11px; font-weight: 500; color: var(--muted); cursor: pointer;
+  padding: 4px 10px; border: none; background: none;
+  font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
+  transition: color 0.12s;
 }
 .admin-action-btn:hover { color: var(--text); }
 .admin-action-btn.danger:hover { color: #ef4444; }
 
-.admin-vote-card-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.admin-vote-card-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
 
 .admin-vote-status {
-  font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px;
 }
 .vst-on { background: rgba(22,163,74,0.1); color: #16a34a; }
 .vst-off { background: var(--accent-subtle); color: var(--muted); }
 .vst-expired { background: rgba(239,68,68,0.08); color: #ef4444; }
 
 .admin-vote-card-meta {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
-  font-size: 11px; color: var(--muted);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+  font-size: 12px; color: var(--muted);
 }
 .admin-meta-sep { color: var(--border-strong); }
 .admin-vote-card-url {
-  font-size: 11px; color: var(--muted); text-decoration: none;
+  font-size: 12px; color: var(--muted); text-decoration: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;
   opacity: 0.7;
 }
@@ -1911,18 +1922,18 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .admin-vote-platform-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .admin-input {
   width: 100%; padding: 10px 12px; border-radius: 10px;
-  border: 1.5px solid #e2e4e9; background: #fff;
-  color: #111; font-size: 14px; font-family: inherit;
+  border: 1.5px solid var(--border-strong); background: var(--bg-card);
+  color: var(--text); font-size: 14px; font-family: inherit;
   outline: none; transition: border-color 0.15s;
 }
-.admin-input:focus { border-color: #9ca3af; outline: none; }
-.admin-input-dt { color-scheme: light; }
+.admin-input:focus { border-color: var(--muted); outline: none; }
+.admin-input-dt { color-scheme: inherit; }
 .admin-label { display: flex; flex-direction: column; gap: 5px; }
-.admin-label-text { font-size: 12px; font-weight: 600; color: #555; }
-.admin-toggle-label { flex-direction: row; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: #555; }
-.admin-ongoing-row { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #555; cursor: pointer; margin-bottom: 2px; }
+.admin-label-text { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.admin-toggle-label { flex-direction: row; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.admin-ongoing-row { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-secondary); cursor: pointer; margin-bottom: 2px; }
 .admin-vote-platform-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.admin-platform-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-subtle); border-radius: 5px; padding: 2px 6px; font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+.admin-platform-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-subtle); border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
 .admin-platform-grid { display: flex; flex-wrap: wrap; gap: 7px; }
 .admin-platform-chip {
   display: inline-flex; align-items: center; gap: 5px;
@@ -1969,6 +1980,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
   width: 100%; max-width: 520px; max-height: 90dvh; overflow-y: auto;
   background: var(--modal-bg); border: 1px solid var(--border-strong);
   border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 20px;
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 .admin-modal-sm { max-width: 340px; gap: 12px; }
 .admin-modal-sm p { font-size: 13px; color: var(--text-secondary); }

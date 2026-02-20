@@ -344,7 +344,8 @@ async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
       .eq("enabled", true);
 
     if (error || !data) return null;
-    if (data.length === 0) return null;
+    // 활성 투표 0건은 정상 상태 — null(=Sheet 폴백) 대신 빈 배열 반환
+    if (data.length === 0) return [];
 
     const now = Date.now();
     const items = data
@@ -359,9 +360,12 @@ async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
         const openDate = parseDateKst(row.opens_at ?? "");
         const closeDate = parseDateKst(row.closes_at ?? "");
         const rawOpensAt = row.opens_at?.trim() ?? "";
+        // Supabase UUID를 기본 ID로 사용 — 고유하고 수정해도 불변
+        // legacyId에 기존 해시를 넣어 이전 cron 상태와 호환
+        const legacyHash = hashToVoteId(voteIdentityKey(row.platform ?? "", row.url ?? ""));
         return {
-          id: hashToVoteId(`${row.platform}|${row.url}`),
-          legacyId: row.id,
+          id: row.id,
+          legacyId: legacyHash,
           title: row.title?.trim() ?? "",
           platform: platforms[0],
           platformLabel: labelForPlatform(platforms[0]),
@@ -393,15 +397,8 @@ export async function GET() {
   };
 
   try {
-    // Supabase 우선 조회
-    const supabaseVotes = await loadVotesFromSupabase();
-    if (supabaseVotes !== null) {
-      return NextResponse.json(supabaseVotes, { headers: NO_CACHE });
-    }
-
-    // Supabase에 투표 없으면 기존 Google Sheets 폴백
-    const votes = await loadVotesFromSheet();
-    return NextResponse.json(votes, { headers: NO_CACHE });
+    const votes = await loadVotesFromSupabase();
+    return NextResponse.json(votes ?? [], { headers: NO_CACHE });
   } catch {
     return NextResponse.json([], { status: 200, headers: NO_CACHE });
   }

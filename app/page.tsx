@@ -108,18 +108,26 @@ function formatDeadline(closesAt?: string) {
   return new Intl.DateTimeFormat("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
 }
 
-function VotePreviewPlatforms({ vote }: { vote: VoteItem }) {
+function isOngoingKeyword(opensAt?: string) {
+  return Boolean(opensAt && opensAt.replace(/\s+/g, "") === "진행중");
+}
+
+function VotePreviewBadges({ vote }: { vote: VoteItem }) {
   const [missingMap, setMissingMap] = useState<Record<string, boolean>>({});
   const platforms = (vote.platforms?.length ? vote.platforms : (vote.platform || "").replace(/[|,/]/g, " ").replace(/\s+/g, " ").trim().split(" ")).map(i => i.trim().toLowerCase()).filter(Boolean).slice(0, 5);
+  const ongoing = isOngoingKeyword(vote.opensAt);
   return (
-    <span className="vote-preview-icons" aria-hidden>
-      {platforms.map(p => (
-        <span key={`${vote.id}-${p}`} className="vote-preview-icon">
-          {!missingMap[p] && <img src={`/icons/${p}.png`} alt="" onError={() => setMissingMap(prev => ({ ...prev, [p]: true }))} />}
-          {missingMap[p] && <span className="vote-icon-fallback vote-icon-neutral" aria-hidden><span /></span>}
-        </span>
-      ))}
-    </span>
+    <div className="vote-showcase-badges">
+      <span className="vote-preview-icons" aria-hidden>
+        {platforms.map(p => (
+          <span key={`${vote.id}-${p}`} className="vote-preview-icon">
+            {!missingMap[p] && <img src={`/icons/${p}.png`} alt="" onError={() => setMissingMap(prev => ({ ...prev, [p]: true }))} />}
+            {missingMap[p] && <span className="vote-icon-fallback vote-icon-neutral" aria-hidden><span /></span>}
+          </span>
+        ))}
+      </span>
+      {ongoing && <span className="vote-showcase-ongoing-badge">진행중</span>}
+    </div>
   );
 }
 
@@ -410,10 +418,8 @@ export default function HomePage() {
                   <a key={vote.id} href={linkMeta.href} target={linkMeta.target} rel={linkMeta.rel} className="vote-showcase-item">
                     <span className="vote-showcase-rank">{idx + 1}</span>
                     <div className="vote-showcase-main">
-                      <div className="vote-showcase-title-row">
-                        <VotePreviewPlatforms vote={vote} />
-                        <span className="vote-showcase-label">{vote.title}</span>
-                      </div>
+                      <VotePreviewBadges vote={vote} />
+                      <span className="vote-showcase-label">{vote.title}</span>
                     </div>
                     <span className="vote-showcase-deadline">{formatDeadline(vote.closesAt)}</span>
                     <span className="vote-showcase-chevron" aria-hidden>
