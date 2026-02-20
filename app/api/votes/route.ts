@@ -74,21 +74,20 @@ let inFlightRequest: Promise<VoteItem[]> | null = null;
 // CSV polling 간격(기존 30초 유지)
 const MIN_REFRESH_MS = 30_000;
 
-// 새 목록 반영 지연(약 2~3분) - 전파 흔들림 구간에서 이전 목록 유지
+// 삭제(사라짐) 반영 지연(약 2~3분) - 전파 흔들림 구간에서 기존 목록 유지
 const ADOPTION_DELAY_MS = 150_000;
 
-// 현재 API가 노출하는 정 스냅샷
+// 현재 API가 노출하는 안정 스냅샷
 let lastGoodVotes: VoteItem[] | null = null;
 let lastGoodVotesSig = "";
 let lastFetchedAt = 0;
 
-// 후보 스냅샷(아직 반영 전)
+// 삭제가 포함된 후보 스냅샷(아직 반영 전)
 let pendingVotes: VoteItem[] | null = null;
 let pendingVotesSig = "";
 let pendingSince = 0;
 
 function withCacheBusting(url: string) {
-  // 30초 동안은 같은 _cb 값 사용 → 광클 시 구글/프록시 경로 흔들림 감소
   const bucket = Math.floor(Date.now() / MIN_REFRESH_MS);
 
   try {
@@ -272,6 +271,30 @@ function createVotesSignature(votes: VoteItem[]) {
     .join("\n");
 }
 
+function hasRemovalComparedToStable(stableVotes: VoteItem[], fetchedVotes: VoteItem[]) {
+  const fetchedIds = new Set(fetchedVotes.map((vote) => vote.id));
+  return stableVotes.some((vote) => !fetchedIds.has(vote.id));
+}
+
+function mergeStableWithCandidate(stableVotes: VoteItem[], candidateVotes: VoteItem[]) {
+  const candidateMap = new Map(candidateVotes.map((vote) => [vote.id, vote]));
+  const merged: VoteItem[] = [];
+
+  // 기존 항목은 유지하되, 동일 ID가 있으면 최신값으로 치환
+  stableVotes.forEach((vote) => {
+    merged.push(candidateMap.get(vote.id) ?? vote);
+  });
+
+  // 새로 등장한 항목은 즉시 노출(푸시 클릭 시 목록 부재 방지)
+  candidateVotes.forEach((vote) => {
+    if (!stableVotes.some((stableVote) => stableVote.id === vote.id)) {
+      merged.push(vote);
+    }
+  });
+
+  return merged;
+}
+
 async function fetchVotesCsv(csvUrl: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -336,7 +359,7 @@ async function fetchLatestVotes() {
   return uniqueVotes(fetchedVotes);
 }
 
-// 30초 polling + inFlight 공유 + 실패 폴백 + 2.5분 지연 반영
+// 30초 polling + inFlight 공유 + 실패 폴백 + 삭제 지연 반영
 async function loadVotesFromSheet() {
   const now = Date.now();
 
@@ -352,7 +375,6 @@ async function loadVotesFromSheet() {
     const fetchedVotes = await fetchLatestVotes();
     const fetchedSig = createVotesSignature(fetchedVotes);
 
-    // 최초 부팅은 즉시 반영
     if (!lastGoodVotes) {
       lastGoodVotes = fetchedVotes;
       lastGoodVotesSig = fetchedSig;
@@ -363,7 +385,6 @@ async function loadVotesFromSheet() {
       return fetchedVotes;
     }
 
-    // 현재 스냅샷과 같으면 안정 상태 유지
     if (fetchedSig === lastGoodVotesSig) {
       lastFetchedAt = Date.now();
       pendingVotes = null;
@@ -372,26 +393,40 @@ async function loadVotesFromSheet() {
       return lastGoodVotes;
     }
 
-    // 후보가 바뀌면 지연 타이머 리셋 (전파 흔들림 흡수)
+    const hasRemoval = hasRemovalComparedToStable(lastGoodVotes, fetchedVotes);
+
+    // 사라진 항목이 없는 변경(신규 추가/기존 갱신)은 즉시 반영
+    if (!hasRemoval) {
+      lastGoodVotes = fetchedVotes;
+      lastGoodVotesSig = fetchedSig;
+      lastFetchedAt = Date.now();
+      pendingVotes = null;
+      pendingVotesSig = "";
+      pendingSince = 0;
+      return lastGoodVotes;
+    }
+
+    // 사라짐이 포함된 변경은 지연 반영: 우선 안정 스냅샷 + 신규 항목 병합 응답
     if (!pendingVotes || pendingVotesSig !== fetchedSig) {
       pendingVotes = fetchedVotes;
       pendingVotesSig = fetchedSig;
       pendingSince = Date.now();
       lastFetchedAt = Date.now();
-      return lastGoodVotes;
+      return mergeStableWithCandidate(lastGoodVotes, fetchedVotes);
     }
 
-    // 같은 후보가 일정 시간 유지되면 한 번에 반영
     if (Date.now() - pendingSince >= ADOPTION_DELAY_MS) {
       lastGoodVotes = pendingVotes;
       lastGoodVotesSig = pendingVotesSig;
       pendingVotes = null;
       pendingVotesSig = "";
       pendingSince = 0;
+      lastFetchedAt = Date.now();
+      return lastGoodVotes;
     }
 
     lastFetchedAt = Date.now();
-    return lastGoodVotes;
+    return mergeStableWithCandidate(lastGoodVotes, pendingVotes);
   })();
 
   try {
