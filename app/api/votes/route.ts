@@ -160,19 +160,18 @@ function hashToVoteId(raw: string) {
 }
 
 function createStableId(row: VoteRow) {
-  return hashToVoteId(voteIdentityKey(row.platform ?? "", row.url ?? ""));
+  const stableRaw = [
+    normalizePlatform(row.platform ?? ""),
+    normalizeVoteUrl(row.url ?? ""),
+    row.title?.trim() ?? "",
+  ].join("|");
+
+  return hashToVoteId(stableRaw.toLowerCase());
 }
 
 function createLegacyStableId(row: VoteRow) {
-  const legacyRaw = [
-    normalizePlatform(row.platform ?? ""),
-    row.title?.trim() ?? "",
-    row.url?.trim() ?? "",
-    row.opensAt?.trim() ?? "",
-    row.closesAt?.trim() ?? "",
-  ].join("|");
-
-  return hashToVoteId(legacyRaw);
+  // 이전 배포본(id=platform+url)과 호환 유지
+  return hashToVoteId(voteIdentityKey(row.platform ?? "", row.url ?? ""));
 }
 
 function parseCsvLine(line: string) {
