@@ -60,6 +60,15 @@ function setKnownYoutubeIds(ids: Set<string>) {
   } catch {}
 }
 
+function hasRegisteredFCMToken(): boolean {
+  try {
+    const token = localStorage.getItem("hades_fcm_token");
+    return Boolean(token && token.trim());
+  } catch {
+    return false;
+  }
+}
+
 async function sendNotification(title: string, body: string, url: string, tag: string) {
   if (Notification.permission !== "granted") return;
 
@@ -170,6 +179,13 @@ export default function NotificationPoller() {
 
       /* ── 유튜브 체크 (localStorage 영속) ── */
       if (settings.newYoutube) {
+        // FCM 토큰이 등록된 브라우저에서는 서버 푸시를 단일 소스로 사용
+        // (polling + FCM 동시 동작 시 iOS에서 중복/역순 알림이 발생할 수 있음)
+        if (hasRegisteredFCMToken()) {
+          isFirstRun.current = false;
+          return;
+        }
+        
         try {
           const res = await fetch("/api/youtube");
           const videos = await res.json();
