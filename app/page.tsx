@@ -90,10 +90,11 @@ function getVoteLinkMeta(vote: VoteItem) {
   } else {
     params.set("reason", "missing-url");
   }
-  
+
   return {
     href: `/votes/unavailable?${params.toString()}`,
   };
+}
 
 function formatDeadline(closesAt?: string) {
   if (!closesAt) return "상시 진행";
