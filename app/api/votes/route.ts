@@ -362,9 +362,9 @@ async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
         const rawOpensAt = row.opens_at?.trim() ?? "";
         // Supabase UUID를 기본 ID로 사용 — 고유하고 수정해도 불변
         // legacyId에 기존 해시를 넣어 이전 cron 상태와 호환
-        const legacyHash = hashToVoteId(voteIdentityKey(row.platform ?? "", row.url ?? ""));
+        const legacyHash = hashToVoteId(`${row.platform ?? ""}|${row.url ?? ""}`);
         return {
-          id: row.id,
+          id: String(row.id),
           legacyId: legacyHash,
           title: row.title?.trim() ?? "",
           platform: platforms[0],
