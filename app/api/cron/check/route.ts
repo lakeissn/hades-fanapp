@@ -31,6 +31,7 @@ type AppStateValue = {
   lastNotifiedYoutubeId?: string;
   lastNotifiedAt?: string;
   lastLiveNotifyByMember?: Record<string, string>;
+  voteFirstSeenAtById?: Record<string, string>;
 };
 
 type MemberStatus = {
@@ -71,6 +72,11 @@ const LIVE_DUPLICATE_GUARD_MINUTES = Number(
   process.env.LIVE_DUPLICATE_GUARD_MINUTES ?? "90"
 );
 const LIVE_DUPLICATE_GUARD_MS = LIVE_DUPLICATE_GUARD_MINUTES * 60 * 1000;
+
+const VOTE_NOTIFY_STABLE_MINUTES = Number(
+  process.env.VOTE_NOTIFY_STABLE_MINUTES ?? "2"
+);
+const VOTE_NOTIFY_STABLE_MS = VOTE_NOTIFY_STABLE_MINUTES * 60 * 1000;
 
 function isRecentlyNotified(memberId: string, map: Record<string, string> | undefined) {
   if (!map?.[memberId]) return false;
@@ -622,6 +628,8 @@ export async function GET(req: Request) {
     if (voteData === null || voteData.length === 0) {
       log.push("vote: SKIP (fetch 실패/빈 데이터)");
     } else {
+      const nowIso = new Date().toISOString();
+      const nowMs = Date.now();
       const prevVoteStateId = voteState.lastNotifiedVoteId;
       const prevVoteIds = parseVoteStateIds(prevVoteStateId);
       const currentVoteIds = voteData
@@ -635,35 +643,79 @@ export async function GET(req: Request) {
           `vote: BOOTSTRAP SEED (상태 초기화, 알림 SKIP) → id=${currentStateId}`
         );
         await updateAppState("vote", {
+          ...voteState,
           lastNotifiedVoteId: currentStateId,
-          lastNotifiedAt: new Date().toISOString(),
+          voteFirstSeenAtById: {},
+          lastNotifiedAt: nowIso,
         });
       } else {
-        const changedVotes = voteData.filter((vote) => {
+        const newCandidateVotes = voteData.filter((vote) => {
           if (prevVoteIds.has(vote.id)) return false;
           if (vote.legacyId && prevVoteIds.has(vote.legacyId)) return false;
           return true;
         });
-        const nextVoteStateId = mergeVoteStateIds(currentVoteIds, prevVoteIds);
 
-        if (changedVotes.length === 0) {
-          log.push(`vote: 변경 없음 (id=${prevVoteStateId})`);
+        const prevFirstSeenMap = voteState.voteFirstSeenAtById ?? {};
+        const nextFirstSeenMap: Record<string, string> = {};
+        const readyVotes: VoteItem[] = [];
+        const waitingVotes: VoteItem[] = [];
+
+        for (const vote of newCandidateVotes) {
+          const voteId = vote.id.trim();
+          if (!voteId) continue;
+
+          const firstSeenAt = prevFirstSeenMap[voteId] ?? nowIso;
+          nextFirstSeenMap[voteId] = firstSeenAt;
+
+          const firstSeenMs = new Date(firstSeenAt).getTime();
+          const elapsedMs = Number.isNaN(firstSeenMs) ? VOTE_NOTIFY_STABLE_MS : nowMs - firstSeenMs;
+
+          if (elapsedMs >= VOTE_NOTIFY_STABLE_MS) {
+            readyVotes.push(vote);
+          } else {
+            waitingVotes.push(vote);
+          }
+        }
+
+        const readyIds = new Set(readyVotes.map((vote) => vote.id));
+        const notifyKnownCurrentIds = voteData
+          .filter((vote) => {
+            if (prevVoteIds.has(vote.id)) return true;
+            if (vote.legacyId && prevVoteIds.has(vote.legacyId)) return true;
+            return readyIds.has(vote.id);
+          })
+          .map((vote) => vote.id)
+          .filter((id) => Boolean(id?.trim()));
+
+        const nextVoteStateId = mergeVoteStateIds(notifyKnownCurrentIds, prevVoteIds);
+
+        if (readyVotes.length === 0) {
+          if (waitingVotes.length > 0) {
+            log.push(
+              `vote: 안정화 대기 ${waitingVotes.length}건 (${VOTE_NOTIFY_STABLE_MINUTES}분)`
+            );
+          } else {
+            log.push(`vote: 변경 없음 (id=${prevVoteStateId})`);
+          }
+
           await updateAppState("vote", {
+            ...voteState,
             lastNotifiedVoteId: nextVoteStateId,
-            lastNotifiedAt: new Date().toISOString(),
+            voteFirstSeenAtById: nextFirstSeenMap,
+            lastNotifiedAt: nowIso,
           });
         } else {
           const targets = await getTargetTokens("voteEnabled");
           const androidCount = targets.filter((t) => t.platform === "android").length;
           log.push(
-            `vote: 신규 ${changedVotes.length}건 (${changedVotes
+            `vote: 안정화 완료 신규 ${readyVotes.length}건 (${readyVotes
               .map((vote) => vote.id)
               .join(", ")}) 대상: ${targets.length}명 / android ${androidCount} 우선 발송 [priority=high, urgency=high]`
           );
 
           if (targets.length > 0) {
             const voteResults = await Promise.all(
-              changedVotes.map((vote) =>
+              readyVotes.map((vote) =>
                 sendFCMMessages(
                   targets,
                   {
@@ -673,7 +725,6 @@ export async function GET(req: Request) {
                     tag: `vote-${vote.id}`,
                   },
                   {
-                    // 여러 투표가 동시에 추가되면 각 알림이 독립 전달되도록 collapse 비활성화
                     collapse: false,
                   }
                 )
@@ -681,9 +732,17 @@ export async function GET(req: Request) {
             );
             results.push(...voteResults);
           }
+
+          // 이미 발송 완료된 항목은 firstSeen 맵에서 제거, 대기 항목만 유지
+          for (const vote of readyVotes) {
+            delete nextFirstSeenMap[vote.id];
+          }
+
           await updateAppState("vote", {
+            ...voteState,
             lastNotifiedVoteId: nextVoteStateId,
-            lastNotifiedAt: new Date().toISOString(),
+            voteFirstSeenAtById: nextFirstSeenMap,
+            lastNotifiedAt: nowIso,
           });
         }
       }
