@@ -79,11 +79,53 @@ function useFitText(basePx: number = 14, minPx: number = 10) {
   return { fontSize, containerRef, textRef };
 }
 
+function isValidExternalUrl(value?: string | null) {
+  if (!value) return false;
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isUnshareableAppText(value?: string | null) {
+  if (!value) return false;
+  const normalized = value.replace(/\s+/g, "");
+  return /링크공유가?불가능/.test(normalized);
+}
+
 export default function VoteAccordionItem({
   vote, isOpen, onToggle,
 }: { vote: VoteItem; isOpen: boolean; onToggle: () => void; }) {
   const [missingIcons, setMissingIcons] = useState<Record<string, boolean>>({});
-  const hasUrl = Boolean(vote.url);
+  const linkMeta = useMemo(() => {
+    if (isValidExternalUrl(vote.url)) {
+      return {
+        hasUrl: true,
+        href: vote.url as string,
+        target: "_blank",
+        rel: "noreferrer",
+      };
+    }
+
+    if (isUnshareableAppText(vote.url)) {
+      const params = new URLSearchParams({
+        title: vote.title,
+        platform: vote.platformLabel || vote.platform,
+      });
+      return {
+        hasUrl: true,
+        href: `/votes/unavailable?${params.toString()}`,
+      };
+    }
+
+    return {
+      hasUrl: false,
+      href: "#",
+    };
+  }, [vote.platform, vote.platformLabel, vote.title, vote.url]);
 
   const periodFit = useFitText(13, 9);
 
@@ -143,7 +185,7 @@ export default function VoteAccordionItem({
 
   const stopRowToggle = (event: MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
-    if (!hasUrl) event.preventDefault();
+    if (!linkMeta.hasUrl) event.preventDefault();
   };
 
   return (
@@ -174,7 +216,13 @@ export default function VoteAccordionItem({
         </span>
 
         {!isOpen && (
-          <a className={`vote-link ${hasUrl ? "" : "is-disabled"}`} href={vote.url ?? "#"} target="_blank" rel="noreferrer" onClick={stopRowToggle}>
+          <a
+            className={`vote-link ${linkMeta.hasUrl ? "" : "is-disabled"}`}
+            href={linkMeta.href}
+            target={linkMeta.target}
+            rel={linkMeta.rel}
+            onClick={stopRowToggle}
+          >
             바로가기
           </a>
         )}
@@ -231,7 +279,13 @@ export default function VoteAccordionItem({
           </div>
 
           {/* CTA */}
-          <a className={`vote-action-btn ${hasUrl ? "" : "is-disabled"}`} href={vote.url ?? "#"} target="_blank" rel="noreferrer" onClick={stopRowToggle}>
+          <a
+            className={`vote-action-btn ${linkMeta.hasUrl ? "" : "is-disabled"}`}
+            href={linkMeta.href}
+            target={linkMeta.target}
+            rel={linkMeta.rel}
+            onClick={stopRowToggle}
+          >
             투표하러 가기
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M7 17L17 7M17 7H8M17 7v9" strokeLinecap="round" strokeLinejoin="round" />
