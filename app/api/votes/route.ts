@@ -70,6 +70,19 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
 const REQUEST_TIMEOUT_MS = 4_500;
 let inFlightRequest: Promise<VoteItem[]> | null = null;
 
+
+function withCacheBusting(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("_cb", String(Date.now()));
+    return parsed.toString();
+  } catch {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}_cb=${Date.now()}`;
+  }
+}
+
+
 function normalizeBoolean(value: string) {
   const normalized = value.trim().toLowerCase();
   return normalized === "true" || normalized === "1" || normalized === "yes";
@@ -218,9 +231,10 @@ function uniqueVotes(votes: VoteItem[]) {
 async function fetchVotesCsv(csvUrl: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const cacheBustedUrl = withCacheBusting(csvUrl);
 
   try {
-    const response = await fetch(csvUrl, {
+    const response = await fetch(cacheBustedUrl, {
       cache: "no-store",
       next: { revalidate: 0 },
       headers: {
