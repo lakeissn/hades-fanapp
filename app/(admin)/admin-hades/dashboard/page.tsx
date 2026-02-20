@@ -188,9 +188,6 @@ export default function AdminDashboard() {
   };
 
   const sorted = [...votes].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  const countOn = votes.filter(v => v.enabled && !isExpired(v)).length;
-  const countExpired = votes.filter(v => isExpired(v)).length;
-  const countOff = votes.filter(v => !v.enabled).length;
 
   return (
     <div className="admin-wrap">
@@ -198,7 +195,7 @@ export default function AdminDashboard() {
         <div className="admin-topbar-inner">
           <div className="admin-topbar-brand">
             <img src="/icons/hades_helper.png" alt="" width={20} height={20} />
-            <span>HADES Admin</span>
+            <span>투표 관리</span>
           </div>
           <button className="admin-topbar-logout" onClick={handleLogout}>로그아웃</button>
         </div>
@@ -206,18 +203,8 @@ export default function AdminDashboard() {
 
       <main className="admin-main">
         <div className="admin-page-head">
-          <div>
-            <h1 className="admin-page-title">투표 관리</h1>
-            <div className="admin-stats-row">
-              <span className="admin-stat on"><span className="admin-stat-dot" />진행중 {countOn}</span>
-              <span className="admin-stat expired"><span className="admin-stat-dot" />만료 {countExpired}</span>
-              <span className="admin-stat off"><span className="admin-stat-dot" />비활성 {countOff}</span>
-            </div>
-          </div>
-          <button className="admin-add-btn" onClick={openCreate}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-            투표 추가
-          </button>
+          <h1 className="admin-page-title">{votes.length}개의 투표</h1>
+          <button className="admin-add-btn" onClick={openCreate}>+ 추가</button>
         </div>
 
         {loading ? (

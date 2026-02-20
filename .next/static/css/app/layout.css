@@ -1830,107 +1830,93 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .al-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
 .al-form { display: flex; flex-direction: column; gap: 10px; }
 .al-submit { width: 100%; }
-/* ── Admin Dashboard Layout ── */
-.admin-wrap { min-height: 100dvh; background: #f0f1f4; }
+/* ── Admin Dashboard ── */
+.admin-wrap { min-height: 100dvh; background: var(--bg); }
 
 .admin-topbar {
   position: -webkit-sticky;
   position: sticky; top: 0; z-index: 50;
-  background: #111; border-bottom: 1px solid #000;
+  background: var(--bg-glass); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
 }
 .admin-topbar-inner {
-  max-width: 880px; margin: 0 auto;
-  padding: 0 24px; height: 50px;
+  max-width: 600px; margin: 0 auto;
+  padding: 0 20px; height: 48px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .admin-topbar-brand {
-  display: flex; align-items: center; gap: 9px;
-  font-size: 13px; font-weight: 700; letter-spacing: 0.01em; color: #fff;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 14px; font-weight: 700; color: var(--text);
 }
 .admin-topbar-logout {
-  font-size: 12px; color: #666; background: none; border: none;
-  cursor: pointer; font-weight: 500; transition: color 0.15s;
+  font-size: 12px; color: var(--muted); background: none; border: none;
+  cursor: pointer; font-weight: 500;
 }
-.admin-topbar-logout:hover { color: #ccc; }
+.admin-topbar-logout:hover { text-decoration: underline; }
 
-.admin-main { max-width: 880px; margin: 0 auto; padding: 28px 24px; display: flex; flex-direction: column; gap: 20px; }
+.admin-main { max-width: 600px; margin: 0 auto; padding: 20px 20px 40px; display: flex; flex-direction: column; gap: 14px; }
 
 .admin-page-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  display: flex; align-items: center; justify-content: space-between;
 }
-.admin-page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: #111; margin-bottom: 6px; }
-.admin-stats-row { display: flex; align-items: center; gap: 14px; }
-.admin-stat { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: #666; }
-.admin-stat-dot { width: 6px; height: 6px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
-.admin-stat.on .admin-stat-dot { background: #16a34a; }
-.admin-stat.expired .admin-stat-dot { background: #ef4444; }
-.admin-stat.off .admin-stat-dot { background: #bbb; }
+.admin-page-title { font-size: 16px; font-weight: 700; color: var(--text); }
 
 .admin-add-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 9px 16px; border-radius: 10px; border: none;
-  background: #111; color: #fff;
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: opacity 0.15s; flex-shrink: 0; white-space: nowrap;
+  padding: 7px 14px; border-radius: 9px; border: 1.5px solid var(--border);
+  background: var(--bg-elevated); color: var(--text);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: border-color 0.15s; flex-shrink: 0;
 }
-.admin-add-btn:hover { opacity: 0.8; }
+.admin-add-btn:hover { border-color: var(--border-strong); }
 
-.admin-empty { padding: 48px 24px; text-align: center; color: #999; font-size: 14px; background: #fff; border-radius: 14px; }
+.admin-empty { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
 
-/* ── Vote Cards ── */
-.admin-vote-list { display: flex; flex-direction: column; gap: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+/* vote list */
+.admin-vote-list { display: flex; flex-direction: column; gap: 8px; }
 
 .admin-vote-card {
-  background: #fff;
-  border-bottom: 1px solid #ebebeb;
-  position: relative; padding-left: 4px;
+  background: var(--bg-elevated); border-radius: 12px;
+  padding: 14px; display: flex; flex-direction: column; gap: 8px;
+  border: 1.5px solid var(--border);
+  transition: border-color 0.15s;
 }
-.admin-vote-card:last-child { border-bottom: none; }
-.admin-vote-card::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 4px;
-}
-.admin-vote-card.avs-on::before { background: #16a34a; }
-.admin-vote-card.avs-expired::before { background: #ef4444; }
-.admin-vote-card.avs-off::before { background: #d1d5db; }
-
-.admin-vote-card-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.admin-vote-card:hover { border-color: var(--border-strong); }
+[data-theme="dark"] .admin-vote-card { border-color: transparent; }
 
 .admin-vote-card-top {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
 }
-.admin-vote-card-title { font-size: 15px; font-weight: 700; color: #111; line-height: 1.35; flex: 1 1; min-width: 0; }
+.admin-vote-card-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; flex: 1 1; min-width: 0; }
 
-.admin-vote-card-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.admin-vote-card-actions { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
 .admin-action-btn {
-  padding: 4px 10px; border-radius: 7px; border: none; background: transparent;
-  font-size: 12px; font-weight: 600; color: #666; cursor: pointer; transition: background 0.12s, color 0.12s;
+  padding: 3px 8px; border: none; background: none;
+  font-size: 11px; font-weight: 500; color: var(--muted); cursor: pointer;
 }
-.admin-action-btn:hover { background: #f3f4f6; color: #111; }
-.admin-action-btn.danger:hover { background: rgba(239,68,68,0.08); color: #ef4444; }
+.admin-action-btn:hover { color: var(--text); }
+.admin-action-btn.danger:hover { color: #ef4444; }
 
-.admin-vote-card-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.admin-vote-card-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 
 .admin-vote-status {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
-  padding: 2px 7px; border-radius: 5px;
+  font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
 }
 .vst-on { background: rgba(22,163,74,0.1); color: #16a34a; }
-.vst-off { background: #f3f4f6; color: #888; }
-.vst-expired { background: rgba(239,68,68,0.1); color: #ef4444; }
+.vst-off { background: var(--accent-subtle); color: var(--muted); }
+.vst-expired { background: rgba(239,68,68,0.08); color: #ef4444; }
 
 .admin-vote-card-meta {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
-  font-size: 11.5px; color: #888;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
+  font-size: 11px; color: var(--muted);
 }
-.admin-meta-sep { color: #d1d5db; }
+.admin-meta-sep { color: var(--border-strong); }
 .admin-vote-card-url {
-  font-size: 11px; color: #a3b3c4; text-decoration: none;
+  font-size: 11px; color: var(--muted); text-decoration: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;
+  opacity: 0.7;
 }
-.admin-vote-card-url:hover { color: #555; }
+.admin-vote-card-url:hover { opacity: 1; }
 
-/* legacy refs kept for compat */
 .admin-vote-platform-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .admin-input {
   width: 100%; padding: 10px 12px; border-radius: 10px;
@@ -1945,7 +1931,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .admin-toggle-label { flex-direction: row; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: #555; }
 .admin-ongoing-row { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #555; cursor: pointer; margin-bottom: 2px; }
 .admin-vote-platform-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.admin-platform-tag { display: inline-flex; align-items: center; gap: 4px; background: #f3f4f6; border-radius: 6px; padding: 2px 7px; font-size: 11px; font-weight: 600; color: #333; }
+.admin-platform-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-subtle); border-radius: 5px; padding: 2px 6px; font-size: 10px; font-weight: 600; color: var(--text-secondary); }
 .admin-platform-grid { display: flex; flex-wrap: wrap; gap: 7px; }
 .admin-platform-chip {
   display: inline-flex; align-items: center; gap: 5px;
@@ -1964,17 +1950,17 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .admin-form-row { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 12px; gap: 12px; }
 .admin-form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
 .admin-btn-primary {
-  padding: 10px 18px; border-radius: 10px; border: none;
+  padding: 7px 18px; border-radius: 10px; border: none;
   background: var(--tab-active-bg); color: var(--tab-active-text);
-  font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
 }
 .admin-btn-primary:hover { opacity: 0.85; }
 .admin-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .admin-btn-primary.danger { background: #ef4444; color: #fff; }
 .admin-btn-ghost {
-  padding: 10px 16px; border-radius: 10px;
+  padding: 7px 16px; border-radius: 10px;
   border: 1px solid var(--border-strong); background: transparent;
-  color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;
 }
 .admin-btn-ghost:hover { background: var(--bg-hover); }
 .admin-btn-sm {
