@@ -71,7 +71,7 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
 };
 
 const REQUEST_TIMEOUT_MS = 4_500;
-const SNAPSHOT_TTL_MS = Math.max(0, Number(process.env.VOTES_SNAPSHOT_TTL_MS ?? "15000"));
+const SNAPSHOT_TTL_MS = Math.max(0, Number(process.env.VOTES_SNAPSHOT_TTL_MS ?? "0"));
 
 let inFlightRequest: Promise<VoteItem[]> | null = null;
 let snapshotCache: VoteSnapshotCache | null = null;
@@ -129,7 +129,13 @@ function isExpired(closesAt: string) {
 }
 
 function createStableId(row: VoteRow) {
-  const raw = `${normalizePlatform(row.platform)}|${row.title.trim()}|${row.closesAt.trim()}`;
+  const raw = [
+    normalizePlatform(row.platform ?? ""),
+    row.title?.trim() ?? "",
+    row.url?.trim() ?? "",
+    row.opensAt?.trim() ?? "",
+    row.closesAt?.trim() ?? "",
+  ].join("|");
   let hash = 0;
   for (let i = 0; i < raw.length; i += 1) {
     hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
