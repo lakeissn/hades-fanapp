@@ -185,18 +185,18 @@ async function sendFCMMessages(
   // data-only + notification 동시 사용
   // Android WebView/Chrome 환경에서 즉시 표시를 돕기 위해 notification 필드도 포함
   const message = {
-    notification: {
-      title: payload.title,
-      body: payload.body,
-    },
-    data: {
-      title: payload.title,
-      body: payload.body,
-      url: payload.url,
-      tag: payload.tag,
-      icon: "/icons/hades_helper.png",
-      sentAt, // stale event guard용 서버 시간
-    },
+  data: {
+    title: payload.title,
+    body: payload.body,
+    url: payload.url,
+    tag: payload.tag,
+    icon: "/icons/hades_helper.png",
+    sentAt,
+  },
+  android: { ... },
+  webpush: { ... },
+  apns: { ... },
+}
     // Android: 즉시 배달을 위한 high priority + TTL + collapse
     android: {
       priority: "high" as const,
