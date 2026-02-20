@@ -33,6 +33,7 @@ type VoteRow = {
 
 type VoteItem = {
   id: string;
+  legacyId?: string;
   title: string;
   platform: string;
   platformLabel: string;
@@ -136,6 +137,15 @@ function createStableId(row: VoteRow) {
     row.opensAt?.trim() ?? "",
     row.closesAt?.trim() ?? "",
   ].join("|");
+  let hash = 0;
+  for (let i = 0; i < raw.length; i += 1) {
+    hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
+  }
+  return `vote-${hash.toString(36)}`;
+}
+
+function createLegacyStableId(row: VoteRow) {
+  const raw = `${normalizePlatform(row.platform ?? "")}|${row.title?.trim() ?? ""}|${row.closesAt?.trim() ?? ""}`;
   let hash = 0;
   for (let i = 0; i < raw.length; i += 1) {
     hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
@@ -254,6 +264,7 @@ async function fetchLatestVotes() {
 
       return {
         id: createStableId(row),
+        legacyId: createLegacyStableId(row),
         title: row.title?.trim() ?? "",
         platform: platforms[0],
         platformLabel: labelForPlatform(platforms[0]),
