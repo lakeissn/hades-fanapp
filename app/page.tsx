@@ -78,19 +78,22 @@ function getVoteLinkMeta(vote: VoteItem) {
     };
   }
 
+  const params = new URLSearchParams({
+    title: vote.title,
+    platform: vote.platformLabel || vote.platform,
+  });
+
   if (isUnshareableAppText(vote.url)) {
-    const params = new URLSearchParams({
-      title: vote.title,
-      platform: vote.platformLabel || vote.platform,
-    });
-
-    return {
-      href: `/votes/unavailable?${params.toString()}`,
-    };
+    params.set("reason", "unshareable");
+  } else if (vote.url?.trim()) {
+    params.set("reason", "invalid-url");
+  } else {
+    params.set("reason", "missing-url");
   }
-
-  return { href: "/votes" };
-}
+  
+  return {
+    href: `/votes/unavailable?${params.toString()}`,
+  };
 
 function formatDeadline(closesAt?: string) {
   if (!closesAt) return "상시 진행";
