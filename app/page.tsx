@@ -320,7 +320,7 @@ export default function HomePage() {
 
   useEffect(() => {
     let m = true;
-    fetch("/api/votes").then(r => r.json()).then(d => { if (m) setVotes(d); }).catch(() => { if (m) setVotes([]); }).finally(() => { if (m) setIsVotesLoading(false); });
+    fetch(`/api/votes?ts=${Date.now()}`, { cache: "no-store", headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } }).then(r => r.json()).then(d => { if (m) setVotes(d); }).catch(() => { if (m) setVotes([]); }).finally(() => { if (m) setIsVotesLoading(false); });
     return () => { m = false; };
   }, []);
 
