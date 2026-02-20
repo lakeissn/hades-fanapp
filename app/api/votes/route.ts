@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { parseKstDate } from "@/lib/parseKstDate";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type VotePlatform =
   | "idolchamp"
   | "mubeat"
@@ -62,16 +65,7 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
   ktopstar: "K탑스타",
 };
 
-const CACHE_TTL_MS = Math.max(0, Number(process.env.VOTES_CACHE_TTL_MS ?? "0"));
 const REQUEST_TIMEOUT_MS = 4_500;
-
-let memoryCache:
-  | {
-      expiresAt: number;
-      data: VoteItem[];
-    }
-  | null = null;
-
 let inFlightRequest: Promise<VoteItem[]> | null = null;
 
 function normalizeBoolean(value: string) {
@@ -202,6 +196,8 @@ async function fetchVotesCsv(csvUrl: string) {
       next: { revalidate: 0 },
       headers: {
         Accept: "text/csv,*/*;q=0.9",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
       },
       signal: controller.signal,
     });
@@ -217,12 +213,6 @@ async function fetchVotesCsv(csvUrl: string) {
 }
 
 async function loadVotesFromSheet() {
-  const now = Date.now();
-
-  if (memoryCache && memoryCache.expiresAt > now) {
-    return memoryCache.data;
-  }
-
   if (inFlightRequest) {
     return inFlightRequest;
   }
@@ -232,7 +222,7 @@ async function loadVotesFromSheet() {
     const csv = await fetchVotesCsv(csvUrl);
     const parsedRows = parseCsv(csv);
 
-    const filteredVotes = parsedRows
+    return parsedRows
       .filter((row) => normalizeBoolean(row.enabled ?? ""))
       .filter((row) => !isExpired(row.closesAt ?? ""))
       .map((row) => {
@@ -255,22 +245,10 @@ async function loadVotesFromSheet() {
         } as VoteItem;
       })
       .filter((vote) => vote.title && vote.url);
-
-    memoryCache = {
-      expiresAt: Date.now() + CACHE_TTL_MS,
-      data: filteredVotes,
-    };
-
-    return filteredVotes;
   })();
 
   try {
     return await inFlightRequest;
-  } catch (error) {
-    if (memoryCache?.data?.length) {
-      return memoryCache.data;
-    }
-    throw error;
   } finally {
     inFlightRequest = null;
   }
@@ -281,10 +259,19 @@ export async function GET() {
     const votes = await loadVotesFromSheet();
     return NextResponse.json(votes, {
       headers: {
-        "Cache-Control": "no-store, max-age=0",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
       },
     });
   } catch {
-    return NextResponse.json([], { status: 200 });
+    return NextResponse.json([], {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
   }
 }
