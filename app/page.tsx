@@ -52,6 +52,46 @@ function resolveStatus(opensAt?: string, closesAt?: string) {
 
 function isVisibleVote(vote: VoteItem) { return resolveStatus(vote.opensAt, vote.closesAt) !== "closed"; }
 
+function isValidExternalUrl(value?: string | null) {
+  if (!value) return false;
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isUnshareableAppText(value?: string | null) {
+  if (!value) return false;
+  const normalized = value.replace(/\s+/g, "");
+  return /링크공유가?불가능/.test(normalized);
+}
+
+function getVoteLinkMeta(vote: VoteItem) {
+  if (isValidExternalUrl(vote.url)) {
+    return {
+      href: vote.url as string,
+      target: "_blank" as const,
+      rel: "noreferrer" as const,
+    };
+  }
+
+  if (isUnshareableAppText(vote.url)) {
+    const params = new URLSearchParams({
+      title: vote.title,
+      platform: vote.platformLabel || vote.platform,
+    });
+
+    return {
+      href: `/votes/unavailable?${params.toString()}`,
+    };
+  }
+
+  return { href: "/votes" };
+}
+
 function formatDeadline(closesAt?: string) {
   if (!closesAt) return "상시 진행";
   const d = parseKstDate(closesAt);
@@ -360,21 +400,24 @@ export default function HomePage() {
           : votePreviewItems.length === 0 ? <div className="empty-state"><p>진행중인 투표가 없습니다.</p></div>
           : (
             <div className="vote-showcase-list">
-              {votePreviewItems.map((vote, idx) => (
-                <a key={vote.id} href={vote.url || "/votes"} target={vote.url ? "_blank" : undefined} rel={vote.url ? "noreferrer" : undefined} className="vote-showcase-item">
-                  <span className="vote-showcase-rank">{idx + 1}</span>
-                  <div className="vote-showcase-main">
-                    <div className="vote-showcase-title-row">
-                      <VotePreviewPlatforms vote={vote} />
-                      <span className="vote-showcase-label">{vote.title}</span>
+              {votePreviewItems.map((vote, idx) => {
+                const linkMeta = getVoteLinkMeta(vote);
+                return (
+                  <a key={vote.id} href={linkMeta.href} target={linkMeta.target} rel={linkMeta.rel} className="vote-showcase-item">
+                    <span className="vote-showcase-rank">{idx + 1}</span>
+                    <div className="vote-showcase-main">
+                      <div className="vote-showcase-title-row">
+                        <VotePreviewPlatforms vote={vote} />
+                        <span className="vote-showcase-label">{vote.title}</span>
+                      </div>
                     </div>
-                  </div>
-                  <span className="vote-showcase-deadline">{formatDeadline(vote.closesAt)}</span>
-                  <span className="vote-showcase-chevron" aria-hidden>
-                    <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </span>
-                </a>
-              ))}
+                    <span className="vote-showcase-deadline">{formatDeadline(vote.closesAt)}</span>
+                    <span className="vote-showcase-chevron" aria-hidden>
+                      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </span>
+                  </a>
+                );
+              })}
             </div>
           )}
         </div>
