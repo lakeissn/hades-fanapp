@@ -74,18 +74,9 @@ let inFlightRequest: Promise<VoteItem[]> | null = null;
 // CSV polling 간격(기존 30초 유지)
 const MIN_REFRESH_MS = 30_000;
 
-// 삭제(사라짐) 반영 지연(약 2~3분) - 전파 흔들림 구간에서 기존 목록 유지
-const ADOPTION_DELAY_MS = 150_000;
-
 // 현재 API가 노출하는 안정 스냅샷
 let lastGoodVotes: VoteItem[] | null = null;
-let lastGoodVotesSig = "";
 let lastFetchedAt = 0;
-
-// 삭제가 포함된 후보 스냅샷(아직 반영 전)
-let pendingVotes: VoteItem[] | null = null;
-let pendingVotesSig = "";
-let pendingSince = 0;
 
 function withCacheBusting(url: string) {
   const bucket = Math.floor(Date.now() / MIN_REFRESH_MS);
@@ -107,6 +98,14 @@ function normalizeBoolean(value: string) {
 
 function normalizePlatform(platform: string) {
   return platform.trim().toLowerCase();
+}
+
+function normalizeVoteUrl(url: string) {
+  return url.trim();
+}
+
+function voteIdentityKey(platform: string, url: string) {
+  return `${normalizePlatform(platform)}|${normalizeVoteUrl(url)}`.toLowerCase();
 }
 
 function parsePlatforms(platformsRaw: string) {
@@ -152,15 +151,7 @@ function isExpired(closesAt: string) {
   return date.getTime() <= Date.now();
 }
 
-function createStableId(row: VoteRow) {
-  const raw = [
-    normalizePlatform(row.platform ?? ""),
-    row.title?.trim() ?? "",
-    row.url?.trim() ?? "",
-    row.opensAt?.trim() ?? "",
-    row.closesAt?.trim() ?? "",
-  ].join("|");
-
+function hashToVoteId(raw: string) {
   let hash = 0;
   for (let i = 0; i < raw.length; i += 1) {
     hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
@@ -168,14 +159,20 @@ function createStableId(row: VoteRow) {
   return `vote-${hash.toString(36)}`;
 }
 
-function createLegacyStableId(row: VoteRow) {
-  const raw = `${normalizePlatform(row.platform ?? "")}|${row.title?.trim() ?? ""}|${row.closesAt?.trim() ?? ""}`;
+function createStableId(row: VoteRow) {
+  return hashToVoteId(voteIdentityKey(row.platform ?? "", row.url ?? ""));
+}
 
-  let hash = 0;
-  for (let i = 0; i < raw.length; i += 1) {
-    hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
-  }
-  return `vote-${hash.toString(36)}`;
+function createLegacyStableId(row: VoteRow) {
+  const legacyRaw = [
+    normalizePlatform(row.platform ?? ""),
+    row.title?.trim() ?? "",
+    row.url?.trim() ?? "",
+    row.opensAt?.trim() ?? "",
+    row.closesAt?.trim() ?? "",
+  ].join("|");
+
+  return hashToVoteId(legacyRaw);
 }
 
 function parseCsvLine(line: string) {
@@ -245,56 +242,6 @@ function uniqueVotes(votes: VoteItem[]) {
   });
 }
 
-function createVotesSignature(votes: VoteItem[]) {
-  return votes
-    .map((vote) => ({
-      id: vote.id,
-      title: vote.title,
-      url: vote.url,
-      opensAt: vote.opensAt ?? "",
-      closesAt: vote.closesAt ?? "",
-      note: vote.note ?? "",
-      platforms: vote.platforms.join(","),
-    }))
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .map((vote) =>
-      [
-        vote.id,
-        vote.title,
-        vote.url,
-        vote.opensAt,
-        vote.closesAt,
-        vote.note,
-        vote.platforms,
-      ].join("|")
-    )
-    .join("\n");
-}
-
-function hasRemovalComparedToStable(stableVotes: VoteItem[], fetchedVotes: VoteItem[]) {
-  const fetchedIds = new Set(fetchedVotes.map((vote) => vote.id));
-  return stableVotes.some((vote) => !fetchedIds.has(vote.id));
-}
-
-function mergeStableWithCandidate(stableVotes: VoteItem[], candidateVotes: VoteItem[]) {
-  const candidateMap = new Map(candidateVotes.map((vote) => [vote.id, vote]));
-  const merged: VoteItem[] = [];
-
-  // 기존 항목은 유지하되, 동일 ID가 있으면 최신값으로 치환
-  stableVotes.forEach((vote) => {
-    merged.push(candidateMap.get(vote.id) ?? vote);
-  });
-
-  // 새로 등장한 항목은 즉시 노출(푸시 클릭 시 목록 부재 방지)
-  candidateVotes.forEach((vote) => {
-    if (!stableVotes.some((stableVote) => stableVote.id === vote.id)) {
-      merged.push(vote);
-    }
-  });
-
-  return merged;
-}
-
 async function fetchVotesCsv(csvUrl: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -359,7 +306,7 @@ async function fetchLatestVotes() {
   return uniqueVotes(fetchedVotes);
 }
 
-// 30초 polling + inFlight 공유 + 실패 폴백 + 삭제 지연 반영
+// 30초 polling + inFlight 공유 + 실패 폴백 + 전체 즉시 반영(삭제 포함)
 async function loadVotesFromSheet() {
   const now = Date.now();
 
@@ -373,60 +320,9 @@ async function loadVotesFromSheet() {
 
   inFlightRequest = (async () => {
     const fetchedVotes = await fetchLatestVotes();
-    const fetchedSig = createVotesSignature(fetchedVotes);
-
-    if (!lastGoodVotes) {
-      lastGoodVotes = fetchedVotes;
-      lastGoodVotesSig = fetchedSig;
-      lastFetchedAt = Date.now();
-      pendingVotes = null;
-      pendingVotesSig = "";
-      pendingSince = 0;
-      return fetchedVotes;
-    }
-
-    if (fetchedSig === lastGoodVotesSig) {
-      lastFetchedAt = Date.now();
-      pendingVotes = null;
-      pendingVotesSig = "";
-      pendingSince = 0;
-      return lastGoodVotes;
-    }
-
-    const hasRemoval = hasRemovalComparedToStable(lastGoodVotes, fetchedVotes);
-
-    // 사라진 항목이 없는 변경(신규 추가/기존 갱신)은 즉시 반영
-    if (!hasRemoval) {
-      lastGoodVotes = fetchedVotes;
-      lastGoodVotesSig = fetchedSig;
-      lastFetchedAt = Date.now();
-      pendingVotes = null;
-      pendingVotesSig = "";
-      pendingSince = 0;
-      return lastGoodVotes;
-    }
-
-    // 사라짐이 포함된 변경은 지연 반영: 우선 안정 스냅샷 + 신규 항목 병합 응답
-    if (!pendingVotes || pendingVotesSig !== fetchedSig) {
-      pendingVotes = fetchedVotes;
-      pendingVotesSig = fetchedSig;
-      pendingSince = Date.now();
-      lastFetchedAt = Date.now();
-      return mergeStableWithCandidate(lastGoodVotes, fetchedVotes);
-    }
-
-    if (Date.now() - pendingSince >= ADOPTION_DELAY_MS) {
-      lastGoodVotes = pendingVotes;
-      lastGoodVotesSig = pendingVotesSig;
-      pendingVotes = null;
-      pendingVotesSig = "";
-      pendingSince = 0;
-      lastFetchedAt = Date.now();
-      return lastGoodVotes;
-    }
-
+    lastGoodVotes = fetchedVotes;
     lastFetchedAt = Date.now();
-    return mergeStableWithCandidate(lastGoodVotes, pendingVotes);
+    return fetchedVotes;
   })();
 
   try {
