@@ -569,7 +569,6 @@ export async function GET(req: Request) {
               `live: 중복 보호로 알림 SKIP (최근 ${LIVE_DUPLICATE_GUARD_MINUTES}분 내 동일 멤버 알림)`
             );
           } else {
-            const target = guardFiltered[0];
             const targets = await getTargetTokens("liveEnabled");
             const androidCount = targets.filter((t) => t.platform === "android").length;
             log.push(
@@ -577,27 +576,29 @@ export async function GET(req: Request) {
             );
 
             if (targets.length > 0) {
-                           const res = await sendFCMMessages(
-                targets,
-                {
-                  title: `${target.name} 방송 시작! 🔴`,
-                  body: target.title || "지금 라이브 중이에요",
-                  url: target.liveUrl || "/",
-                  tag: `live-${target.id}`,
-                },
-                {
-                  // 라이브 시작 알림은 가장 시간 민감하므로 collapse 비활성화
-                  // (기기 대기 상태에서 기존 대기 알림으로 덮어씌워져 누락되는 케이스 방지)
-                  collapse: false,
-                }
-              );
-              results.push(res);
+              for (const target of guardFiltered) {
+                const res = await sendFCMMessages(
+                  targets,
+                  {
+                    title: `${target.name} 방송 시작! 🔴`,
+                    body: target.title || "지금 라이브 중이에요",
+                    url: target.liveUrl || "/",
+                    tag: `live-${target.id}`,
+                  },
+                  {
+                    // 라이브 시작 알림은 가장 시간 민감하므로 collapse 비활성화
+                    // (기기 대기 상태에서 기존 대기 알림으로 덮어씌워져 누락되는 케이스 방지)
+                    collapse: false,
+                  }
+                );
+                results.push(res);
 
-              liveState.lastLiveNotifyByMember = withLiveNotifyStamp(
-                liveState,
-                target.id,
-                new Date().toISOString()
-              );
+                liveState.lastLiveNotifyByMember = withLiveNotifyStamp(
+                  liveState,
+                  target.id,
+                  new Date().toISOString()
+                );
+              }
             }
           }
         } else {
@@ -646,7 +647,6 @@ export async function GET(req: Request) {
             lastNotifiedAt: new Date().toISOString(),
           });
         } else {
-          const latestVote = changedVotes[0];
           const targets = await getTargetTokens("voteEnabled");
           const androidCount = targets.filter((t) => t.platform === "android").length;
           log.push(
@@ -656,15 +656,16 @@ export async function GET(req: Request) {
           );
 
           if (targets.length > 0) {
-            const res = await sendFCMMessages(targets, {
-              title: "새 투표가 등록되었어요! 🗳️",
-              body: latestVote.title,
-              url: `/votes?open=${latestVote.id}`,
-              tag: `vote-${latestVote.id}`,
-            });
-            results.push(res);
+            for (const vote of changedVotes) {
+              const res = await sendFCMMessages(targets, {
+                title: "새 투표가 등록되었어요! 🗳️",
+                body: vote.title,
+                url: `/votes?open=${vote.id}`,
+                tag: `vote-${vote.id}`,
+              });
+              results.push(res);
+            }
           }
-
           await updateAppState("vote", {
             lastNotifiedVoteId: nextVoteStateId,
             lastNotifiedAt: new Date().toISOString(),
