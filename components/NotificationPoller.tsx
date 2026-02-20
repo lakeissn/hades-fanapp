@@ -98,7 +98,8 @@ export default function NotificationPoller() {
       navigator.serviceWorker
         .register("/firebase-messaging-sw.js", { scope: "/" })
         .catch(() => {});
-
+    }
+    
     const poll = async () => {
       const settings = getNotifSettings();
       const canNotify = settings.master && Notification.permission === "granted";
