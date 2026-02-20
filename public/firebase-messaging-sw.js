@@ -8,6 +8,31 @@
 
 /* eslint-disable no-restricted-globals */
 
+const RECENT_NOTIFICATION_WINDOW_MS = 15_000;
+const recentNotificationMap = new Map();
+
+function buildNotificationKey(title, body, tag, url) {
+  return `${tag || ""}::${title || ""}::${body || ""}::${url || ""}`;
+}
+
+function isDuplicateNotification(key) {
+  const now = Date.now();
+
+  for (const [savedKey, timestamp] of recentNotificationMap.entries()) {
+    if (now - timestamp > RECENT_NOTIFICATION_WINDOW_MS) {
+      recentNotificationMap.delete(savedKey);
+    }
+  }
+
+  const prev = recentNotificationMap.get(key);
+  if (typeof prev === "number" && now - prev < RECENT_NOTIFICATION_WINDOW_MS) {
+    return true;
+  }
+
+  recentNotificationMap.set(key, now);
+  return false;
+}
+
 // ─── 푸시 수신 (백그라운드) ───
 self.addEventListener("push", (event) => {
   if (!event.data) return;
@@ -28,6 +53,11 @@ self.addEventListener("push", (event) => {
   const badge = data.badge || "/icons/hades_helper.png";
   const tag = data.tag || "hades-default";
   const url = data.url || "/";
+
+  const dedupeKey = buildNotificationKey(title, body, tag, url);
+  if (isDuplicateNotification(dedupeKey)) {
+    return;
+  }
 
   const options = {
     body,
@@ -73,6 +103,11 @@ self.addEventListener("notificationclick", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SHOW_NOTIFICATION") {
     const { title, body, url, tag } = event.data;
+    const dedupeKey = buildNotificationKey(title || "HADES INFO", body || "", tag || "hades-msg", url || "/");
+    if (isDuplicateNotification(dedupeKey)) {
+      return;
+    }
+
     self.registration.showNotification(title || "HADES INFO", {
       body: body || "",
       icon: "/icons/hades_helper.png",
