@@ -44,6 +44,11 @@ type VoteItem = {
   note?: string;
 };
 
+type VoteSnapshotCache = {
+  data: VoteItem[];
+  fetchedAt: number;
+};
+
 const FALLBACK_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPX-EvmCuv7Dk_ozK2PhR0VmxW94s3-bZkY5Kou8FMXBR7f4indzBJ5GayAwv_VurZa0Dsp7SsrnBL/pub?gid=0&single=true&output=csv";
 
@@ -66,7 +71,10 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
 };
 
 const REQUEST_TIMEOUT_MS = 4_500;
+const SNAPSHOT_TTL_MS = Math.max(0, Number(process.env.VOTES_SNAPSHOT_TTL_MS ?? "15000"));
+
 let inFlightRequest: Promise<VoteItem[]> | null = null;
+let snapshotCache: VoteSnapshotCache | null = null;
 
 function normalizeBoolean(value: string) {
   const normalized = value.trim().toLowerCase();
@@ -186,6 +194,31 @@ function parseCsv(content: string) {
   });
 }
 
+function uniqueVotes(votes: VoteItem[]) {
+  const seen = new Set<string>();
+  return votes.filter((vote) => {
+    const key = `${vote.platform}|${vote.title}|${vote.url}|${vote.closesAt ?? ""}`.toLowerCase();
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function sortVotes(votes: VoteItem[]) {
+  return [...votes].sort((a, b) => {
+    const aClose = a.closesAt ? new Date(a.closesAt).getTime() : Number.MAX_SAFE_INTEGER;
+    const bClose = b.closesAt ? new Date(b.closesAt).getTime() : Number.MAX_SAFE_INTEGER;
+
+    if (aClose !== bClose) {
+      return aClose - bClose;
+    }
+
+    return a.title.localeCompare(b.title, "ko-KR");
+  });
+}
+
 async function fetchVotesCsv(csvUrl: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -212,43 +245,61 @@ async function fetchVotesCsv(csvUrl: string) {
   }
 }
 
+async function fetchLatestVotes() {
+  const csvUrl = process.env.VOTES_SHEET_CSV_URL ?? FALLBACK_CSV_URL;
+  const csv = await fetchVotesCsv(csvUrl);
+  const parsedRows = parseCsv(csv);
+
+  const fetchedVotes = parsedRows
+    .filter((row) => normalizeBoolean(row.enabled ?? ""))
+    .filter((row) => !isExpired(row.closesAt ?? ""))
+    .map((row) => {
+      const platforms = parsePlatforms(row.platform ?? "");
+      const rawOpensAt = row.opensAt?.trim() ?? "";
+      const openDate = parseDateKst(rawOpensAt);
+      const closeDate = parseDateKst(row.closesAt ?? "");
+
+      return {
+        id: createStableId(row),
+        title: row.title?.trim() ?? "",
+        platform: platforms[0],
+        platformLabel: labelForPlatform(platforms[0]),
+        platforms,
+        platformLabels: platforms.map(labelForPlatform),
+        url: row.url?.trim() ?? "",
+        opensAt: isInProgressKeyword(rawOpensAt) ? "진행중" : openDate ? openDate.toISOString() : undefined,
+        closesAt: closeDate ? closeDate.toISOString() : undefined,
+        note: row.note?.trim() || undefined,
+      } as VoteItem;
+    })
+    .filter((vote) => vote.title && vote.url);
+
+  return sortVotes(uniqueVotes(fetchedVotes));
+}
+
 async function loadVotesFromSheet() {
+  const now = Date.now();
+  if (snapshotCache && now - snapshotCache.fetchedAt < SNAPSHOT_TTL_MS) {
+    return snapshotCache.data;
+  }
+
   if (inFlightRequest) {
     return inFlightRequest;
   }
 
   inFlightRequest = (async () => {
-    const csvUrl = process.env.VOTES_SHEET_CSV_URL ?? FALLBACK_CSV_URL;
-    const csv = await fetchVotesCsv(csvUrl);
-    const parsedRows = parseCsv(csv);
-
-    return parsedRows
-      .filter((row) => normalizeBoolean(row.enabled ?? ""))
-      .filter((row) => !isExpired(row.closesAt ?? ""))
-      .map((row) => {
-        const platforms = parsePlatforms(row.platform ?? "");
-        const rawOpensAt = row.opensAt?.trim() ?? "";
-        const openDate = parseDateKst(rawOpensAt);
-        const closeDate = parseDateKst(row.closesAt ?? "");
-
-        return {
-          id: createStableId(row),
-          title: row.title?.trim() ?? "",
-          platform: platforms[0],
-          platformLabel: labelForPlatform(platforms[0]),
-          platforms,
-          platformLabels: platforms.map(labelForPlatform),
-          url: row.url?.trim() ?? "",
-          opensAt: isInProgressKeyword(rawOpensAt) ? "진행중" : openDate ? openDate.toISOString() : undefined,
-          closesAt: closeDate ? closeDate.toISOString() : undefined,
-          note: row.note?.trim() || undefined,
-        } as VoteItem;
-      })
-      .filter((vote) => vote.title && vote.url);
+    const data = await fetchLatestVotes();
+    snapshotCache = { data, fetchedAt: Date.now() };
+    return data;
   })();
 
   try {
     return await inFlightRequest;
+  } catch (error) {
+    if (snapshotCache) {
+      return snapshotCache.data;
+    }
+    throw error;
   } finally {
     inFlightRequest = null;
   }
