@@ -34,6 +34,10 @@ const NOTICE_REQUESTING_KEY = "hades_notice_requesting";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  if (pathname.startsWith("/admin-hades")) {
+    return <>{children}</>;
+  }
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsBtnRef = useRef<HTMLButtonElement>(null);

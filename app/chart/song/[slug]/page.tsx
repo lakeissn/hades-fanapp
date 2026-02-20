@@ -56,27 +56,6 @@ const MOCK_SONG_DETAIL = {
     { chart: "HOT100", rank: 2, spark: [45, 28, 12, 5, 3, 2, 2, 4, 6, 5, 4, 2] },
     { chart: "실시간", rank: 2, spark: [50, 35, 18, 8, 4, 2, 2, 5, 7, 6, 5, 2] },
   ],
-  highestRanks: [
-    "TOP100: 6위",
-    "HOT100 (100일): 2위",
-    "HOT100 (30일): 1위",
-    "최신발매 (1주): 1위",
-    "최신발매 (4주): 1위",
-    "실시간 차트: 2위",
-    "일간 차트: 1위",
-    "주간 차트: 1위",
-  ],
-  records: [
-    "24시간 이용자 수 (TOP100): 220,200명",
-    "1시간 이용자 수 (TOP100): 25,175명",
-    "이용자 수 (일간 차트): 215,327명",
-    "누적 감상자 수 (스트리밍 카드): 782,890명",
-    "누적 감상 수 (스트리밍 카드): 6,187,588회",
-    "이용자 수 (24시간 이용자 수): 222,339명",
-    "단순합 (일간 이용자 수 단순합 (주간)): 1,340,464명",
-    "단순합 (일간 이용자 수 단순합 (월간)): 2,285,776명",
-    "단순합 (일간 이용자 수 단순합 (연간)): 2,509,696명",
-  ],
 };
 
 /** Mock 이전 순위 히스토리: date -> hour -> rank (1-100) */
@@ -106,7 +85,7 @@ function Sparkline({ data }: { data: number[] }) {
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
-  const h = 36;
+  const h = 48;
   const w = 100;
   const step = w / (data.length - 1);
   const pts = data.map((v, i) => {
@@ -116,8 +95,8 @@ function Sparkline({ data }: { data: number[] }) {
   const linePoints = pts.map(([x, y]) => `${x},${y}`).join(" ");
   const areaPoints = `0,${h} ${linePoints} ${w},${h}`;
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" className="chart-sparkline">
-      <polygon points={areaPoints} fill="rgba(20,184,166,0.15)" />
+    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" fill="none" className="chart-sparkline">
+      <polygon points={areaPoints} fill="rgba(20,184,166,0.32)" />
       <polyline
         points={linePoints}
         stroke="#14b8a6"
@@ -240,41 +219,24 @@ export default function SongDetailPage({
         <div className="song-chart-cards-row">
           {song.chartRecords.map((rec) => (
             <div key={rec.chart} className="song-chart-card">
-              <div className="song-chart-card-inner">
-                <div className="song-chart-card-text">
-                  <span className="song-chart-card-name">{rec.chart}</span>
-                  <span className="song-chart-card-rank">{rec.rank}위</span>
-                </div>
-                <div className="song-chart-card-graph">
-                  <Sparkline data={rec.spark} />
-                </div>
+              <div className="song-chart-card-text">
+                <span className="song-chart-card-name">{rec.chart}</span>
+                <span className="song-chart-card-rank">{rec.rank}위</span>
+              </div>
+              <div className="song-chart-card-graph">
+                <Sparkline data={rec.spark} />
               </div>
               <div className="song-chart-card-gradient" aria-hidden />
             </div>
           ))}
         </div>
-      </section>
-
-      {/* 이 곡의 기록 */}
-      <section className="song-detail-section">
-        <h2 className="song-detail-section-title">이 곡의 기록</h2>
-        <div className="song-detail-records-grid">
-          <div className="song-detail-records-col">
-            <h3 className="song-detail-records-subtitle">최고 순위</h3>
-            <ul className="song-detail-records-list">
-              {song.highestRanks.map((r) => (
-                <li key={r}><span className="song-detail-record-arrow">&gt;</span> {r}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="song-detail-records-col">
-            <h3 className="song-detail-records-subtitle">최고 이용자 수 / 스트리밍 수</h3>
-            <ul className="song-detail-records-list">
-              {song.records.map((r) => (
-                <li key={r}><span className="song-detail-record-arrow">&gt;</span> {r}</li>
-              ))}
-            </ul>
-          </div>
+        <div className="song-chart-graphs-hidden">
+          {song.chartRecords.map((rec) => (
+            <div key={rec.chart} className="song-chart-graph-item">
+              <span className="song-chart-graph-label">{rec.chart}</span>
+              <Sparkline data={rec.spark} />
+            </div>
+          ))}
         </div>
       </section>
 

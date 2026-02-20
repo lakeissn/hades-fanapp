@@ -1,7 +1,7 @@
 {
-  "/page": "app/page.js",
-  "/votes/page": "app/votes/page.js",
-  "/votes/unavailable/page": "app/votes/unavailable/page.js",
   "/chart/page": "app/chart/page.js",
-  "/api/votes/route": "app/api/votes/route.js"
+  "/chart/song/[slug]/page": "app/chart/song/[slug]/page.js",
+  "/(admin)/admin-hades/page": "app/(admin)/admin-hades/page.js",
+  "/page": "app/page.js",
+  "/api/admin/auth/route": "app/api/admin/auth/route.js"
 }

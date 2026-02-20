@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseKstDate } from "@/lib/parseKstDate";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -335,24 +336,73 @@ async function loadVotesFromSheet() {
   }
 }
 
-export async function GET() {
+async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
   try {
-    const votes = await loadVotesFromSheet();
-    return NextResponse.json(votes, {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
+    const { data, error } = await supabaseAdmin
+      .from("votes")
+      .select("*")
+      .eq("enabled", true);
+
+    if (error || !data) return null;
+    if (data.length === 0) return null;
+
+    const now = Date.now();
+    const items = data
+      .filter((row) => {
+        if (!row.closes_at) return true;
+        const d = parseKstDate(row.closes_at);
+        if (!d) return true;
+        return d.getTime() > now;
+      })
+      .map((row) => {
+        const platforms = parsePlatforms(row.platform ?? "");
+        const openDate = parseDateKst(row.opens_at ?? "");
+        const closeDate = parseDateKst(row.closes_at ?? "");
+        const rawOpensAt = row.opens_at?.trim() ?? "";
+        return {
+          id: hashToVoteId(`${row.platform}|${row.url}`),
+          legacyId: row.id,
+          title: row.title?.trim() ?? "",
+          platform: platforms[0],
+          platformLabel: labelForPlatform(platforms[0]),
+          platforms,
+          platformLabels: platforms.map(labelForPlatform),
+          url: row.url?.trim() ?? "",
+          opensAt: isInProgressKeyword(rawOpensAt)
+            ? "진행중"
+            : openDate
+            ? openDate.toISOString()
+            : undefined,
+          closesAt: closeDate ? closeDate.toISOString() : undefined,
+          note: row.note?.trim() || undefined,
+        } as VoteItem;
+      })
+      .filter((v) => v.title);
+
+    return uniqueVotes(items);
   } catch {
-    return NextResponse.json([], {
-      status: 200,
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
+    return null;
+  }
+}
+
+export async function GET() {
+  const NO_CACHE = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+  };
+
+  try {
+    // Supabase 우선 조회
+    const supabaseVotes = await loadVotesFromSupabase();
+    if (supabaseVotes !== null) {
+      return NextResponse.json(supabaseVotes, { headers: NO_CACHE });
+    }
+
+    // Supabase에 투표 없으면 기존 Google Sheets 폴백
+    const votes = await loadVotesFromSheet();
+    return NextResponse.json(votes, { headers: NO_CACHE });
+  } catch {
+    return NextResponse.json([], { status: 200, headers: NO_CACHE });
   }
 }

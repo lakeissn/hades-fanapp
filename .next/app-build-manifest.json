@@ -9,8 +9,8 @@
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
+      "static/chunks/app/layout.js",
+      "static/css/app/layout.css"
     ],
     "/loading": [
       "static/chunks/webpack.js",
@@ -36,6 +36,16 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/votes/unavailable/page.js"
+    ],
+    "/chart/song/[slug]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/chart/song/[slug]/page.js"
+    ],
+    "/(admin)/admin-hades/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin-hades/page.js"
     ]
   }
 }
