@@ -29,7 +29,7 @@ export default function VotesPage() {
 
     const fetchVotes = async () => {
       try {
-        const response = await fetch("/api/votes");
+        const response = await fetch(`/api/votes?ts=${Date.now()}`, { cache: "no-store", headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } });
         const data = (await response.json()) as Vote[];
         if (isMounted) {
           setVotes(data);
