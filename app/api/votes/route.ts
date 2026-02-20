@@ -62,7 +62,7 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
   ktopstar: "K탑스타",
 };
 
-const CACHE_TTL_MS = 5 * 60_000;
+const CACHE_TTL_MS = Number(process.env.VOTES_CACHE_TTL_MS ?? "10000");
 const REQUEST_TIMEOUT_MS = 4_500;
 
 let memoryCache:
@@ -198,7 +198,8 @@ async function fetchVotesCsv(csvUrl: string) {
 
   try {
     const response = await fetch(csvUrl, {
-      next: { revalidate: 60 },
+      cache: "no-store",
+      next: { revalidate: 0 },
       headers: {
         Accept: "text/csv,*/*;q=0.9",
       },
@@ -280,7 +281,7 @@ export async function GET() {
     const votes = await loadVotesFromSheet();
     return NextResponse.json(votes, {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        "Cache-Control": "no-store, max-age=0",
       },
     });
   } catch {
