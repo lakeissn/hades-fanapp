@@ -24,6 +24,8 @@ import { messaging } from "@/firebase/admin";
 // ─── 타입 ───
 type AppStateValue = {
   lastNotifiedLiveId?: string;
+  // vote는 단일 ID가 아닌 누적 ID 집합(콤마 구분)으로 관리하여
+  // 시트 정렬 순서 변경/다건 추가에도 누락을 방지한다.
   lastNotifiedVoteId?: string;
   lastNotifiedYoutubeId?: string;
   lastNotifiedAt?: string;
@@ -409,6 +411,7 @@ function parseYoutubeStateIds(value?: string): Set<string> {
 }
 
 const MAX_YOUTUBE_STATE_IDS = 200;
+const MAX_VOTE_STATE_IDS = 300;
 
 function buildYoutubeStateIdFromIds(ids: string[]): string {
   const deduped = Array.from(
@@ -416,6 +419,47 @@ function buildYoutubeStateIdFromIds(ids: string[]): string {
   ).slice(0, MAX_YOUTUBE_STATE_IDS);
 
   return deduped.join(",");
+}
+
+function parseVoteStateIds(value?: string): Set<string> {
+  if (!value) return new Set();
+  return new Set(
+    value
+      .split(/[|,]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+}
+
+function buildVoteStateIdFromIds(ids: string[]): string {
+  const deduped = Array.from(
+    new Set(ids.map((id) => id.trim()).filter(Boolean))
+  ).slice(0, MAX_VOTE_STATE_IDS);
+
+  return deduped.join(",");
+}
+
+function mergeVoteStateIds(currentIds: string[], prevIds: Set<string>): string {
+  const merged: string[] = [];
+  const used = new Set<string>();
+
+  for (const id of currentIds) {
+    const normalized = id.trim();
+    if (!normalized || used.has(normalized)) continue;
+    merged.push(normalized);
+    used.add(normalized);
+    if (merged.length >= MAX_VOTE_STATE_IDS) return merged.join(",");
+  }
+
+  for (const id of prevIds) {
+    const normalized = id.trim();
+    if (!normalized || used.has(normalized)) continue;
+    merged.push(normalized);
+    used.add(normalized);
+    if (merged.length >= MAX_VOTE_STATE_IDS) break;
+  }
+
+  return merged.join(",");
 }
 
 function mergeYoutubeStateIds(currentIds: string[], previousIds: Set<string>): string {
@@ -575,41 +619,57 @@ export async function GET(req: Request) {
     if (voteData === null || voteData.length === 0) {
       log.push("vote: SKIP (fetch 실패/빈 데이터)");
     } else {
-      const latestVote = voteData[0]; // 최신 1건
-      const prevVoteId = voteState.lastNotifiedVoteId;
+      const prevVoteStateId = voteState.lastNotifiedVoteId;
+      const prevVoteIds = parseVoteStateIds(prevVoteStateId);
+      const currentVoteIds = voteData
+        .map((vote) => vote.id)
+        .filter((id) => Boolean(id?.trim()));
 
       // Bootstrap seed 체크
-      if (isBootstrap(prevVoteId)) {
+      if (isBootstrap(prevVoteStateId)) {
+        const currentStateId = buildVoteStateIdFromIds(currentVoteIds);
         log.push(
-          `vote: BOOTSTRAP SEED (상태 초기화, 알림 SKIP) → id=${latestVote.id}`
+          `vote: BOOTSTRAP SEED (상태 초기화, 알림 SKIP) → id=${currentStateId}`
         );
         await updateAppState("vote", {
-          lastNotifiedVoteId: latestVote.id,
+          lastNotifiedVoteId: currentStateId,
           lastNotifiedAt: new Date().toISOString(),
         });
-      } else if (latestVote.id === prevVoteId) {
-        log.push(`vote: 변경 없음 (id=${prevVoteId})`);
       } else {
-        const targets = await getTargetTokens("voteEnabled");
-        const androidCount = targets.filter((t) => t.platform === "android").length;
-        log.push(
-          `vote: 신규 (${latestVote.id}) 대상: ${targets.length}명 / android ${androidCount} 우선 발송 [priority=high, urgency=high]`
-        );
+        const changedVotes = voteData.filter((vote) => !prevVoteIds.has(vote.id));
+        const nextVoteStateId = mergeVoteStateIds(currentVoteIds, prevVoteIds);
 
-        if (targets.length > 0) {
-          const res = await sendFCMMessages(targets, {
-            title: "새 투표가 등록되었요! 🗳️",
-            body: latestVote.title,
-            url: `/votes?open=${latestVote.id}`,
-            tag: `vote-${latestVote.id}`,
+        if (changedVotes.length === 0) {
+          log.push(`vote: 변경 없음 (id=${prevVoteStateId})`);
+          await updateAppState("vote", {
+            lastNotifiedVoteId: nextVoteStateId,
+            lastNotifiedAt: new Date().toISOString(),
           });
-          results.push(res);
-        }
+        } else {
+          const latestVote = changedVotes[0];
+          const targets = await getTargetTokens("voteEnabled");
+          const androidCount = targets.filter((t) => t.platform === "android").length;
+          log.push(
+            `vote: 신규 ${changedVotes.length}건 (${changedVotes
+              .map((vote) => vote.id)
+              .join(", ")}) 대상: ${targets.length}명 / android ${androidCount} 우선 발송 [priority=high, urgency=high]`
+          );
 
-        await updateAppState("vote", {
-          lastNotifiedVoteId: latestVote.id,
-          lastNotifiedAt: new Date().toISOString(),
-        });
+          if (targets.length > 0) {
+            const res = await sendFCMMessages(targets, {
+              title: "새 투표가 등록되었어요! 🗳️",
+              body: latestVote.title,
+              url: `/votes?open=${latestVote.id}`,
+              tag: `vote-${latestVote.id}`,
+            });
+            results.push(res);
+          }
+
+          await updateAppState("vote", {
+            lastNotifiedVoteId: nextVoteStateId,
+            lastNotifiedAt: new Date().toISOString(),
+          });
+        }
       }
     }
 
