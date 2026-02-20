@@ -106,11 +106,15 @@ export default function NotificationPoller() {
         return;
       }
 
+      // FCM 토큰이 이미 등록된 브라우저에서는 서버 푸시를 단일 소스로 사용한다.
+      // polling + FCM이 동시에 켜져 있으면 동일 이벤트가 중복 알림으로 보일 수 있다.
+      const usePollingFallback = !hasRegisteredFCMToken();
+
       const liveEnabledNow = settings.liveBroadcast;
       const becameLiveEnabled = liveEnabledNow && !canNotifyLiveRef.current;
       canNotifyLiveRef.current = liveEnabledNow;
 
-      /* ── 라이브 체크 (기존 in-memory 방식 유지) ── */
+      /* ── 라이브 체크 (FCM 미등록 환경에서만 polling 알림 허용) ── */
       if (liveEnabledNow) {
         try {
           const res = await fetch("/api/members/status");
@@ -121,7 +125,12 @@ export default function NotificationPoller() {
             for (const m of members) {
               if (m.isLive) {
                 liveNow.add(m.id);
-                if (!isFirstRun.current && !becameLiveEnabled && !prevLiveIds.current.has(m.id)) {
+                if (
+                  usePollingFallback &&
+                  !isFirstRun.current &&
+                  !becameLiveEnabled &&
+                  !prevLiveIds.current.has(m.id)
+                ) {
                   sendNotification(
                     `${m.name} 방송 시작! 🔴`,
                     m.title || "지금 라이브 중이에요",
@@ -140,7 +149,7 @@ export default function NotificationPoller() {
       }
 
       /* ── 투표 체크 (localStorage 영속 + 장애 복구 안전) ── */
-      if (settings.newVote) {
+      if (settings.newVote && usePollingFallback) {
         try {
           const res = await fetch("/api/votes");
           const votes = await res.json();
@@ -178,14 +187,7 @@ export default function NotificationPoller() {
       }
 
       /* ── 유튜브 체크 (localStorage 영속) ── */
-      if (settings.newYoutube) {
-        // FCM 토큰이 등록된 브라우저에서는 서버 푸시를 단일 소스로 사용
-        // (polling + FCM 동시 동작 시 iOS에서 중복/역순 알림이 발생할 수 있음)
-        if (hasRegisteredFCMToken()) {
-          isFirstRun.current = false;
-          return;
-        }
-        
+      if (settings.newYoutube && usePollingFallback) {
         try {
           const res = await fetch("/api/youtube");
           const videos = await res.json();
