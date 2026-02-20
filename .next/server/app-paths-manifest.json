@@ -1,10 +1,4 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/icon/[[...__metadata_id__]]/route": "app/icon/[[...__metadata_id__]]/route.js",
-  "/api/votes/route": "app/api/votes/route.js",
   "/page": "app/page.js",
-  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
-  "/api/youtube/route": "app/api/youtube/route.js",
-  "/(admin)/admin-hades/page": "app/(admin)/admin-hades/page.js",
-  "/api/members/status/route": "app/api/members/status/route.js"
+  "/(admin)/admin-hades/page": "app/(admin)/admin-hades/page.js"
 }

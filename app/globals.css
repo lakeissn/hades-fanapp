@@ -1878,7 +1878,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 
 .admin-vote-card {
   background: var(--bg-elevated); border-radius: 14px;
-  padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;
   border: 1.5px solid var(--border);
   transition: border-color 0.15s;
 }
@@ -1902,7 +1902,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .admin-vote-card-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
 
 .admin-vote-status {
-  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px;
+  font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 5px;
 }
 .vst-on { background: rgba(22,163,74,0.1); color: #16a34a; }
 .vst-off { background: var(--accent-subtle); color: var(--muted); }
