@@ -254,20 +254,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="pc-footer-notice">
             <h4>서비스 안내</h4>
-            <ul className="pc-footer-notice-list">
-              <li>
-                <strong>비공식 팬 사이트</strong>
-                <span>하데스 공식과 제휴·연계되지 않은 자발적 팬 프로젝트입니다.</span>
-              </li>
-              <li>
-                <strong>데이터 참고용 제공</strong>
-                <span>차트·투표·라이브 정보는 참고용이며 공식 집계와 차이가 있을 수 있습니다.</span>
-              </li>
-              <li>
-                <strong>문의 및 권리 요청</strong>
-                <span>권리 침해 또는 수정 요청은 운영진 문의를 통해 접수해 주세요.</span>
-              </li>
-            </ul>
+            <p>본 서비스는 자발적으로 제작·운영하는 비공식 팬 사이트이며, 하데스 공식과 어떠한 제휴·연계 관계도 없습니다. 음원 차트, 투표 현황, 라이브 방송 정보 등 사이트에 표시되는 모든 데이터는 참고 목적으로 제공되며, 공식 집계 결과와 차이가 있을 수 있습니다. 콘텐츠에 대한 권리 침해나 문의 사항이 있을 경우, 운영진에게 연락 부탁드립니다.</p>
           </div>
         </div>
       </footer>
