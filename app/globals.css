@@ -1,5 +1,5 @@
-/* ===== FONTS ===== */
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+/* ===== FONTS ===== */
 
 @font-face {
   font-family: "A2지체";
@@ -1833,7 +1833,8 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .al-form { display: flex; flex-direction: column; gap: 10px; }
 .al-submit { width: 100%; }
 /* ── Admin Dashboard ── */
-.admin-wrap { min-height: 100dvh; background: var(--bg); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+.admin-wrap { min-height: 100dvh; background: var(--bg); }
+.admin-wrap, .admin-wrap * { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
 
 .admin-topbar {
   position: sticky; top: 0; z-index: 50;

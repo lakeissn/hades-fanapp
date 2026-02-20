@@ -219,13 +219,6 @@ export default function AdminDashboard() {
               return (
                 <div key={vote.id} className={`admin-vote-card avs-${st.cls.replace("vst-", "")}`}>
                   <div className="admin-vote-card-body">
-                    <div className="admin-vote-card-top">
-                      <h3 className="admin-vote-card-title">{vote.title}</h3>
-                      <div className="admin-vote-card-actions">
-                        <button className="admin-action-btn" onClick={() => openEdit(vote)}>수정</button>
-                        <button className="admin-action-btn danger" onClick={() => setDeleteConfirmId(vote.id)}>삭제</button>
-                      </div>
-                    </div>
                     <div className="admin-vote-card-chips">
                       {platforms.map(p => (
                         <span key={p.key} className="admin-platform-tag">
@@ -234,6 +227,13 @@ export default function AdminDashboard() {
                         </span>
                       ))}
                       <span className={`admin-vote-status ${st.cls}`}>{st.text}</span>
+                    </div>
+                    <div className="admin-vote-card-top">
+                      <h3 className="admin-vote-card-title">{vote.title}</h3>
+                      <div className="admin-vote-card-actions">
+                        <button className="admin-action-btn" onClick={() => openEdit(vote)}>수정</button>
+                        <button className="admin-action-btn danger" onClick={() => setDeleteConfirmId(vote.id)}>삭제</button>
+                      </div>
                     </div>
                     <div className="admin-vote-card-meta">
                       <span>오픈 {fmtDate(vote.opens_at)}</span>
