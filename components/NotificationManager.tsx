@@ -23,6 +23,8 @@ const DEFAULT_SETTINGS: NotifSettings = {
   newVote: false,
   newYoutube: false,
 };
+const TOKEN_RESYNC_INTERVAL_MS = 5 * 60 * 1000;
+
 
 function getSettings(): NotifSettings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
@@ -162,18 +164,30 @@ export default function NotificationManager() {
   const initialized = useRef(false);
   const prevSettingsRef = useRef<string>("");
 
-  // 초기화: 토큰 발급 & 등록
-  const init = useCallback(async () => {
+  // 토큰 재검증 + 서버 등록(토큰 회전 대응)
+  const lastTokenSyncAtRef = useRef(0);
+  const ensureTokenRegistration = useCallback(async (force = false) => {
     const settings = getSettings();
     if (!settings.master) return;
     if (typeof window === "undefined") return;
     if (!("Notification" in window) || Notification.permission !== "granted") return;
 
-    const token = await requestFCMToken();
-    if (!token) return;
+    const now = Date.now();
+    if (!force && now - lastTokenSyncAtRef.current < TOKEN_RESYNC_INTERVAL_MS) {
+      return;
+    }
+    lastTokenSyncAtRef.current = now;
 
-    saveToken(token);
-    await registerToken(token, toServerPrefs(settings));
+    const latestToken = await requestFCMToken();
+    if (!latestToken) return;
+
+    const prevToken = getSavedToken();
+    if (prevToken && prevToken !== latestToken) {
+      await unregisterToken(prevToken);
+    }
+
+    saveToken(latestToken);
+    await registerToken(latestToken, toServerPrefs(settings));
   }, []);
 
   // 설정 변경 감지 & 동기화
@@ -189,12 +203,18 @@ export default function NotificationManager() {
       prevSettingsRef.current = json;
 
       const token = getSavedToken();
-      if (!token) return;
 
       if (!settings.master) {
-        // 전체 OFF → 서버에서 비활성화
-        unregisterToken(token);
-        clearToken();
+        if (token) {
+          // 전체 OFF → 서버에서 비활성화
+          unregisterToken(token);
+          clearToken();
+        }
+        return;
+      }
+
+      if (!token) {
+        ensureTokenRegistration(true);
         return;
       }
 
@@ -212,14 +232,22 @@ export default function NotificationManager() {
     const onCustom = () => syncPrefs();
     window.addEventListener("hades_prefs_changed", onCustom);
 
+    // 앱 복귀 시 토큰 재검증 (Android 토큰 회전/절전 복귀 대응)
+    const onFocus = () => {
+      ensureTokenRegistration(false);
+    };
+    window.addEventListener("focus", onFocus);
+
     // 초기 실행
     syncPrefs();
+    ensureTokenRegistration(true);
 
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("hades_prefs_changed", onCustom);
+      window.removeEventListener("focus", onFocus);
     };
-  }, []);
+  }, [ensureTokenRegistration]);
 
   // 초기 토큰 등록 + 포그라운드 메시지 리스너
   useEffect(() => {
@@ -227,7 +255,7 @@ export default function NotificationManager() {
     if (initialized.current) return;
     initialized.current = true;
 
-    init();
+    ensureTokenRegistration(true);
 
     // 포그라운드 메시지 수신
     const unsub = onForegroundMessage((payload) => {
@@ -236,7 +264,7 @@ export default function NotificationManager() {
     });
 
     return () => unsub();
-  }, [init]);
+  }, [ensureTokenRegistration]);
 
   return null; // Headless
 }
