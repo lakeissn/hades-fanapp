@@ -45,7 +45,6 @@ type VoteItem = {
   note?: string;
 };
 
-
 const FALLBACK_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPX-EvmCuv7Dk_ozK2PhR0VmxW94s3-bZkY5Kou8FMXBR7f4indzBJ5GayAwv_VurZa0Dsp7SsrnBL/pub?gid=0&single=true&output=csv";
 
@@ -68,20 +67,28 @@ const PLATFORM_LABELS: Record<VotePlatform, string> = {
 };
 
 const REQUEST_TIMEOUT_MS = 4_500;
+
+// ✅ 동시 요청 1회로 합치기
 let inFlightRequest: Promise<VoteItem[]> | null = null;
 
+// ✅ 30초 스냅샷 고정용 상태
+const MIN_REFRESH_MS = 30_000;
+let lastGoodVotes: VoteItem[] | null = null;
+let lastFetchedAt = 0;
 
 function withCacheBusting(url: string) {
+  // ✅ (추천) 30초 동안은 같은 _cb 값 사용 → 광클 시 구글/프록시 경로 흔들림 감소
+  const bucket = Math.floor(Date.now() / MIN_REFRESH_MS);
+
   try {
     const parsed = new URL(url);
-    parsed.searchParams.set("_cb", String(Date.now()));
+    parsed.searchParams.set("_cb", String(bucket));
     return parsed.toString();
   } catch {
     const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}_cb=${Date.now()}`;
+    return `${url}${separator}_cb=${bucket}`;
   }
 }
-
 
 function normalizeBoolean(value: string) {
   const normalized = value.trim().toLowerCase();
@@ -143,6 +150,7 @@ function createStableId(row: VoteRow) {
     row.opensAt?.trim() ?? "",
     row.closesAt?.trim() ?? "",
   ].join("|");
+
   let hash = 0;
   for (let i = 0; i < raw.length; i += 1) {
     hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
@@ -152,6 +160,7 @@ function createStableId(row: VoteRow) {
 
 function createLegacyStableId(row: VoteRow) {
   const raw = `${normalizePlatform(row.platform ?? "")}|${row.title?.trim() ?? ""}|${row.closesAt?.trim() ?? ""}`;
+
   let hash = 0;
   for (let i = 0; i < raw.length; i += 1) {
     hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
@@ -220,9 +229,7 @@ function uniqueVotes(votes: VoteItem[]) {
   const seen = new Set<string>();
   return votes.filter((vote) => {
     const key = `${vote.platform}|${vote.title}|${vote.url}|${vote.closesAt ?? ""}`.toLowerCase();
-    if (seen.has(key)) {
-      return false;
-    }
+    if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
@@ -278,7 +285,11 @@ async function fetchLatestVotes() {
         platforms,
         platformLabels: platforms.map(labelForPlatform),
         url: row.url?.trim() ?? "",
-        opensAt: isInProgressKeyword(rawOpensAt) ? "진행중" : openDate ? openDate.toISOString() : undefined,
+        opensAt: isInProgressKeyword(rawOpensAt)
+          ? "진행중"
+          : openDate
+          ? openDate.toISOString()
+          : undefined,
         closesAt: closeDate ? closeDate.toISOString() : undefined,
         note: row.note?.trim() || undefined,
       } as VoteItem;
@@ -288,15 +299,33 @@ async function fetchLatestVotes() {
   return uniqueVotes(fetchedVotes);
 }
 
+// ✅ 딱 하나만 남긴 loadVotesFromSheet (30초 스냅샷 + inFlight + 폴백)
 async function loadVotesFromSheet() {
+  const now = Date.now();
+
+  // 30초 이내면 마지막 성공 결과 반환
+  if (lastGoodVotes && now - lastFetchedAt < MIN_REFRESH_MS) {
+    return lastGoodVotes;
+  }
+
+  // 이미 요청 중이면 공유
   if (inFlightRequest) {
     return inFlightRequest;
   }
 
-  inFlightRequest = fetchLatestVotes();
+  inFlightRequest = (async () => {
+    const votes = await fetchLatestVotes();
+    lastGoodVotes = votes;
+    lastFetchedAt = Date.now();
+    return votes;
+  })();
 
   try {
     return await inFlightRequest;
+  } catch {
+    // 실패하면 마지막 성공값으로 폴백
+    if (lastGoodVotes) return lastGoodVotes;
+    return [];
   } finally {
     inFlightRequest = null;
   }
@@ -313,6 +342,7 @@ export async function GET() {
       },
     });
   } catch {
+    // 혹시라도 여기로 떨어져도 사용자 경험을 위해 200 + 빈 배열 (기존 정책 유지)
     return NextResponse.json([], {
       status: 200,
       headers: {
