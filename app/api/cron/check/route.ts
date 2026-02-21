@@ -213,9 +213,10 @@ async function sendFCMMessages(
     : `${payload.tag}-${sentAt.replace(/[^0-9]/g, "")}-${Math.random().toString(36).slice(2, 6)}`;
 
   const message: Omit<MulticastMessage, "tokens"> = {
-    // top-level notification 제거 — 플랫폼별 개별 처리
-    // (top-level notification이 있으면 Chrome이 auto-display + push 이벤트를
-    //  동시에 발생시켜, 동일 제목의 다건 알림이 브라우저 레벨에서 병합/누락됨)
+    notification: {
+      title: payload.title,
+      body: payload.body,
+    },
     data: {
       title: payload.title,
       body: payload.body,
@@ -257,7 +258,6 @@ async function sendFCMMessages(
         link: payload.url,
       },
     },
-    // iOS (APNs): alert으로 직접 표시
     apns: {
       headers: {
         "apns-priority": "10",
@@ -268,10 +268,7 @@ async function sendFCMMessages(
       },
       payload: {
         aps: {
-          alert: {
-            title: payload.title,
-            body: payload.body,
-          },
+          "content-available": 1,
           sound: "default",
         },
       },
