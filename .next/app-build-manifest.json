@@ -17,11 +17,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/loading.js"
     ],
-    "/(admin)/admin-hades/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(admin)/admin-hades/page.js"
-    ],
     "/votes/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -36,6 +31,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/guides/page.js"
+    ],
+    "/(admin)/admin-hades/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin-hades/page.js"
     ]
   }
 }

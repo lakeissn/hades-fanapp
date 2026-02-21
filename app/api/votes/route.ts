@@ -341,7 +341,8 @@ async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
     const { data, error } = await supabaseAdmin
       .from("votes")
       .select("*")
-      .eq("enabled", true);
+      .eq("enabled", true)
+      .order("created_at", { ascending: false });
 
     if (error || !data) return null;
     if (data.length === 0) return null;
@@ -360,8 +361,8 @@ async function loadVotesFromSupabase(): Promise<VoteItem[] | null> {
         const closeDate = parseDateKst(row.closes_at ?? "");
         const rawOpensAt = row.opens_at?.trim() ?? "";
         return {
-          id: hashToVoteId(`${row.platform}|${row.url}`),
-          legacyId: row.id,
+          id: row.id,
+          legacyId: hashToVoteId(`${row.platform}|${row.url}`),
           title: row.title?.trim() ?? "",
           platform: platforms[0],
           platformLabel: labelForPlatform(platforms[0]),

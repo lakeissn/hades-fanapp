@@ -208,8 +208,10 @@ async function sendFCMMessages(
   // (환경변수로 조절 가능, 기본 24시간)
   const TTL_SECONDS = Number(process.env.FCM_TTL_SECONDS ?? "86400");
 
-  // data-only + notification 동시 사용
-  // Android WebView/Chrome 환경에서 즉시 표시를 돕기 위해 notification 필드도 포함
+  const uniqueTag = useCollapse
+    ? payload.tag
+    : `${payload.tag}-${sentAt.replace(/[^0-9]/g, "")}-${Math.random().toString(36).slice(2, 6)}`;
+
   const message: Omit<MulticastMessage, "tokens"> = {
     notification: {
       title: payload.title,
@@ -219,20 +221,19 @@ async function sendFCMMessages(
       title: payload.title,
       body: payload.body,
       url: payload.url,
-      tag: payload.tag,
+      tag: uniqueTag,
       icon: "/icons/hades_helper.png",
-      sentAt, // stale event guard용 서버 시간
+      sentAt,
     },
-    // Android: 즉시 배달을 위한 high priority + TTL + collapse
     android: {
       priority: "high" as const,
       ttl: TTL_SECONDS * 1000,
-      // notification payload를 포함하는 Android 메시지는 기본적으로 collapse 동작을 할 수 있어
-      // 동시 다발 이벤트에서 앞선 알림이 덮어써지는 문제를 방지하기 위해
-      // collapse 비활성화 시에는 길이 제한을 지킨 고유 collapse key를 부여한다.
-      collapseKey: androidCollapseKey,
+      ...(useCollapse ? { collapseKey: androidCollapseKey } : {}),
+      notification: {
+        tag: uniqueTag,
+        sound: "default",
+      },
     },
-    // Web Push (PWA/Chrome 등): urgency high + TTL + notification payload
     webpush: {
       headers: {
         Urgency: "high",
@@ -243,7 +244,7 @@ async function sendFCMMessages(
         body: payload.body,
         icon: "/icons/hades_helper.png",
         badge: "/icons/hades_helper.png",
-        tag: payload.tag,
+        tag: uniqueTag,
         requireInteraction: false,
         data: { url: payload.url },
       },
@@ -251,7 +252,6 @@ async function sendFCMMessages(
         link: payload.url,
       },
     },
-    // APNs (iOS): priority 10 (즉시) + content-available
     apns: {
       headers: {
         "apns-priority": "10",
@@ -368,7 +368,6 @@ async function fetchLive(base: string): Promise<MemberStatus[] | null> {
   try {
     const res = await fetch(`${base}/api/members/status`, {
       cache: "no-store",
-      next: { revalidate: 0 },
       headers: {
         "x-internal-cron": "1",
       },
@@ -385,7 +384,6 @@ async function fetchVote(base: string): Promise<VoteItem[] | null> {
   try {
     const res = await fetch(`${base}/api/votes`, {
       cache: "no-store",
-      next: { revalidate: 0 },
       headers: {
         "x-internal-cron": "1",
       },
@@ -402,7 +400,6 @@ async function fetchYoutube(base: string): Promise<YouTubeVideo[] | null> {
   try {
     const res = await fetch(`${base}/api/youtube`, {
       cache: "no-store",
-      next: { revalidate: 0 },
       headers: {
         "x-internal-cron": "1",
       },
@@ -602,25 +599,22 @@ export async function GET(req: Request) {
 
             if (targets.length > 0) {
               const sentAt = new Date().toISOString();
-              const liveResults = await Promise.all(
-                guardFiltered.map((target) =>
-                  sendFCMMessages(
-                    targets,
-                    {
-                      title: `${target.name} 방송 시작! 🔴`,
-                      body: target.title || "지금 라이브 중이에요",
-                      url: target.liveUrl || "/",
-                      tag: `live-${target.id}`,
-                    },
-                    {
-                      // 라이브 시작 알림은 가장 시간 민감하므로 collapse 비활성화
-                      // (기기 대기 상태에서 기존 대기 알림으로 덮어씌워져 누락되는 케이스 방지)
-                      collapse: false,
-                    }
-                  )
-                )
-              );
-              results.push(...liveResults);
+              for (const target of guardFiltered) {
+                const liveResult = await sendFCMMessages(
+                  targets,
+                  {
+                    title: `${target.name} 방송 시작! 🔴`,
+                    body: target.title || "지금 라이브 중이에요",
+                    url: target.liveUrl || "/",
+                    tag: `live-${target.id}`,
+                  },
+                  { collapse: false }
+                );
+                results.push(liveResult);
+                if (guardFiltered.length > 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 1500));
+                }
+              }
 
               for (const target of guardFiltered) {
                 liveState.lastLiveNotifyByMember = withLiveNotifyStamp(
@@ -736,23 +730,22 @@ export async function GET(req: Request) {
           );
 
           if (targets.length > 0) {
-            const voteResults = await Promise.all(
-              readyVotes.map((vote) =>
-                sendFCMMessages(
-                  targets,
-                  {
-                    title: "새 투표가 등록되었어요! 🗳️",
-                    body: vote.title,
-                    url: `/votes?open=${vote.id}`,
-                    tag: `vote-${vote.id}`,
-                  },
-                  {
-                    collapse: false,
-                  }
-                )
-              )
-            );
-            results.push(...voteResults);
+            for (const vote of readyVotes) {
+              const voteResult = await sendFCMMessages(
+                targets,
+                {
+                  title: "새 투표가 등록되었어요! 🗳️",
+                  body: vote.title,
+                  url: `/votes?open=${vote.id}`,
+                  tag: `vote-${vote.id}`,
+                },
+                { collapse: false }
+              );
+              results.push(voteResult);
+              if (readyVotes.length > 1) {
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+              }
+            }
           }
 
           // 이미 발송 완료된 항목은 firstSeen 맵에서 제거, 대기 항목만 유지
@@ -808,23 +801,22 @@ export async function GET(req: Request) {
           );
 
           if (targets.length > 0) {
-            const youtubeResults = await Promise.all(
-              changedVideos.map((video) =>
-                sendFCMMessages(
-                  targets,
-                  {
-                    title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}가 올라왔어요! ▶️`,
-                    body: video.title,
-                    url: video.url || "/",
-                    tag: `yt-${video.id}`,
-                  },
-                  {
-                    collapse: false,
-                  }
-                )
-              )
-            );
-            results.push(...youtubeResults);
+            for (const video of changedVideos) {
+              const ytResult = await sendFCMMessages(
+                targets,
+                {
+                  title: `새 ${video.type === "shorts" ? "Shorts" : "영상"}가 올라왔어요! ▶️`,
+                  body: video.title,
+                  url: video.url || "/",
+                  tag: `yt-${video.id}`,
+                },
+                { collapse: false }
+              );
+              results.push(ytResult);
+              if (changedVideos.length > 1) {
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+              }
+            }
           }
         }
 
