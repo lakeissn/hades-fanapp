@@ -1922,8 +1922,9 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .admin-main { max-width: 800px; margin: 0 auto; padding: 24px 20px 48px; display: flex; flex-direction: column; gap: 18px; }
 
 .admin-page-head {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
+.admin-page-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .admin-page-title { font-size: 18px; font-weight: 700; color: var(--text); }
 
 .admin-add-btn {
@@ -1946,7 +1947,9 @@ main { display: flex; flex-direction: column; gap: 28px; }
   transition: border-color 0.15s;
 }
 .admin-vote-card:hover { border-color: var(--border-strong); }
+.admin-vote-card.avs-selected { border-color: #3b82f6; background: rgba(59,130,246,0.04); }
 [data-theme="dark"] .admin-vote-card { border-color: transparent; }
+[data-theme="dark"] .admin-vote-card.avs-selected { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
 
 .admin-vote-card-top {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
@@ -1962,6 +1965,13 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .admin-action-btn:hover { color: var(--text); }
 .admin-action-btn.danger:hover { color: #ef4444; }
 
+.admin-vote-select {
+  position: absolute; top: 14px; right: 14px; cursor: pointer; z-index: 1;
+}
+.admin-vote-select input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: #3b82f6; cursor: pointer;
+}
+.admin-vote-card-body { position: relative; }
 .admin-vote-card-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
 
 .admin-vote-status {

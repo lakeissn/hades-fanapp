@@ -13,6 +13,25 @@ export async function GET() {
   return NextResponse.json(data);
 }
 
+export async function DELETE(req: Request) {
+  try {
+    const { ids } = await req.json();
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: "삭제할 항목을 선택해주세요." }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from("votes")
+      .delete()
+      .in("id", ids);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, deleted: ids.length });
+  } catch {
+    return NextResponse.json({ error: "잘못된 요청" }, { status: 400 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();

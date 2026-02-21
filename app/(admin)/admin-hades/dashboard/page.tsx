@@ -113,6 +113,43 @@ export default function AdminDashboard() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllExpired = () => {
+    const expiredIds = votes.filter(isExpired).map(v => v.id);
+    setSelectedIds(new Set(expiredIds));
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      const res = await fetch("/api/admin/votes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      if (res.ok) {
+        setBulkDeleteConfirm(false);
+        setSelectedIds(new Set());
+        fetchVotes();
+      }
+    } catch { /* ignore */ } finally {
+      setBulkDeleting(false);
+    }
+  };
 
   const fetchVotes = useCallback(async () => {
     setLoading(true);
@@ -204,7 +241,20 @@ export default function AdminDashboard() {
       <main className="admin-main">
         <div className="admin-page-head">
           <h1 className="admin-page-title">{votes.length}개의 투표</h1>
-          <button className="admin-add-btn" onClick={openCreate}>+ 추가</button>
+          <div className="admin-page-head-actions">
+            {selectedIds.size > 0 && (
+              <button className="admin-btn-sm danger" onClick={() => setBulkDeleteConfirm(true)}>
+                {selectedIds.size}개 삭제
+              </button>
+            )}
+            {votes.some(isExpired) && selectedIds.size === 0 && (
+              <button className="admin-btn-sm" onClick={selectAllExpired}>만료 선택</button>
+            )}
+            {selectedIds.size > 0 && (
+              <button className="admin-btn-sm" onClick={clearSelection}>선택 해제</button>
+            )}
+            <button className="admin-add-btn" onClick={openCreate}>+ 추가</button>
+          </div>
         </div>
 
         {loading ? (
@@ -217,8 +267,11 @@ export default function AdminDashboard() {
               const st = statusLabel(vote);
               const platforms = platformDisplay(vote.platform);
               return (
-                <div key={vote.id} className={`admin-vote-card avs-${st.cls.replace("vst-", "")}`}>
+                <div key={vote.id} className={`admin-vote-card avs-${st.cls.replace("vst-", "")} ${selectedIds.has(vote.id) ? "avs-selected" : ""}`}>
                   <div className="admin-vote-card-body">
+                    <label className="admin-vote-select" onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={selectedIds.has(vote.id)} onChange={() => toggleSelect(vote.id)} />
+                    </label>
                     <div className="admin-vote-card-chips">
                       {platforms.map(p => (
                         <span key={p.key} className="admin-platform-tag">
@@ -313,6 +366,22 @@ export default function AdminDashboard() {
                 <button type="submit" className="admin-btn-primary" disabled={saving}>{saving ? "저장 중..." : "저장"}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 일괄 삭제 확인 */}
+      {bulkDeleteConfirm && (
+        <div className="admin-modal-overlay" onClick={() => setBulkDeleteConfirm(false)}>
+          <div className="admin-modal admin-modal-sm" onClick={(e) => e.stopPropagation()}>
+            <h3>{selectedIds.size}개 투표 삭제</h3>
+            <p>선택한 {selectedIds.size}개의 투표를 삭제합니다. 복구할 수 없습니다.</p>
+            <div className="admin-form-actions">
+              <button className="admin-btn-ghost" onClick={() => setBulkDeleteConfirm(false)}>취소</button>
+              <button className="admin-btn-primary danger" onClick={handleBulkDelete} disabled={bulkDeleting}>
+                {bulkDeleting ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
           </div>
         </div>
       )}
