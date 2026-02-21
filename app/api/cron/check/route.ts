@@ -213,10 +213,9 @@ async function sendFCMMessages(
     : `${payload.tag}-${sentAt.replace(/[^0-9]/g, "")}-${Math.random().toString(36).slice(2, 6)}`;
 
   const message: Omit<MulticastMessage, "tokens"> = {
-    notification: {
-      title: payload.title,
-      body: payload.body,
-    },
+    // top-level notification 제거 — 플랫폼별 개별 처리
+    // (top-level notification이 있으면 Chrome이 auto-display + push 이벤트를
+    //  동시에 발생시켜, 동일 제목의 다건 알림이 브라우저 레벨에서 병합/누락됨)
     data: {
       title: payload.title,
       body: payload.body,
@@ -225,33 +224,31 @@ async function sendFCMMessages(
       icon: "/icons/hades_helper.png",
       sentAt,
     },
+    // Android native: 시스템이 직접 표시 (서비스 워커 불필요)
     android: {
       priority: "high" as const,
       ttl: TTL_SECONDS * 1000,
       ...(useCollapse ? { collapseKey: androidCollapseKey } : {}),
       notification: {
+        title: payload.title,
+        body: payload.body,
         tag: uniqueTag,
         sound: "default",
+        icon: "hades_helper",
       },
     },
+    // Web Push (Chrome/Firefox/Edge): data-only → 서비스 워커가 전적으로 표시 담당
+    // notification 필드 없음 → 브라우저 auto-display 방지 → 다건 알림 누락 해소
     webpush: {
       headers: {
         Urgency: "high",
         TTL: String(TTL_SECONDS),
       },
-      notification: {
-        title: payload.title,
-        body: payload.body,
-        icon: "/icons/hades_helper.png",
-        badge: "/icons/hades_helper.png",
-        tag: uniqueTag,
-        requireInteraction: false,
-        data: { url: payload.url },
-      },
       fcmOptions: {
         link: payload.url,
       },
     },
+    // iOS (APNs): alert으로 직접 표시
     apns: {
       headers: {
         "apns-priority": "10",
@@ -262,7 +259,10 @@ async function sendFCMMessages(
       },
       payload: {
         aps: {
-          "content-available": 1,
+          alert: {
+            title: payload.title,
+            body: payload.body,
+          },
           sound: "default",
         },
       },
