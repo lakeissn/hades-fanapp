@@ -1,11 +1,8 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
-  "/(admin)/admin-hades/page": "app/(admin)/admin-hades/page.js",
-  "/add-to-home/page": "app/add-to-home/page.js",
-  "/icon/[[...__metadata_id__]]/route": "app/icon/[[...__metadata_id__]]/route.js",
+  "/streaming-calc/page": "app/streaming-calc/page.js",
   "/api/youtube/route": "app/api/youtube/route.js",
-  "/votes/page": "app/votes/page.js",
   "/api/votes/route": "app/api/votes/route.js",
-  "/api/members/status/route": "app/api/members/status/route.js"
+  "/api/members/status/route": "app/api/members/status/route.js",
+  "/icon/[[...__metadata_id__]]/route": "app/icon/[[...__metadata_id__]]/route.js"
 }

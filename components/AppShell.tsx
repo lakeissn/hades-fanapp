@@ -184,7 +184,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {headerLinks.map((link) => (
               <Link
                 key={link.href}
-                className={`nav-link ${isActive(link.href) ? "active" : ""}`}
+                className={`nav-link ${isActive(link.href) ? "active" : ""}${(link as any).desktopOnly ? " desktop-only" : ""}`}
                 href={link.href}
               >
                 {link.label}
@@ -226,7 +226,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           {menuOpen && (
             <div className="menu-panel">
-              {headerLinks.map((link) => (
+              {headerLinks.filter((l) => !(l as any).desktopOnly).map((link) => (
                 <Link
                   key={link.href}
                   className={`menu-link ${isActive(link.href) ? "active" : ""}`}

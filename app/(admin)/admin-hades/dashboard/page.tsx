@@ -269,17 +269,19 @@ export default function AdminDashboard() {
               return (
                 <div key={vote.id} className={`admin-vote-card avs-${st.cls.replace("vst-", "")} ${selectedIds.has(vote.id) ? "avs-selected" : ""}`}>
                   <div className="admin-vote-card-body">
-                    <label className="admin-vote-select" onClick={e => e.stopPropagation()}>
-                      <input type="checkbox" checked={selectedIds.has(vote.id)} onChange={() => toggleSelect(vote.id)} />
-                    </label>
-                    <div className="admin-vote-card-chips">
-                      {platforms.map(p => (
-                        <span key={p.key} className="admin-platform-tag">
-                          <img src={`/icons/${p.key}.png`} alt="" width={13} height={13} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                          {p.label}
-                        </span>
-                      ))}
-                      <span className={`admin-vote-status ${st.cls}`}>{st.text}</span>
+                    <div className="admin-vote-card-row-top">
+                      <div className="admin-vote-card-chips">
+                        {platforms.map(p => (
+                          <span key={p.key} className="admin-platform-tag">
+                            <img src={`/icons/${p.key}.png`} alt="" width={13} height={13} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                            {p.label}
+                          </span>
+                        ))}
+                        <span className={`admin-vote-status ${st.cls}`}>{st.text}</span>
+                      </div>
+                      <label className="admin-vote-select" onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" checked={selectedIds.has(vote.id)} onChange={() => toggleSelect(vote.id)} />
+                      </label>
                     </div>
                     <div className="admin-vote-card-top">
                       <h3 className="admin-vote-card-title">{vote.title}</h3>
