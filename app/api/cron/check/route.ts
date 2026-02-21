@@ -78,6 +78,24 @@ const VOTE_NOTIFY_STABLE_MINUTES = Number(
 );
 const VOTE_NOTIFY_STABLE_MS = VOTE_NOTIFY_STABLE_MINUTES * 60 * 1000;
 
+const ANDROID_COLLAPSE_KEY_MAX_LENGTH = 64;
+
+function sanitizeCollapseKeyPart(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function buildAndroidCollapseKey(tag: string, useCollapse: boolean, sentAt: string) {
+  const safeTag = sanitizeCollapseKeyPart(tag || "hades");
+  if (useCollapse) {
+    return safeTag.slice(0, ANDROID_COLLAPSE_KEY_MAX_LENGTH) || "hades";
+  }
+
+  // collapse 비활성화 시에도 Android에서 implicit collapse가 일어나지 않도록
+  // 메시지마다 고유하면서 길이 제한(64자) 이내인 key를 만든다.
+  const uniqueSeed = `${safeTag}-${sentAt.replace(/[^0-9]/g, "")}`;
+  return uniqueSeed.slice(0, ANDROID_COLLAPSE_KEY_MAX_LENGTH) || `${safeTag.slice(0, 40)}-${Date.now()}`;
+}
+
 function isRecentlyNotified(memberId: string, map: Record<string, string> | undefined) {
   if (!map?.[memberId]) return false;
   const prev = new Date(map[memberId]).getTime();
@@ -185,6 +203,7 @@ async function sendFCMMessages(
 
   const sentAt = new Date().toISOString();
   const useCollapse = options?.collapse ?? true;
+  const androidCollapseKey = buildAndroidCollapseKey(payload.tag, useCollapse, sentAt);
   // Android Doze / 네트워크 변동 구간에서도 누락을 줄이기 위해 TTL을 충분히 확보
   // (환경변수로 조절 가능, 기본 24시간)
   const TTL_SECONDS = Number(process.env.FCM_TTL_SECONDS ?? "86400");
@@ -208,7 +227,10 @@ async function sendFCMMessages(
     android: {
       priority: "high" as const,
       ttl: TTL_SECONDS * 1000,
-      ...(useCollapse ? { collapseKey: payload.tag } : {}),
+      // notification payload를 포함하는 Android 메시지는 기본적으로 collapse 동작을 할 수 있어
+      // 동시 다발 이벤트에서 앞선 알림이 덮어써지는 문제를 방지하기 위해
+      // collapse 비활성화 시에는 길이 제한을 지킨 고유 collapse key를 부여한다.
+      collapseKey: androidCollapseKey,
     },
     // Web Push (PWA/Chrome 등): urgency high + TTL + notification payload
     webpush: {
