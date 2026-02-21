@@ -237,12 +237,21 @@ async function sendFCMMessages(
         icon: "hades_helper",
       },
     },
-    // Web Push (Chrome/Firefox/Edge): data-only → 서비스 워커가 전적으로 표시 담당
-    // notification 필드 없음 → 브라우저 auto-display 방지 → 다건 알림 누락 해소
+    // Web Push: webpush.notification에 고유 tag 포함 → Chrome이 개별 알림으로 표시
+    // top-level notification은 제거하여 플랫폼 간 auto-display 충돌 방지
     webpush: {
       headers: {
         Urgency: "high",
         TTL: String(TTL_SECONDS),
+      },
+      notification: {
+        title: payload.title,
+        body: payload.body,
+        icon: "/icons/hades_helper.png",
+        badge: "/icons/hades_helper.png",
+        tag: uniqueTag,
+        requireInteraction: false,
+        data: { url: payload.url },
       },
       fcmOptions: {
         link: payload.url,

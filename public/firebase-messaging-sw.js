@@ -45,14 +45,14 @@ self.addEventListener("push", (event) => {
     return;
   }
 
-  // FCM data-only 메시지: payload.data 안에 title/body/url/tag
-  const data = payload.data || payload.notification || {};
-  const title = data.title || "HADES INFO";
-  const body = data.body || "";
-  const icon = data.icon || "/icons/hades_helper.png";
-  const badge = data.badge || "/icons/hades_helper.png";
-  const tag = data.tag || "hades-default";
-  const url = data.url || "/";
+  // FCM 메시지: payload 구조가 플랫폼/설정에 따라 다를 수 있으므로 모든 경우를 커버
+  const data = payload.data || payload.notification || payload;
+  const title = data.title || payload.title || "HADES INFO";
+  const body = data.body || payload.body || "";
+  const icon = data.icon || payload.icon || "/icons/hades_helper.png";
+  const badge = data.badge || payload.badge || "/icons/hades_helper.png";
+  const tag = data.tag || payload.tag || "hades-" + Date.now();
+  const url = data.url || payload.url || "/";
 
   const dedupeKey = buildNotificationKey(title, body, tag, url);
   if (isDuplicateNotification(dedupeKey)) {
