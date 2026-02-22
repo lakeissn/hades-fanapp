@@ -1448,6 +1448,74 @@ main { display: flex; flex-direction: column; gap: 28px; }
   border-radius: 0;
 }
 
+/* ---------- In-app browser notice ---------- */
+.pwa-inapp-notice {
+  width: 100%; max-width: 480px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+  padding: 48px 24px 64px;
+  gap: 0;
+}
+.pwa-inapp-icon {
+  width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pwa-accent) 12%, transparent);
+  color: var(--pwa-accent);
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+.pwa-inapp-title {
+  font-size: 24px; font-weight: 600; line-height: 1.4;
+  letter-spacing: -0.02em; color: var(--text);
+  margin: 0 0 14px;
+}
+.pwa-inapp-desc {
+  font-size: 15px; line-height: 1.65;
+  color: var(--muted); white-space: pre-line;
+  margin: 0 0 28px;
+}
+.pwa-inapp-actions {
+  display: flex; flex-direction: column; gap: 10px;
+  width: 100%; max-width: 320px;
+  margin-bottom: 36px;
+}
+.pwa-inapp-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; width: 100%;
+  padding: 14px 20px; border-radius: 12px; border: none;
+  font-size: 16px; font-weight: 600; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.pwa-inapp-btn:active { transform: scale(0.97); }
+.pwa-inapp-btn--primary {
+  background: var(--pwa-gradient); color: #fff;
+}
+.pwa-inapp-btn--primary:hover { opacity: 0.9; }
+.pwa-inapp-btn--secondary {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+.pwa-inapp-btn--secondary:hover { opacity: 0.8; }
+.pwa-inapp-steps {
+  width: 100%; max-width: 320px;
+  text-align: left;
+  padding: 20px 20px 20px 36px;
+  margin: 0;
+  background: var(--bg-elevated);
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  display: flex; flex-direction: column; gap: 10px;
+  list-style: decimal;
+}
+.pwa-inapp-steps li {
+  font-size: 14px; line-height: 1.6; color: var(--muted);
+}
+.pwa-inapp-steps li strong {
+  color: var(--text); font-weight: 600;
+}
+
 /* ===== SKELETON ===== */
 @keyframes shimmer {
   0% { background-position: -400px 0; }

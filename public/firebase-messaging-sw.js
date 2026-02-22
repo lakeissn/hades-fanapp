@@ -79,23 +79,23 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const targetUrl = event.notification.data?.url || "/";
-  // 상대 경로를 절대 URL로 변환
   const fullUrl = new URL(targetUrl, self.location.origin).href;
+  const isExternal = !fullUrl.startsWith(self.location.origin);
 
   event.waitUntil(
-    self.clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((windowClients) => {
-        // 이미 열려있는 같은 origin 탭이 있으면 포커스 + 이동
-        for (const client of windowClients) {
-          if (client.url.startsWith(self.location.origin) && "focus" in client) {
-            client.navigate(fullUrl);
-            return client.focus();
-          }
-        }
-        // 열린 탭이 없으면 새 창
-        return self.clients.openWindow(fullUrl);
-      })
+    isExternal
+      ? self.clients.openWindow(fullUrl)
+      : self.clients
+          .matchAll({ type: "window", includeUncontrolled: true })
+          .then((windowClients) => {
+            for (const client of windowClients) {
+              if (client.url.startsWith(self.location.origin) && "focus" in client) {
+                client.navigate(fullUrl);
+                return client.focus();
+              }
+            }
+            return self.clients.openWindow(fullUrl);
+          })
   );
 });
 

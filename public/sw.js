@@ -15,16 +15,21 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url || "/";
+  const fullUrl = new URL(url, self.location.origin).href;
+  const isExternal = !fullUrl.startsWith(self.location.origin);
+
   event.waitUntil(
-    self.clients.matchAll({ type: "window" }).then((clients) => {
-      for (const client of clients) {
-        if (client.url.includes(self.location.origin) && "focus" in client) {
-          client.navigate(url);
-          return client.focus();
-        }
-      }
-      return self.clients.openWindow(url);
-    })
+    isExternal
+      ? self.clients.openWindow(fullUrl)
+      : self.clients.matchAll({ type: "window" }).then((clients) => {
+          for (const client of clients) {
+            if (client.url.includes(self.location.origin) && "focus" in client) {
+              client.navigate(fullUrl);
+              return client.focus();
+            }
+          }
+          return self.clients.openWindow(fullUrl);
+        })
   );
 });
 

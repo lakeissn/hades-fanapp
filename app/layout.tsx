@@ -2,7 +2,7 @@ import "./globals.css";
 import AppShell from "../components/AppShell";
 import NotificationPoller from "../components/NotificationPoller";
 import NotificationManager from "../components/NotificationManager";
-import { Analytics } from "@vercel/analytics/react";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata = {
   title: "HADES INFO",
