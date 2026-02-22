@@ -2,6 +2,7 @@ import "./globals.css";
 import AppShell from "../components/AppShell";
 import NotificationPoller from "../components/NotificationPoller";
 import NotificationManager from "../components/NotificationManager";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: "HADES INFO",
@@ -61,6 +62,8 @@ export default function RootLayout({
         <NotificationManager />
         {/* 기존 폴링 기반 포그라운드 알림 (클라이언트 폴링) - 호환성 유지 */}
         <NotificationPoller />
+        {/* ✅ Vercel Analytics */}
+        <Analytics />
       </body>
     </html>
   );
