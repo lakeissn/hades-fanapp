@@ -17,15 +17,50 @@
       "static/chunks/main-app.js",
       "static/chunks/app/loading.js"
     ],
-    "/streaming-calc/page": [
+    "/settings/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/streaming-calc/page.js"
+      "static/chunks/app/settings/page.js"
+    ],
+    "/votes/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/votes/page.js"
     ],
     "/guides/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/guides/page.js"
+    ],
+    "/guides/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/guides/[id]/page.js"
+    ],
+    "/guides/[id]/[itemId]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/guides/[id]/[itemId]/page.js"
+    ],
+    "/not-found": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/not-found.js"
+    ],
+    "/_not-found/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/_not-found/page.js"
+    ],
+    "/chart/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/chart/page.js"
+    ],
+    "/chart/song/[slug]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/chart/song/[slug]/page.js"
     ]
   }
 }

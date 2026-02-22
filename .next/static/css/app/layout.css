@@ -567,7 +567,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .vote-showcase-title-row .vote-preview-icons { flex-shrink: 0; }
 .vote-showcase-label {
   min-width: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.2;
   white-space: nowrap;
@@ -757,6 +757,7 @@ main { display: flex; flex-direction: column; gap: 28px; }
   color: var(--text-secondary);
   line-height: 1.6;
 }
+.vu-page { padding-top: 16px; }
 .vu-page .vote-action-btn { margin-top: 2px; }
 [data-theme="dark"] .vu-banner { border-width: 0; }
 [data-theme="dark"] .vu-detail { border-width: 0; }
@@ -1289,6 +1290,44 @@ main { display: flex; flex-direction: column; gap: 28px; }
 .theme-option.active { background: var(--tab-active-bg); color: var(--tab-active-text); border-color: var(--border); }
 .notification-sub-settings { overflow: hidden; transition: max-height 0.3s ease; }
 
+/* ===== 404 NOT FOUND ===== */
+.notfound-page {
+  display: flex; align-items: center; justify-content: center;
+  min-height: calc(100dvh - 120px);
+  padding: 24px;
+}
+.notfound-inner {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 12px;
+}
+.notfound-mascot {
+  border-radius: 24px;
+  opacity: 0.35;
+  filter: grayscale(1);
+  margin-bottom: 8px;
+}
+.notfound-code {
+  font-size: 72px; font-weight: 800; letter-spacing: -0.04em;
+  line-height: 1;
+  background: linear-gradient(135deg, #d81b60 0%, #ec1187 50%, #f48fb1 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  margin: 0;
+}
+.notfound-title {
+  font-size: 20px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--text); margin: 0;
+}
+.notfound-desc {
+  font-size: 14px; color: var(--muted); line-height: 1.5; margin: 0;
+}
+.notfound-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-top: 8px; padding: 12px 32px; border-radius: 12px;
+  background: var(--accent-subtle); border: 2px solid var(--border);
+  color: var(--text); font-size: 15px; font-weight: 600;
+}
+.notfound-btn:hover { opacity: 0.75; }
+
 /* ===== PRIVACY PAGE ===== */
 .privacy-page { display: flex; flex-direction: column; gap: 20px; }
 .privacy-back {
@@ -1454,6 +1493,74 @@ main { display: flex; flex-direction: column; gap: 28px; }
   width: 100%; aspect-ratio: 9/16;
   background: var(--bg-elevated); border: 2px dashed var(--border);
   border-radius: 0;
+}
+
+/* ---------- In-app browser notice ---------- */
+.pwa-inapp-notice {
+  width: 100%; max-width: 480px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+  padding: 48px 24px 64px;
+  gap: 0;
+}
+.pwa-inapp-icon {
+  width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pwa-accent) 12%, transparent);
+  color: var(--pwa-accent);
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+.pwa-inapp-title {
+  font-size: 24px; font-weight: 600; line-height: 1.4;
+  letter-spacing: -0.02em; color: var(--text);
+  margin: 0 0 14px;
+}
+.pwa-inapp-desc {
+  font-size: 15px; line-height: 1.65;
+  color: var(--muted); white-space: pre-line;
+  margin: 0 0 28px;
+}
+.pwa-inapp-actions {
+  display: flex; flex-direction: column; gap: 10px;
+  width: 100%; max-width: 320px;
+  margin-bottom: 36px;
+}
+.pwa-inapp-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; width: 100%;
+  padding: 14px 20px; border-radius: 12px; border: none;
+  font-size: 16px; font-weight: 600; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.pwa-inapp-btn:active { transform: scale(0.97); }
+.pwa-inapp-btn--primary {
+  background: var(--pwa-gradient); color: #fff;
+}
+.pwa-inapp-btn--primary:hover { opacity: 0.9; }
+.pwa-inapp-btn--secondary {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+.pwa-inapp-btn--secondary:hover { opacity: 0.8; }
+.pwa-inapp-steps {
+  width: 100%; max-width: 320px;
+  text-align: left;
+  padding: 20px 20px 20px 36px;
+  margin: 0;
+  background: var(--bg-elevated);
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  display: flex; flex-direction: column; gap: 10px;
+  list-style: decimal;
+}
+.pwa-inapp-steps li {
+  font-size: 14px; line-height: 1.6; color: var(--muted);
+}
+.pwa-inapp-steps li strong {
+  color: var(--text); font-weight: 600;
 }
 
 /* ===== SKELETON ===== */
